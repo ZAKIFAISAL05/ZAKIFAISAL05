@@ -134,6 +134,29 @@ async function sendFonnte(token, target, message) {
   } catch (e) { console.error('Fonnte error:', e.message); return false; }
 }
 
+function getSiteOrigin(event) {
+  const headers = event?.headers || {};
+  const protoHeader = headers['x-forwarded-proto'] || headers['X-Forwarded-Proto'] || 'https';
+  const hostHeader =
+    headers['x-forwarded-host'] ||
+    headers['X-Forwarded-Host'] ||
+    headers.host ||
+    headers.Host ||
+    process.env.URL ||
+    process.env.DEPLOY_URL ||
+    process.env.SITE_URL ||
+    '';
+
+  const proto = String(protoHeader).split(',')[0].trim() || 'https';
+  const host = String(hostHeader)
+    .trim()
+    .replace(/^https?:\/\//i, '')
+    .replace(/\/+$/, '');
+
+  if (!host) return 'https://nusabit.netlify.app';
+  return `${proto}://${host}`;
+}
+
 // Kirim email via Resend (https://resend.com — gratis 3000 email/bulan)
 async function sendEmail(apiKey, to, subject, html) {
   try {
@@ -295,7 +318,8 @@ exports.handler = async function (event) {
   // 2. Simpan tiket ke Netlify Blobs (nomor urut + token)
   const ticketData = await saveTicketToBlobs({ id: ticketId, type, game: gameLabel, desc: desc.trim(), email, contact, summary });
   const ticketNum  = ticketData?.num || '—';
-  const ticketUrl  = ticketData ? `https://nusabit.netlify.app${ticketData.ticketUrl}` : '';
+  const siteOrigin = getSiteOrigin(event);
+  const ticketUrl  = ticketData ? `${siteOrigin}${ticketData.ticketUrl}` : '';
 
   // 3. WA admin via Fonnte
   if (fonnteToken && adminTarget) {

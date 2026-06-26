@@ -1,13 +1,13 @@
-functionsDirectory = "/workspace/ZAKIFAISAL05/netlify/functions"
+functionsDirectory = "/data/user/work/zakifaisal05/ZAKIFAISAL05/netlify/functions"
 functionsDirectoryOrigin = "config-v1"
 headersOrigin = "config"
 redirectsOrigin = "config"
 plugins = []
 
 [build]
-publish = "/workspace/ZAKIFAISAL05"
+publish = "/data/user/work/zakifaisal05/ZAKIFAISAL05"
 publishOrigin = "config"
-functions = "/workspace/ZAKIFAISAL05/netlify/functions"
+functions = "/data/user/work/zakifaisal05/ZAKIFAISAL05/netlify/functions"
 
 [build.environment]
 
@@ -40,7 +40,7 @@ X-Permitted-Cross-Domain-Policies = "none"
 Cross-Origin-Opener-Policy = "same-origin"
 Cross-Origin-Resource-Policy = "same-origin"
 Strict-Transport-Security = "max-age=31536000; includeSubDomains"
-Content-Security-Policy = "default-src 'self';\n      base-uri 'self';\n      object-src 'none';\n      frame-ancestors 'none';\n      form-action 'self';\n      img-src 'self' data: https:;\n      media-src 'self' blob: data:;\n      script-src 'self' 'unsafe-inline' https://unpkg.com https://cdnjs.cloudflare.com;\n      style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com;\n      font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com;\n      connect-src 'self';"
+Content-Security-Policy = "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: https:; media-src 'self' blob: data:; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com; connect-src 'self';"
 
 [[headers]]
 for = "/admin/*"
@@ -76,9 +76,9 @@ Cache-Control = "public, max-age=604800, immutable"
 
 [[redirects]]
 from = "/cs"
-to = "/cs/"
-status = 301.0
-force = true
+to = "/cs/index.html"
+status = 200.0
+force = false
 
 [redirects.query]
 
@@ -88,9 +88,33 @@ force = true
 
 [[redirects]]
 from = "/tiket"
-to = "/tiket/"
-status = 301.0
-force = true
+to = "/tiket/index.html"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
+
+[[redirects]]
+from = "/ticket"
+to = "/tiket/index.html"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
+
+[[redirects]]
+from = "/ticket/"
+to = "/tiket/index.html"
+status = 200.0
+force = false
 
 [redirects.query]
 

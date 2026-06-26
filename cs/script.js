@@ -253,9 +253,10 @@ function showContextualQuick(botReply) {
 }
 
 function showTicketPrompt() {
+    var siteOrigin = window.location.origin || 'https://nusabit.netlify.app';
     addMsg('bot',
         'Untuk cek status tiket, masukkan link tiket yang kamu dapat setelah laporan dikirim. ' +
-        'Formatnya: **https://nusabit.netlify.app/tiket/?token=XXXXXX**\n\n' +
+        'Formatnya: **' + siteOrigin + '/tiket/?token=XXXXXX**\n\n' +
         'Atau klik tombol **🔍 Pantau Status Tiket** di bubble laporan sebelumnya.',
         now()
     );
