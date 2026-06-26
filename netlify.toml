@@ -18,6 +18,23 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy        = "strict-origin-when-cross-origin"
     Permissions-Policy     = "camera=(), microphone=(), geolocation=()"
+    X-Permitted-Cross-Domain-Policies = "none"
+    Cross-Origin-Opener-Policy = "same-origin"
+    Cross-Origin-Resource-Policy = "same-origin"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    Content-Security-Policy = """
+      default-src 'self';
+      base-uri 'self';
+      object-src 'none';
+      frame-ancestors 'none';
+      form-action 'self';
+      img-src 'self' data: https:;
+      media-src 'self' blob: data:;
+      script-src 'self' 'unsafe-inline' https://unpkg.com https://cdnjs.cloudflare.com;
+      style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com;
+      font-src 'self' data: https://fonts.gstatic.com;
+      connect-src 'self';
+    """
 
 [[headers]]
   for = "/admin/*"
@@ -65,6 +82,18 @@
 [[redirects]]
   from   = "/maintenance"
   to     = "/errors/maintenance.html"
+  status = 200
+
+# ── ADMIN ROUTE ───────────────────────────────────────────────
+# /admin (tanpa file) harusnya masuk ke file panel admin
+[[redirects]]
+  from   = "/admin"
+  to     = "/admin/admin.html"
+  status = 200
+
+[[redirects]]
+  from   = "/admin/"
+  to     = "/admin/admin.html"
   status = 200
 
 # ── GAME DETAIL PAGES ────────────────────────────────────────
