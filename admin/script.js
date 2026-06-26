@@ -8,6 +8,7 @@
 const GAMES_API    = '/.netlify/functions/games';
 const REPORT_STORE = 'gs_reports';
 const SITE_SETTINGS_API = '/.netlify/functions/site-settings';
+const ADMIN_LOGS_API = '/.netlify/functions/admin-logs';
 
 /* ── AUTH CONFIG ── */
 const ADMIN_CREDENTIALS = {
@@ -38,10 +39,62 @@ function isSessionValid() { const s = getSession(); return s && Date.now() < s.e
 
 /* ── LOG ── */
 const logLines = [];
+let _isSyncingLogs = false;
+let _lastLogSignature = '';
+
+async function persistLogToServer(msg, type = 'evt') {
+  const adminToken = getAdminToken();
+  if (!adminToken) return;
+
+  try {
+    await fetch(ADMIN_LOGS_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg, type, adminToken }),
+    });
+  } catch {
+    // Jangan ganggu UI kalau log server gagal
+  }
+}
+
+async function fetchAdminLogs() {
+  const adminToken = getAdminToken();
+  if (!adminToken) return;
+
+  try {
+    const res = await fetch(`${ADMIN_LOGS_API}?adminToken=${encodeURIComponent(adminToken)}`, {
+      method: 'GET',
+      cache: 'no-store',
+    });
+    const data = await res.json();
+    if (!data || !data.ok) return;
+
+    logLines.length = 0;
+    (data.logs || []).forEach((item) => {
+      logLines.push({
+        ts: item.ts || new Date(item.createdAt || Date.now()).toLocaleTimeString('id-ID', { hour12: false }),
+        msg: item.message || '',
+        type: item.type || 'evt',
+        createdAt: item.createdAt || new Date().toISOString(),
+      });
+    });
+    renderLog();
+  } catch {
+    // ignore
+  }
+}
+
 function addLog(msg, type = 'evt') {
   const ts = new Date().toLocaleTimeString('id-ID', {hour12:false});
-  logLines.push({ts, msg, type});
+  const createdAt = new Date().toISOString();
+  logLines.push({ts, msg, type, createdAt});
   renderLog();
+
+  // Hindari spam log duplikat beruntun yang sama persis
+  const signature = `${type}|${msg}|${Math.floor(Date.now() / 1000)}`;
+  if (signature === _lastLogSignature || _isSyncingLogs) return;
+  _lastLogSignature = signature;
+  persistLogToServer(msg, type);
 }
 function renderLog() {
   const el = document.getElementById('activityLog');
@@ -601,6 +654,10 @@ async function showAdmin(sess) {
   document.getElementById('loginTime').textContent        = sess.loginAt;
   startSessionTimer(sess);
   startAdminCharAnim();
+  initLogActions();
+  _isSyncingLogs = true;
+  await fetchAdminLogs();
+  _isSyncingLogs = false;
   addLog('Admin panel loaded — mengambil data game dari server...');
   await renderGameTable();
   updateStats();
@@ -609,7 +666,6 @@ async function showAdmin(sess) {
   initAutoSlug();
   initLivePreview();
   initCommandCenter();
-  initLogActions();
   initSiteSettingsPanel();
   addLog(`Session aktif — expires in ${SESSION_MINUTES} minutes`);
 }
@@ -1249,7 +1305,8 @@ function initLogActions() {
     clearBtn.addEventListener('click', () => {
       logLines.length = 0;
       renderLog();
-      showToast('Tampilan log dibersihkan.', 'info');
+      fetchAdminLogs();
+      showToast('Tampilan log di-refresh dari server.', 'info');
     });
   }
 }

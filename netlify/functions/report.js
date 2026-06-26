@@ -34,6 +34,52 @@ async function saveTicketToBlobs({ id, type, game, desc, email, contact, summary
     const store = createTicketStore();
     const COUNTER_KEY = 'ticket-counter';
     const TICKETS_KEY = 'ticket-list';
+    const DONE_RETENTION_MS = 2 * 24 * 60 * 60 * 1000;
+
+    async function deleteTicketRecord(ticketId) {
+      try {
+        if (typeof store.delete === 'function') await store.delete('ticket:' + ticketId);
+      } catch {
+        // ignore
+      }
+    }
+
+    async function cleanupExpiredTickets() {
+      const rawIdx = await store.get(TICKETS_KEY).catch(() => null);
+      const idx = rawIdx ? JSON.parse(rawIdx) : [];
+      const cleaned = [];
+
+      for (const entry of idx) {
+        if (!entry || !entry.id) continue;
+        const rawTicket = await store.get('ticket:' + entry.id).catch(() => null);
+        if (!rawTicket) continue;
+
+        const ticket = JSON.parse(rawTicket);
+        const doneAt = Date.parse(ticket.closedAt || ticket.updatedAt || entry.updatedAt || entry.createdAt || '');
+        const isExpiredDone = !!ticket.done && !Number.isNaN(doneAt) && (Date.now() - doneAt >= DONE_RETENTION_MS);
+
+        if (isExpiredDone) {
+          await deleteTicketRecord(entry.id);
+          continue;
+        }
+
+        cleaned.push({
+          id: ticket.id,
+          num: ticket.num,
+          token: ticket.token,
+          status: ticket.status,
+          createdAt: ticket.createdAt,
+          updatedAt: ticket.updatedAt,
+          closedAt: ticket.closedAt || null,
+          done: !!ticket.done,
+        });
+      }
+
+      await store.set(TICKETS_KEY, JSON.stringify(cleaned));
+      return cleaned;
+    }
+
+    await cleanupExpiredTickets();
 
     const rawCounter = await store.get(COUNTER_KEY).catch(() => null);
     const num = rawCounter ? parseInt(rawCounter) + 1 : 1;
@@ -55,7 +101,7 @@ async function saveTicketToBlobs({ id, type, game, desc, email, contact, summary
 
     const rawIdx = await store.get(TICKETS_KEY).catch(() => null);
     const idx = rawIdx ? JSON.parse(rawIdx) : [];
-    idx.unshift({ id, num, token, status: 'received', createdAt: now, done: false });
+    idx.unshift({ id, num, token, status: 'received', createdAt: now, updatedAt: now, done: false });
     await store.set(TICKETS_KEY, JSON.stringify(idx));
 
     return { num, token, ticketUrl: '/tiket/?token=' + token };

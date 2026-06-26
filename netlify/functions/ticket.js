@@ -37,6 +37,7 @@ function createStore() {
 
 const COUNTER_KEY = 'ticket-counter';
 const TICKETS_KEY = 'ticket-list';   // index: [{id, num, token, status, createdAt, done}]
+const DONE_RETENTION_MS = 2 * 24 * 60 * 60 * 1000;
 
 async function getCounter(store) {
   try { const raw = await store.get(COUNTER_KEY); return raw ? parseInt(raw) : 0; } catch { return 0; }
@@ -52,6 +53,13 @@ async function getTicket(store, id) {
   try { const raw = await store.get('ticket:' + id); return raw ? JSON.parse(raw) : null; } catch { return null; }
 }
 async function saveTicket(store, ticket) { await store.set('ticket:' + ticket.id, JSON.stringify(ticket)); }
+async function deleteTicketRecord(store, id) {
+  try {
+    if (typeof store.delete === 'function') await store.delete('ticket:' + id);
+  } catch {
+    // ignore
+  }
+}
 
 // Hash SHA-256 password admin — bisa di-override via ADMIN_TICKET_KEY di Netlify env vars
 // Jika ADMIN_TICKET_KEY diset, isinya HARUS berupa SHA-256 hash dari password admin kamu
@@ -70,6 +78,51 @@ async function verifyAdmin(adminToken) {
   } catch { return false; }
 }
 
+async function cleanupExpiredTickets(store, indexInput) {
+  const idx = Array.isArray(indexInput) ? indexInput : await getIndex(store);
+  const cleaned = [];
+  let changed = false;
+
+  for (const entry of idx) {
+    if (!entry || !entry.id) {
+      changed = true;
+      continue;
+    }
+
+    const ticket = await getTicket(store, entry.id);
+    if (!ticket) {
+      changed = true;
+      continue;
+    }
+
+    const doneAt = Date.parse(ticket.closedAt || ticket.updatedAt || entry.updatedAt || entry.createdAt || '');
+    const isExpiredDone = !!ticket.done && !Number.isNaN(doneAt) && (Date.now() - doneAt >= DONE_RETENTION_MS);
+
+    if (isExpiredDone) {
+      await deleteTicketRecord(store, entry.id);
+      changed = true;
+      continue;
+    }
+
+    cleaned.push({
+      id: ticket.id,
+      num: ticket.num,
+      token: ticket.token,
+      status: ticket.status,
+      createdAt: ticket.createdAt,
+      updatedAt: ticket.updatedAt,
+      closedAt: ticket.closedAt || null,
+      done: !!ticket.done,
+    });
+  }
+
+  if (changed || cleaned.length !== idx.length) {
+    await saveIndex(store, cleaned);
+  }
+
+  return cleaned;
+}
+
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
 
@@ -80,11 +133,11 @@ exports.handler = async (event) => {
   // ── GET ──
   if (event.httpMethod === 'GET') {
     const q = event.queryStringParameters || {};
+    const idx = await cleanupExpiredTickets(store);
 
     // Admin: list semua tiket
     if (q.admin === '1' && q.list === '1') {
       if (!(await verifyAdmin(q.adminToken))) return { statusCode: 403, headers: CORS, body: JSON.stringify({ error: 'Akses ditolak' }) };
-      const idx = await getIndex(store);
       // Ambil detail tiket untuk setiap index entry
       const tickets = await Promise.all(idx.map(async (entry) => {
         const t = await getTicket(store, entry.id);
@@ -104,7 +157,6 @@ exports.handler = async (event) => {
     // User: lihat tiket dengan token rahasia
     if (q.token) {
       const tokenQ = String(q.token || '').trim().toUpperCase();
-      const idx = await getIndex(store);
       const entry = idx.find(e => String(e.token || '').toUpperCase() === tokenQ);
       if (!entry) return { statusCode: 404, headers: CORS, body: JSON.stringify({ error: 'Tiket tidak ditemukan atau token tidak valid' }) };
       if (entry.done) return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, expired: true, num: entry.num }) };
@@ -154,6 +206,7 @@ exports.handler = async (event) => {
     catch { return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Body tidak valid' }) }; }
 
     const { action } = body;
+    await cleanupExpiredTickets(store);
 
     // Buat tiket baru
     if (action === 'create') {
@@ -206,7 +259,11 @@ exports.handler = async (event) => {
       // Update index entry
       const idx = await getIndex(store);
       const ei  = idx.findIndex(e => e.id === id);
-      if (ei !== -1) { idx[ei].status = status; await saveIndex(store, idx); }
+      if (ei !== -1) {
+        idx[ei].status = status;
+        idx[ei].updatedAt = ticket.updatedAt;
+        await saveIndex(store, idx);
+      }
 
       return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, ticket }) };
     }
@@ -229,9 +286,28 @@ exports.handler = async (event) => {
       // Update index
       const idx = await getIndex(store);
       const ei  = idx.findIndex(e => e.id === id);
-      if (ei !== -1) { idx[ei].status = 'done'; idx[ei].done = true; await saveIndex(store, idx); }
+      if (ei !== -1) {
+        idx[ei].status = 'done';
+        idx[ei].done = true;
+        idx[ei].updatedAt = ticket.updatedAt;
+        idx[ei].closedAt = ticket.closedAt;
+        await saveIndex(store, idx);
+      }
 
       return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, closed: true }) };
+    }
+
+    // Hapus tiket manual dari admin
+    if (action === 'delete') {
+      const { id, adminToken } = body;
+      if (!(await verifyAdmin(adminToken))) return { statusCode: 403, headers: CORS, body: JSON.stringify({ error: 'Akses ditolak' }) };
+      if (!id) return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'ID tiket wajib diisi' }) };
+
+      await deleteTicketRecord(store, id);
+      const idx = await getIndex(store);
+      await saveIndex(store, idx.filter(e => e.id !== id));
+
+      return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, deleted: true }) };
     }
 
     return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Action tidak dikenali' }) };
