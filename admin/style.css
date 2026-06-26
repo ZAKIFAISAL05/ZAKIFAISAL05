@@ -1642,6 +1642,71 @@ img {
     animation: fa-spin 0.8s linear infinite;
 }
 
+.hint-mini {
+    margin-top: 10px;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    line-height: 1.6;
+}
+
+.reviews-admin-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.review-admin-row {
+    display: flex;
+    gap: 16px;
+    justify-content: space-between;
+    padding: 16px 18px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+}
+
+.rar-left {
+    min-width: 0;
+    flex: 1;
+}
+
+.rar-name {
+    font-weight: 800;
+    color: var(--text-dark);
+    margin-bottom: 6px;
+}
+
+.rar-rating {
+    color: #fde68a;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    margin-bottom: 10px;
+}
+
+.rar-rating-num {
+    color: var(--text-muted);
+    margin-left: 8px;
+    font-family: var(--font-base);
+    font-size: 0.86rem;
+}
+
+.rar-text {
+    color: var(--text-soft);
+    line-height: 1.7;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.rar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-content: flex-start;
+    justify-content: flex-end;
+}
+
 @media (max-width: 1160px) {
     .login-shell,
     .hero-panel,

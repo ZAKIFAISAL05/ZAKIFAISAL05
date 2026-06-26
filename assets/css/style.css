@@ -717,6 +717,140 @@ nav::after { display: none; }
     box-shadow: 0 2px 10px rgba(212,130,10,0.2);
 }
 
+/* ── SECTION SUBTITLE (opsional) ── */
+.section-subtitle {
+    margin: -6px auto 26px;
+    max-width: 720px;
+    text-align: center;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    line-height: 1.7;
+    letter-spacing: 0.4px;
+}
+
+/* ────────────────────────────────────────────────
+   REVIEWS SECTION (ULASAN + RATING)
+──────────────────────────────────────────────── */
+.reviews-section {
+    padding: 80px 5%;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border);
+    position: relative;
+    z-index: 1;
+}
+
+.review-slider {
+    display: grid;
+    grid-template-columns: 44px 1fr 44px;
+    align-items: center;
+    gap: 12px;
+    max-width: 820px;
+    margin: 0 auto;
+}
+
+.review-nav {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.03);
+    color: var(--text-bright);
+    cursor: pointer;
+    transition: transform 0.12s ease, background 0.12s ease;
+}
+.review-nav:hover { transform: translateY(-1px); background: rgba(255,255,255,0.06); }
+.review-nav:active { transform: translateY(0); }
+
+.review-viewport {
+    overflow: hidden;
+    border-radius: 18px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.02);
+}
+
+.review-track {
+    display: flex;
+    width: 100%;
+    transform: translateX(0%);
+    transition: transform 0.45s ease;
+}
+
+.review-slide {
+    min-width: 100%;
+    padding: 18px;
+}
+
+.review-card {
+    padding: 22px 20px;
+    border-radius: 16px;
+    background: rgba(0,0,0,0.15);
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: 0 18px 50px rgba(0,0,0,0.18);
+}
+
+.review-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.review-name {
+    font-family: var(--font-title);
+    font-size: 0.62rem;
+    letter-spacing: 1.2px;
+    color: var(--brand);
+    text-transform: uppercase;
+}
+
+.review-rating {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #fde68a;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+}
+
+.review-stars i { margin-left: 2px; }
+.review-score {
+    color: var(--text-muted);
+    font-size: 0.76rem;
+}
+
+.review-text {
+    margin: 0;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    line-height: 1.8;
+}
+
+.review-dots {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.review-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.08);
+    cursor: pointer;
+    padding: 0;
+}
+
+.review-dot.active {
+    background: var(--brand);
+    border-color: rgba(212,130,10,0.6);
+    box-shadow: 0 0 0 4px rgba(212,130,10,0.18);
+}
+
 /* ────────────────────────────────────────────────
    CEK TIKET SECTION
 ──────────────────────────────────────────────── */
@@ -1680,12 +1814,17 @@ footer, .section-padding, .about-section, .cek-tiket-section { position: relativ
     .cek-tiket-form { flex-direction: column; }
     .tiket-cek-btn { justify-content: center; }
     .about-section { padding: 60px 5%; }
+    .review-slider { grid-template-columns: 40px 1fr 40px; }
+    .review-nav { width: 40px; height: 40px; }
 }
 @media (max-width: 480px) {
     #stats-section { grid-template-columns: repeat(2, 1fr); }
     .games-grid { grid-template-columns: 1fr; }
     .nav-right .t-label { display: none; }
     .hero-corner { display: none; }
+    .review-slider { grid-template-columns: 36px 1fr 36px; gap: 10px; }
+    .review-nav { width: 36px; height: 36px; border-radius: 10px; }
+    .review-slide { padding: 14px; }
 }
 
 /* ────────────────────────────────────────────────

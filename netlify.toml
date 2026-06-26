@@ -96,6 +96,30 @@
   force  = true
 
 [[redirects]]
+  from   = "/matenece"
+  to     = "/maintenance"
+  status = 301
+  force  = true
+
+[[redirects]]
+  from   = "/matenece/"
+  to     = "/maintenance"
+  status = 301
+  force  = true
+
+[[redirects]]
+  from   = "/maintance"
+  to     = "/maintenance"
+  status = 301
+  force  = true
+
+[[redirects]]
+  from   = "/maintance/"
+  to     = "/maintenance"
+  status = 301
+  force  = true
+
+[[redirects]]
   from   = "/403"
   to     = "/errors/403.html"
   status = 200

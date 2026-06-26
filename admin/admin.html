@@ -106,16 +106,21 @@
                     <span>Manajemen Game</span>
                     <span class="kbd-hint">Alt+2</span>
                 </button>
+                <button class="sidebar-link" data-section="reviews" onclick="navTo('reviews')">
+                    <i class="fas fa-star"></i>
+                    <span>Ulasan &amp; Rating</span>
+                    <span class="kbd-hint">Alt+3</span>
+                </button>
                 <button class="sidebar-link" data-section="reports" onclick="navTo('reports')">
                     <i class="fas fa-flag"></i>
                     <span>Laporan &amp; Tiket</span>
                     <span class="sidebar-badge" id="reportBadge" style="display:none;">0</span>
-                    <span class="kbd-hint">Alt+3</span>
+                    <span class="kbd-hint">Alt+4</span>
                 </button>
                 <button class="sidebar-link" data-section="logs" onclick="navTo('logs')">
                     <i class="fas fa-terminal"></i>
                     <span>Activity Log</span>
-                    <span class="kbd-hint">Alt+4</span>
+                    <span class="kbd-hint">Alt+5</span>
                 </button>
 
                 <div class="sidebar-divider"></div>
@@ -539,6 +544,76 @@
                                 <tr><td colspan="7" class="table-empty">Memuat data game...</td></tr>
                             </tbody>
                         </table>
+                    </div>
+                </div>
+            </section>
+
+            <section class="admin-section" id="sec-reviews">
+                <div class="section-header">
+                    <div>
+                        <p class="section-kicker">Testimoni</p>
+                        <h2 class="section-title"><i class="fas fa-star"></i> Ulasan &amp; rating</h2>
+                    </div>
+                </div>
+
+                <div class="games-layout">
+                    <div class="panel-box">
+                        <div class="panel-box-title" id="reviewFormTitle">
+                            <i class="fas fa-plus-circle"></i>
+                            <span>Tambah ulasan</span>
+                        </div>
+
+                        <div class="add-form">
+                            <div class="form-row">
+                                <div class="form-field">
+                                    <label for="rv-name">Nama *</label>
+                                    <input type="text" id="rv-name" placeholder="Contoh: Budi" maxlength="40">
+                                </div>
+                                <div class="form-field">
+                                    <label for="rv-rating">Rating *</label>
+                                    <select id="rv-rating">
+                                        <option value="5">★★★★★ (5)</option>
+                                        <option value="4">★★★★☆ (4)</option>
+                                        <option value="3">★★★☆☆ (3)</option>
+                                        <option value="2">★★☆☆☆ (2)</option>
+                                        <option value="1">★☆☆☆☆ (1)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-field full">
+                                <label for="rv-text">Ulasan *</label>
+                                <textarea id="rv-text" rows="4" placeholder="Tulis ulasan singkat..." maxlength="300"></textarea>
+                                <div class="hint-mini">Akan tampil di `index.html` sebagai card slider (nama, bintang, ulasan).</div>
+                            </div>
+
+                            <div class="form-actions">
+                                <button class="btn-save" type="button" id="btn-save-review" onclick="submitReview()">
+                                    <i class="fas fa-floppy-disk"></i>
+                                    <span>Simpan ulasan</span>
+                                </button>
+                                <button class="btn-cancel" type="button" id="btn-cancel-review-edit" onclick="resetReviewForm()" style="display:none;">
+                                    <i class="fas fa-xmark"></i>
+                                    <span>Batal edit</span>
+                                </button>
+                                <button class="btn-tool" type="button" onclick="fetchReviewsAdmin(true)">
+                                    <i class="fas fa-rotate"></i>
+                                    <span>Refresh</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel-box">
+                        <div class="panel-box-title">
+                            <i class="fas fa-list"></i>
+                            <span>Daftar ulasan</span>
+                        </div>
+                        <div class="panel-content">
+                            <div id="reviewsList" class="reviews-admin-list">
+                                <div class="table-empty">Memuat data ulasan...</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </section>

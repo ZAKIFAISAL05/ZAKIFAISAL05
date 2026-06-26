@@ -38,6 +38,8 @@ var TRANSLATIONS = {
     'game-desc-5': 'Kelanjutan simulasi pembangunan desa. (Mobile)',
     'game-desc-6': 'Game survival zombie populer di Roblox. (PC & Mobile)',
     'game-desc-7': 'Obby parkour menantang, uji ketepatan dan kecepatan.',
+    'sec-reviews': 'ULASAN PEMAIN',
+    'reviews-sub': 'Apa kata pemain tentang Nusabit Studio',
     'sec-about': 'TENTANG NUSABIT STUDIO',
     'about-desc': 'Kami adalah studio game indie yang bersemangat menciptakan pengalaman bermain yang unik dan menantang. Dari Indonesia, kami fokus pada genre Survival, RPG, dan Strategy — dengan sentuhan cerita yang dalam di setiap gameplay. Semoga game kami menghiburmu!',
     'about-tip': 'Coba ketik',
@@ -84,6 +86,8 @@ var TRANSLATIONS = {
     'game-desc-5': 'The continuation of a village-building simulation. (Mobile)',
     'game-desc-6': 'A popular zombie survival game on Roblox. (PC & Mobile)',
     'game-desc-7': 'A challenging obby parkour game that tests timing and speed.',
+    'sec-reviews': 'PLAYER REVIEWS',
+    'reviews-sub': 'What players say about Nusabit Studio',
     'sec-about': 'ABOUT NUSABIT STUDIO',
     'about-desc': 'We are an indie game studio passionate about creating unique and challenging gaming experiences. Based in Indonesia, we focus on Survival, RPG, and Strategy genres — with deep storytelling in every gameplay. Hope our games entertain you!',
     'about-tip': 'Try typing',
@@ -350,4 +354,5 @@ document.addEventListener('DOMContentLoaded', function () {
 
   applyLang(LANG);
   initSiteAnnouncement();
+  if (typeof window.initReviewsSlider === 'function') window.initReviewsSlider();
 });

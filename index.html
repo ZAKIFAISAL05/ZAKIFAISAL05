@@ -7,9 +7,10 @@
     <!-- Cek maintenance dari server (Netlify Blobs) -->
     <script src="assets/js/site-guard.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Nusabit Studio — Studio Game Indie Indonesia. Pengembang game mobile dan PC: Survival, RPG, Strategy, dan Roblox.">
-    <meta name="keywords" content="Nusabit Studio, game indie Indonesia, game mobile, game PC, Roblox, RPG, survival game">
-    <meta name="author" content="Nusabit Studio">
+    <meta name="description" content="Nusabit Studio (Zaki Faisal / Zakifaisal05) — Studio Game Indie Indonesia. Pengembang game mobile dan PC: Survival, RPG, Strategy, dan Roblox.">
+    <meta name="keywords" content="Nusabit Studio, Nusabit, Zaki Faisal, Zakifaisal05, zakifaisal, ZAKI, game indie Indonesia, game mobile, game PC, Roblox, RPG, survival game">
+    <meta name="author" content="Zaki Faisal (Nusabit Studio)">
+    <meta name="publisher" content="Nusabit Studio">
     <meta name="robots" content="index, follow">
     <meta name="theme-color" content="#9b59b6">
     <link rel="icon" href="/favicon.ico">
@@ -42,6 +43,7 @@
       "@context": "https://schema.org",
       "@type": "Organization",
       "name": "Nusabit Studio",
+      "alternateName": ["Nusabit", "Zaki Faisal", "Zakifaisal05", "ZAKI", "Zakifaisal"],
       "url": "https://nusabit.netlify.app",
       "logo": {
         "@type": "ImageObject",
@@ -50,10 +52,35 @@
         "height": 512
       },
       "description": "Nusabit Studio adalah studio game indie asal Indonesia. Pengembang game mobile dan PC: Survival, RPG, Strategy, dan Roblox.",
+      "sameAs": [
+        "https://www.instagram.com/zakifaisal05/",
+        "https://www.youtube.com/@ZAKI_FAISAL_05_OFFICIAL",
+        "https://whatsapp.com/channel/0029VaAxK4O2975D8utbc927",
+        "https://discord.gg/f8jW6B3X"
+      ],
+      "founder": {
+        "@type": "Person",
+        "name": "Zaki Faisal",
+        "alternateName": ["Zakifaisal05", "ZAKI", "Zakifaisal"],
+        "sameAs": [
+          "https://www.instagram.com/zakifaisal05/",
+          "https://www.youtube.com/@ZAKI_FAISAL_05_OFFICIAL"
+        ]
+      },
       "potentialAction": [
         {"@type": "ViewAction", "name": "Games", "target": "https://nusabit.netlify.app/game/"},
         {"@type": "ViewAction", "name": "Tiket", "target": "https://nusabit.netlify.app/tiket/"}
       ]
+    }
+    </script>
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Person",
+      "name": "Zaki Faisal",
+      "alternateName": ["Zakifaisal05", "ZAKI", "Zakifaisal"],
+      "url": "https://nusabit.netlify.app",
+      "worksFor": { "@type": "Organization", "name": "Nusabit Studio" }
     }
     </script>
     <script type="application/ld+json">
@@ -256,6 +283,28 @@
     </div>
 </section>
 
+<!-- ===== REVIEWS SECTION ===== -->
+<section id="reviews" class="reviews-section section-padding" aria-label="Ulasan pemain">
+    <h2 class="section-header-title" data-id="sec-reviews">ULASAN PEMAIN</h2>
+    <p class="section-subtitle" data-id="reviews-sub">Apa kata pemain tentang Nusabit Studio</p>
+
+    <div class="review-slider" aria-roledescription="carousel">
+        <button class="review-nav prev" type="button" id="reviewPrev" aria-label="Ulasan sebelumnya">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+
+        <div class="review-viewport">
+            <div class="review-track" id="reviewTrack"></div>
+        </div>
+
+        <button class="review-nav next" type="button" id="reviewNext" aria-label="Ulasan berikutnya">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+    </div>
+
+    <div class="review-dots" id="reviewDots" aria-label="Navigasi ulasan"></div>
+</section>
+
 <!-- ===== CEK TIKET SECTION ===== -->
 <section id="cek-tiket" class="cek-tiket-section" aria-label="Cek Status Tiket">
     <div class="cek-tiket-inner">
@@ -287,6 +336,9 @@
     <div class="footer-content">
         <h3>▓ NUSABIT STUDIO ▓</h3>
         <p data-id="footer-tagline">Menciptakan game digital yang layak untuk dimainkan.</p>
+        <p class="footer-contact-p" style="opacity:0.85;">
+            Founder: <span style="color:var(--text-bright);">Zaki Faisal</span> (<span style="color:var(--brand);">Zakifaisal05</span>)
+        </p>
         <p class="footer-contact-p">
             Email: <a href="mailto:dzakifaisal11@gmail.com" class="footer-email">dzakifaisal11@gmail.com</a>
         </p>
@@ -499,6 +551,7 @@
 <!-- ===== SCRIPT UTAMA HOMEPAGE ===== -->
 <script src="assets/js/main.js"></script>
 <script src="assets/js/extras.js"></script>
+<script src="assets/js/reviews.js"></script>
 <script src="assets/js/index-page.js"></script>
 </body>
 </html>

@@ -6,6 +6,7 @@
 'use strict';
 
 const GAMES_API    = '/.netlify/functions/games';
+const REVIEWS_API  = '/.netlify/functions/reviews';
 const REPORT_STORE = 'gs_reports';
 const SITE_SETTINGS_API = '/.netlify/functions/site-settings';
 const ADMIN_LOGS_API = '/.netlify/functions/admin-logs';
@@ -238,10 +239,11 @@ function slugify(str) {
   return String(str || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
 
-const SECTIONS = ['dashboard','games','reports','logs'];
+const SECTIONS = ['dashboard','games','reviews','reports','logs'];
 const SECTION_TITLES = {
   dashboard: 'Dashboard',
   games: 'Manajemen Game',
+  reviews: 'Ulasan & Rating',
   reports: 'Laporan & Tiket',
   logs: 'Activity Log'
 };
@@ -260,6 +262,7 @@ function navTo(id) {
     renderGameTable();
     syncLivePreview();
   }
+  if (id === 'reviews') fetchReviewsAdmin();
   if (id === 'reports') renderReports();
 }
 
@@ -284,6 +287,7 @@ function closeSidebar() {
 // Cache lokal supaya tidak fetch terus
 let _gamesCache = null;
 let _ticketCache = [];
+let _reviewsCache = null;
 
 async function fetchGames(forceRefresh = false) {
   if (_gamesCache && !forceRefresh) return _gamesCache;
@@ -324,6 +328,193 @@ async function apiReorderGames(games) {
   const data = await res.json();
   if (data.ok) { _gamesCache = data.games; return data; }
   throw new Error(data.error || 'Gagal reorder');
+}
+
+/* ════════════════════════════════════════
+   REVIEWS / RATING — SERVER-SIDE
+   ════════════════════════════════════════ */
+let editingReviewId = '';
+
+function renderStarsSmall(rating) {
+  const r = Math.max(1, Math.min(5, Math.round(Number(rating) || 0)));
+  let out = '';
+  for (let i = 1; i <= 5; i++) out += i <= r ? '★' : '☆';
+  return out;
+}
+
+async function fetchReviewsAdmin(forceRefresh = false) {
+  const list = document.getElementById('reviewsList');
+  if (list && !_reviewsCache) list.innerHTML = '<div class="table-empty">Memuat data ulasan...</div>';
+  if (_reviewsCache && !forceRefresh) {
+    renderReviewsAdminList(_reviewsCache);
+    return _reviewsCache;
+  }
+  try {
+    const res = await fetch(REVIEWS_API, { method: 'GET', cache: 'no-store' });
+    const data = await res.json();
+    if (!data || !data.ok) throw new Error(data?.error || 'Gagal load ulasan');
+    _reviewsCache = Array.isArray(data.reviews) ? data.reviews : [];
+    renderReviewsAdminList(_reviewsCache);
+    return _reviewsCache;
+  } catch (e) {
+    addLog('ERROR load ulasan: ' + e.message, 'err');
+    if (list) list.innerHTML = `<div class="table-empty" style="color:var(--c-red);">Gagal memuat ulasan: ${escHtml(e.message)}</div>`;
+    return _reviewsCache || [];
+  }
+}
+
+function renderReviewsAdminList(reviews) {
+  const list = document.getElementById('reviewsList');
+  if (!list) return;
+  if (!reviews || !reviews.length) {
+    list.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">⭐</div>
+        <div class="empty-state-title">Belum ada ulasan</div>
+        <div class="empty-state-sub">Tambah ulasan baru dari form di sebelah kiri.</div>
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = reviews
+    .map((r, idx) => {
+      const id = escHtml(r.id || '');
+      const name = escHtml(r.name || '—');
+      const text = escHtml(r.review || '');
+      const rating = Math.max(1, Math.min(5, Math.round(Number(r.rating) || 0)));
+      const stars = renderStarsSmall(rating);
+      return `
+        <div class="review-admin-row">
+          <div class="rar-left">
+            <div class="rar-name">${name}</div>
+            <div class="rar-rating" title="${rating}/5">${stars} <span class="rar-rating-num">${rating}/5</span></div>
+            <div class="rar-text">${text}</div>
+          </div>
+          <div class="rar-actions">
+            <button class="btn-small" type="button" onclick="moveReview('${id}','up')" title="Naik" ${idx === 0 ? 'disabled' : ''}><i class="fas fa-arrow-up"></i></button>
+            <button class="btn-small" type="button" onclick="moveReview('${id}','down')" title="Turun" ${idx === reviews.length - 1 ? 'disabled' : ''}><i class="fas fa-arrow-down"></i></button>
+            <button class="btn-small" type="button" onclick="editReview('${id}')"><i class="fas fa-pen"></i> Edit</button>
+            <button class="btn-del-report" type="button" onclick="deleteReview('${id}')"><i class="fas fa-trash"></i> Hapus</button>
+          </div>
+        </div>`;
+    })
+    .join('');
+}
+
+function resetReviewForm() {
+  editingReviewId = '';
+  const nameEl = document.getElementById('rv-name');
+  const ratingEl = document.getElementById('rv-rating');
+  const textEl = document.getElementById('rv-text');
+  if (nameEl) nameEl.value = '';
+  if (ratingEl) ratingEl.value = '5';
+  if (textEl) textEl.value = '';
+  const cancelBtn = document.getElementById('btn-cancel-review-edit');
+  if (cancelBtn) cancelBtn.style.display = 'none';
+  const title = document.getElementById('reviewFormTitle');
+  if (title) title.innerHTML = '<i class="fas fa-plus-circle"></i><span>Tambah ulasan</span>';
+}
+
+function editReview(id) {
+  const item = (_reviewsCache || []).find((r) => r.id === id);
+  if (!item) return;
+  editingReviewId = id;
+  const nameEl = document.getElementById('rv-name');
+  const ratingEl = document.getElementById('rv-rating');
+  const textEl = document.getElementById('rv-text');
+  if (nameEl) nameEl.value = item.name || '';
+  if (ratingEl) ratingEl.value = String(Math.max(1, Math.min(5, Math.round(Number(item.rating) || 5))));
+  if (textEl) textEl.value = item.review || '';
+  const cancelBtn = document.getElementById('btn-cancel-review-edit');
+  if (cancelBtn) cancelBtn.style.display = '';
+  const title = document.getElementById('reviewFormTitle');
+  if (title) title.innerHTML = '<i class="fas fa-pen"></i><span>Edit ulasan</span>';
+}
+
+async function submitReview() {
+  const adminToken = getAdminToken();
+  if (!adminToken) {
+    showToast('Session admin tidak valid. Login ulang.', 'err');
+    return;
+  }
+  const name = (document.getElementById('rv-name')?.value || '').trim();
+  const rating = parseInt(document.getElementById('rv-rating')?.value || '5', 10) || 5;
+  const review = (document.getElementById('rv-text')?.value || '').trim();
+
+  if (!name || !review) {
+    showToast('Nama dan ulasan wajib diisi.', 'warn');
+    return;
+  }
+
+  try {
+    const payload = editingReviewId
+      ? { action: 'update', id: editingReviewId, name, rating, review, adminToken }
+      : { action: 'add', name, rating, review, adminToken };
+
+    const res = await fetch(REVIEWS_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Gagal simpan ulasan');
+    _reviewsCache = Array.isArray(data.reviews) ? data.reviews : [];
+    renderReviewsAdminList(_reviewsCache);
+    addLog((editingReviewId ? 'Update' : 'Tambah') + ' ulasan: ' + name, 'evt');
+    showToast('Ulasan tersimpan.', 'ok');
+    resetReviewForm();
+  } catch (e) {
+    addLog('ERROR simpan ulasan: ' + e.message, 'err');
+    showToast('Gagal: ' + e.message, 'err');
+  }
+}
+
+async function deleteReview(id) {
+  const adminToken = getAdminToken();
+  if (!adminToken) {
+    showToast('Session admin tidak valid. Login ulang.', 'err');
+    return;
+  }
+  if (!confirm('Hapus ulasan ini permanen?')) return;
+  try {
+    const res = await fetch(REVIEWS_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete', id, adminToken }),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Gagal hapus ulasan');
+    _reviewsCache = Array.isArray(data.reviews) ? data.reviews : [];
+    renderReviewsAdminList(_reviewsCache);
+    addLog('Hapus ulasan: ' + id, 'warn');
+    showToast('Ulasan dihapus.', 'ok');
+    if (editingReviewId === id) resetReviewForm();
+  } catch (e) {
+    addLog('ERROR hapus ulasan: ' + e.message, 'err');
+    showToast('Gagal: ' + e.message, 'err');
+  }
+}
+
+async function moveReview(id, dir) {
+  const adminToken = getAdminToken();
+  if (!adminToken) {
+    showToast('Session admin tidak valid. Login ulang.', 'err');
+    return;
+  }
+  try {
+    const res = await fetch(REVIEWS_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'move', id, dir, adminToken }),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Gagal ubah urutan');
+    _reviewsCache = Array.isArray(data.reviews) ? data.reviews : [];
+    renderReviewsAdminList(_reviewsCache);
+  } catch (e) {
+    addLog('ERROR move ulasan: ' + e.message, 'err');
+    showToast('Gagal: ' + e.message, 'err');
+  }
 }
 
 /* ── ICON UPLOAD ── */
@@ -1200,9 +1391,9 @@ function updateReportStats(tickets) {
 function initKeyboardShortcuts() {
   document.addEventListener('keydown', e => {
     if (!isSessionValid()) return;
-    // Alt+1/2/3/4 = navigasi section
-    if (e.altKey && ['1','2','3','4'].includes(e.key)) {
-      const sections = ['dashboard','games','reports','logs'];
+    // Alt+1/2/3/4/5 = navigasi section
+    if (e.altKey && ['1','2','3','4','5'].includes(e.key)) {
+      const sections = ['dashboard','games','reviews','reports','logs'];
       const idx = parseInt(e.key) - 1;
       if (typeof navTo === 'function') navTo(sections[idx]);
       e.preventDefault();
