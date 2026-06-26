@@ -5,11 +5,12 @@
 
 /* ── CSS VARIABLES ── */
 :root {
-  --bg:          #07091a;
-  --bg-card:     #0d0f24;
-  --bg-hover:    #141630;
-  --border:      rgba(255, 255, 255, 0.08);
-  --border-vis:  rgba(255, 255, 255, 0.15);
+  /* White minimal theme */
+  --bg:          #f6f7fb;
+  --bg-card:     #ffffff;
+  --bg-hover:    #f2f4f8;
+  --border:      rgba(15, 23, 42, 0.08);
+  --border-vis:  rgba(15, 23, 42, 0.14);
 
   --accent:      #7c4dff;
   --accent-2:    #00e5ff;
@@ -21,14 +22,14 @@
   --blue:        #3498db;
   --orange:      #e67e22;
 
-  --text:        #e8e8f0;
-  --text-muted:  #7a7a9a;
-  --text-dim:    #4a4a6a;
+  --text:        #0f172a;
+  --text-muted:  #64748b;
+  --text-dim:    #94a3b8;
 
   --radius:      16px;
   --radius-sm:   10px;
-  --shadow:      0 8px 32px rgba(0, 0, 0, 0.5);
-  --shadow-glow: 0 0 40px rgba(124, 77, 255, 0.15);
+  --shadow:      0 14px 40px rgba(2, 6, 23, 0.10);
+  --shadow-glow: 0 0 0 rgba(0, 0, 0, 0);
 
   --font:        'Segoe UI', system-ui, -apple-system, sans-serif;
 }
@@ -68,7 +69,7 @@ body {
   position: absolute;
   width: 600px; height: 600px;
   top: -200px; left: -200px;
-  background: radial-gradient(circle, rgba(124,77,255,0.08) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(124,77,255,0.10) 0%, transparent 70%);
   animation: bgFloat1 20s ease-in-out infinite;
 }
 .bg-glow::after {
@@ -76,7 +77,7 @@ body {
   position: absolute;
   width: 500px; height: 500px;
   bottom: -150px; right: -150px;
-  background: radial-gradient(circle, rgba(0,229,255,0.06) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(0,229,255,0.08) 0%, transparent 70%);
   animation: bgFloat2 25s ease-in-out infinite;
 }
 @keyframes bgFloat1 {
@@ -223,14 +224,15 @@ body {
 .ticket-header {
   position: relative;
   padding: 28px 28px 24px;
-  background: linear-gradient(135deg, #1a0a40 0%, #0a1a40 50%, #0a2a30 100%);
+  background: linear-gradient(135deg, rgba(124,77,255,0.08) 0%, rgba(0,229,255,0.06) 100%);
+  border-bottom: 1px solid var(--border);
   overflow: hidden;
 }
 .ticket-header::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M0 0h20v20H0V0zm20 20h20v20H20V20z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  background: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%230f172a' fill-opacity='0.03'%3E%3Cpath d='M0 0h20v20H0V0zm20 20h20v20H20V20z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
 }
 .ticket-header-top {
   display: flex;
@@ -242,25 +244,25 @@ body {
   font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 2px;
-  color: rgba(255,255,255,0.5);
+  color: rgba(15,23,42,0.55);
   display: block;
   margin-bottom: 4px;
 }
 .ticket-id-display {
   font-size: 1.6rem;
   font-weight: 800;
-  color: #fff;
+  color: var(--text);
   letter-spacing: 0.5px;
-  text-shadow: 0 0 20px rgba(124,77,255,0.5);
+  text-shadow: none;
 }
 .ticket-num-badge {
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.15);
+  background: rgba(15,23,42,0.04);
+  border: 1px solid rgba(15,23,42,0.10);
   border-radius: 6px;
   padding: 4px 10px;
   font-size: 0.75rem;
   font-weight: 700;
-  color: rgba(255,255,255,0.8);
+  color: rgba(15,23,42,0.7);
 }
 .ticket-badges {
   display: flex;
@@ -278,19 +280,19 @@ body {
   border: 1px solid;
 }
 .badge-bug {
-  background: rgba(231,76,60,0.15);
-  border-color: rgba(231,76,60,0.4);
-  color: #ff6b6b;
+  background: rgba(231,76,60,0.10);
+  border-color: rgba(231,76,60,0.28);
+  color: #c0392b;
 }
 .badge-suggestion {
-  background: rgba(52,152,219,0.15);
-  border-color: rgba(52,152,219,0.4);
-  color: #74b9ff;
+  background: rgba(52,152,219,0.10);
+  border-color: rgba(52,152,219,0.28);
+  color: #2d7fbd;
 }
 .badge-game {
-  background: rgba(255,255,255,0.06);
-  border-color: rgba(255,255,255,0.12);
-  color: rgba(255,255,255,0.7);
+  background: rgba(15,23,42,0.04);
+  border-color: rgba(15,23,42,0.10);
+  color: rgba(15,23,42,0.70);
 }
 
 /* ── PROGRESS SECTION ── */
@@ -357,7 +359,7 @@ body {
   font-size: 0.72rem;
   font-weight: 700;
   position: relative; z-index: 1;
-  background: var(--bg);
+  background: var(--bg-card);
   border: 2px solid var(--border-vis);
   color: var(--text-dim);
   transition: all 0.4s ease;
@@ -369,7 +371,7 @@ body {
   color: #fff;
 }
 .step-item.is-active-step .step-dot {
-  background: var(--bg);
+  background: var(--bg-card);
   border-color: var(--accent);
   color: var(--accent);
   box-shadow: 0 0 0 4px rgba(var(--accent-rgb), 0.15);
@@ -420,7 +422,7 @@ body {
 .dev-note-box {
   margin-top: 12px;
   padding: 14px 16px;
-  background: rgba(255,255,255,0.04);
+  background: rgba(15,23,42,0.03);
   border: 1px solid var(--border);
   border-left: 3px solid var(--accent);
   border-radius: var(--radius-sm);
@@ -467,7 +469,7 @@ body {
   grid-column: 1 / -1;
 }
 .desc-box {
-  background: rgba(255,255,255,0.03);
+  background: rgba(15,23,42,0.03);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 14px 16px;
@@ -580,7 +582,7 @@ body {
 }
 .manual-input {
   flex: 1;
-  background: rgba(255,255,255,0.05);
+  background: rgba(15,23,42,0.03);
   border: 1px solid var(--border-vis);
   border-radius: 10px;
   color: var(--text);
@@ -592,7 +594,7 @@ body {
 }
 .manual-input:focus {
   border-color: var(--accent);
-  background: rgba(255,255,255,0.08);
+  background: rgba(124,77,255,0.05);
 }
 .manual-input::placeholder { color: var(--text-dim); }
 .manual-search-btn {

@@ -29,7 +29,13 @@
       height: 100%;
       background: linear-gradient(90deg, #7c4dff, #00e5ff);
       border-radius: 4px;
-      animation: progressPulse 2s ease-in-out infinite;
+      width: 100%;
+      background-size: 200% 100%;
+      animation: progressMove 1.2s linear infinite, progressPulse 2s ease-in-out infinite;
+    }
+    @keyframes progressMove {
+      0%   { background-position:   0% 50%; }
+      100% { background-position: 200% 50%; }
     }
     @keyframes progressPulse {
       0%, 100% { opacity: 1; }
@@ -47,7 +53,25 @@
     }
   </style>
 <script src="https://unpkg.com/feather-icons"></script>
-<script>document.addEventListener("DOMContentLoaded",function(){feather.replace()});</script>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    try { feather.replace(); } catch(e) {}
+
+    // Auto kembali normal jika maintenance sudah OFF (supaya tidak nyangkut)
+    const SETTINGS_API = '/.netlify/functions/site-settings';
+    function check() {
+      fetch(SETTINGS_API, { method: 'GET', cache: 'no-store' })
+        .then((r) => r.json())
+        .then((data) => {
+          const enabled = !!(data && data.ok && data.settings && data.settings.maintenance && data.settings.maintenance.enabled);
+          if (!enabled) window.location.replace('/');
+        })
+        .catch(() => {});
+    }
+    check();
+    setInterval(check, 10_000);
+  });
+</script>
 </head>
 <body>
 
@@ -91,7 +115,7 @@
 
     <!-- Progress visual -->
     <div class="progress-bar">
-      <div class="progress-fill" style="width: 65%;"></div>
+      <div class="progress-fill" aria-hidden="true"></div>
     </div>
     <p style="font-size:0.75rem;color:var(--muted);text-align:center;margin-bottom:20px;">
       Estimasi selesai: ~65% — Mohon tunggu sebentar

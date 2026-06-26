@@ -103,8 +103,9 @@ exports.handler = async (event) => {
 
     // User: lihat tiket dengan token rahasia
     if (q.token) {
+      const tokenQ = String(q.token || '').trim().toUpperCase();
       const idx = await getIndex(store);
-      const entry = idx.find(e => e.token === q.token);
+      const entry = idx.find(e => String(e.token || '').toUpperCase() === tokenQ);
       if (!entry) return { statusCode: 404, headers: CORS, body: JSON.stringify({ error: 'Tiket tidak ditemukan atau token tidak valid' }) };
       if (entry.done) return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, expired: true, num: entry.num }) };
       const ticket = await getTicket(store, entry.id);
@@ -114,6 +115,32 @@ exports.handler = async (event) => {
         desc: ticket.desc, status: ticket.status, statusLabel: STATUS[ticket.status]?.label || ticket.status,
         statusStep: STATUS[ticket.status]?.step ?? 0, createdAt: ticket.createdAt,
         updatedAt: ticket.updatedAt, done: ticket.done, devNote: ticket.devNote || '' };
+      return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, ticket: safe }) };
+    }
+
+    // User: lihat tiket via ID (GS-xxxx) — biar fitur "cek tiket" tidak selalu error "tidak ditemukan"
+    // Catatan: yang dibuka hanya data aman (tanpa token / email / kontak).
+    if (q.id) {
+      const id = String(q.id || '').trim();
+      if (!id) return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Parameter tidak valid' }) };
+
+      const ticket = await getTicket(store, id);
+      if (!ticket) return { statusCode: 404, headers: CORS, body: JSON.stringify({ error: 'Tiket tidak ditemukan' }) };
+
+      const safe = {
+        id: ticket.id,
+        num: ticket.num,
+        type: ticket.type,
+        game: ticket.game,
+        desc: ticket.desc,
+        status: ticket.status,
+        statusLabel: STATUS[ticket.status]?.label || ticket.status,
+        statusStep: STATUS[ticket.status]?.step ?? 0,
+        createdAt: ticket.createdAt,
+        updatedAt: ticket.updatedAt,
+        done: ticket.done,
+        devNote: ticket.devNote || '',
+      };
       return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, ticket: safe }) };
     }
 

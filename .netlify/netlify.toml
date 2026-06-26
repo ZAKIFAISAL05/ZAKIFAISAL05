@@ -1,0 +1,291 @@
+functionsDirectory = "/workspace/ZAKIFAISAL05/netlify/functions"
+functionsDirectoryOrigin = "config-v1"
+headersOrigin = "config"
+redirectsOrigin = "config"
+plugins = []
+
+[build]
+publish = "/workspace/ZAKIFAISAL05"
+publishOrigin = "config"
+functions = "/workspace/ZAKIFAISAL05/netlify/functions"
+
+[build.environment]
+
+[build.processing]
+
+[build.processing.css]
+
+[build.processing.html]
+
+[build.processing.images]
+
+[build.processing.js]
+
+[build.services]
+
+[functions]
+
+[functions."*"]
+node_bundler = "esbuild"
+
+[[headers]]
+for = "/*"
+
+[headers.values]
+X-Frame-Options = "DENY"
+X-Content-Type-Options = "nosniff"
+Referrer-Policy = "strict-origin-when-cross-origin"
+Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+X-Permitted-Cross-Domain-Policies = "none"
+Cross-Origin-Opener-Policy = "same-origin"
+Cross-Origin-Resource-Policy = "same-origin"
+Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+Content-Security-Policy = "default-src 'self';\n      base-uri 'self';\n      object-src 'none';\n      frame-ancestors 'none';\n      form-action 'self';\n      img-src 'self' data: https:;\n      media-src 'self' blob: data:;\n      script-src 'self' 'unsafe-inline' https://unpkg.com https://cdnjs.cloudflare.com;\n      style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://fonts.googleapis.com;\n      font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com;\n      connect-src 'self';"
+
+[[headers]]
+for = "/admin/*"
+
+[headers.values]
+X-Robots-Tag = "noindex, nofollow"
+Cache-Control = "no-store, no-cache"
+
+[[headers]]
+for = "/tiket/*"
+
+[headers.values]
+X-Robots-Tag = "noindex, nofollow"
+Cache-Control = "no-store, no-cache"
+
+[[headers]]
+for = "/assets/css/*"
+
+[headers.values]
+Cache-Control = "public, max-age=86400, stale-while-revalidate=3600"
+
+[[headers]]
+for = "/assets/js/*"
+
+[headers.values]
+Cache-Control = "public, max-age=86400, stale-while-revalidate=3600"
+
+[[headers]]
+for = "/assets/img/*"
+
+[headers.values]
+Cache-Control = "public, max-age=604800, immutable"
+
+[[redirects]]
+from = "/cs"
+to = "/cs/"
+status = 301.0
+force = true
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
+
+[[redirects]]
+from = "/tiket"
+to = "/tiket/"
+status = 301.0
+force = true
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
+
+[[redirects]]
+from = "/maintenance/"
+to = "/maintenance"
+status = 301.0
+force = true
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
+
+[[redirects]]
+from = "/maintenace"
+to = "/maintenance"
+status = 301.0
+force = true
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
+
+[[redirects]]
+from = "/maintenace/"
+to = "/maintenance"
+status = 301.0
+force = true
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
+
+[[redirects]]
+from = "/errors/maintenance.html"
+to = "/maintenance"
+status = 301.0
+force = true
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
+
+[[redirects]]
+from = "/403"
+to = "/errors/403.html"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
+
+[[redirects]]
+from = "/500"
+to = "/errors/500.html"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
+
+[[redirects]]
+from = "/maintenance"
+to = "/errors/maintenance.html"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
+
+[[redirects]]
+from = "/admin"
+to = "/admin/admin.html"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
+
+[[redirects]]
+from = "/admin/"
+to = "/admin/admin.html"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
+
+[[redirects]]
+from = "/Minecraft-Parkun-2D"
+to = "/game/?id=minecraft-parkour-2d"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
+
+[[redirects]]
+from = "/The-One-For-Zombie"
+to = "/game/?id=the-one-for-zombie"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
+
+[[redirects]]
+from = "/Desa-Karya-Investasi-Zombie"
+to = "/game/?id=desa-karya-investasi-zombie"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
+
+[[redirects]]
+from = "/Gerbang-Parkun-2D"
+to = "/game/?id=gerbang-parkun-2d"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
+
+[[redirects]]
+from = "/Desa-Cipta-Karya-Ch2"
+to = "/game/?id=desa-cipta-karya-ch2"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
+
+[[redirects]]
+from = "/The-Undeads-Roblox"
+to = "/game/?id=the-undeads-roblox"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]
+
+[[redirects]]
+from = "/Frequency-Fury-Obby"
+to = "/game/?id=frequency-fury-obby"
+status = 200.0
+force = false
+
+[redirects.query]
+
+[redirects.conditions]
+
+[redirects.headers]

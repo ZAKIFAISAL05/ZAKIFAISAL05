@@ -49,6 +49,11 @@ function getTokenFromURL() {
   return new URLSearchParams(window.location.search).get('token');
 }
 
+/** Ambil ID tiket (GS-xxxx) dari URL query string */
+function getIdFromURL() {
+  return new URLSearchParams(window.location.search).get('id');
+}
+
 /** Format ISO date ke locale Indonesia */
 function formatDate(iso) {
   if (!iso) return '—';
@@ -227,7 +232,7 @@ const ERROR_TYPES = {
     icon:  '🔍',
     code:  'TIKET TIDAK DITEMUKAN',
     title: 'Token Tidak Valid',
-    msg:   'Token tidak ditemukan di sistem kami. Pastikan kamu menggunakan link yang dikirim saat laporan dibuat.',
+    msg:   'Tiket tidak ditemukan di sistem kami. Pastikan kamu pakai link/token yang benar, atau masukkan ID tiket (contoh: GS-XXXX).',
   },
   network: {
     icon:  '🌐',
@@ -243,9 +248,9 @@ const ERROR_TYPES = {
   },
   no_token: {
     icon:  '🔑',
-    code:  'TIDAK ADA TOKEN',
+    code:  'TIDAK ADA PARAMETER',
     title: 'Link Tidak Lengkap',
-    msg:   'URL ini tidak mengandung token tiket. Gunakan link yang kamu terima setelah membuat laporan.',
+    msg:   'URL ini tidak mengandung token atau ID tiket. Gunakan link yang kamu terima setelah membuat laporan, atau masukkan ID tiket secara manual.',
   },
 };
 
@@ -298,11 +303,19 @@ function cekManual() {
   const raw = (document.getElementById('manual-token')?.value || '').trim();
   if (!raw) return;
 
-  // Kalau user paste link penuh, ekstrak token-nya
-  const match = raw.match(/[?&]token=([^&#]+)/);
-  const token = match ? decodeURIComponent(match[1]) : raw;
+  // Kalau user paste link penuh, ekstrak token / id
+  const matchToken = raw.match(/[?&]token=([^&#]+)/i);
+  const matchId    = raw.match(/[?&]id=([^&#]+)/i);
+  const extracted  = matchToken ? decodeURIComponent(matchToken[1]) : (matchId ? decodeURIComponent(matchId[1]) : raw);
 
-  window.location.href = `/tiket/?token=${encodeURIComponent(token)}`;
+  // Kalau bentuknya ID tiket (mis. GS-XXXX), pakai mode id biar tidak "tidak ditemukan"
+  const looksLikeId = /^GS-[A-Z0-9]+/i.test(extracted);
+  if (looksLikeId) {
+    window.location.href = `/tiket/?id=${encodeURIComponent(extracted.toUpperCase())}`;
+    return;
+  }
+
+  window.location.href = `/tiket/?token=${encodeURIComponent(extracted)}`;
 }
 
 // Expose ke window (dipanggil dari onclick HTML)
@@ -313,8 +326,9 @@ window.cekManual = cekManual;
 ══════════════════════════════════════ */
 async function loadTicket() {
   const token = getTokenFromURL();
+  const id    = getIdFromURL();
 
-  if (!token) {
+  if (!token && !id) {
     renderError('no_token');
     return;
   }
@@ -322,7 +336,11 @@ async function loadTicket() {
   renderLoading();
 
   try {
-    const res = await fetch(`${TICKET_API}?token=${encodeURIComponent(token)}`);
+    const qs = token
+      ? `token=${encodeURIComponent(token)}`
+      : `id=${encodeURIComponent(id)}`;
+
+    const res = await fetch(`${TICKET_API}?${qs}`);
 
     // Server error (5xx)
     if (res.status >= 500) {

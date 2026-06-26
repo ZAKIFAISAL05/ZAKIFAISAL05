@@ -9,11 +9,13 @@
 
 (function () {
   const SETTINGS_API = '/.netlify/functions/site-settings';
-  const MAINTENANCE_URL = '/errors/maintenance.html';
+  // Pakai URL yang rapi (lihat netlify.toml: /maintenance → /errors/maintenance.html)
+  const MAINTENANCE_URL = '/maintenance';
 
   // Jangan ganggu halaman error & admin panel
   const path = window.location.pathname || '/';
   if (path.startsWith('/admin')) return;
+  // Halaman error selain maintenance tidak perlu di-redirect
   if (path.startsWith('/errors/')) return;
   if (path === '/404.html') return;
 
@@ -27,12 +29,22 @@
 
       // Redirect kalau maintenance aktif
       const isMaintenance = !!(data.settings && data.settings.maintenance && data.settings.maintenance.enabled);
-      if (isMaintenance && path !== MAINTENANCE_URL) {
+      const onMaintenancePage =
+        path === MAINTENANCE_URL ||
+        path === (MAINTENANCE_URL + '/') ||
+        path === '/errors/maintenance.html';
+
+      if (isMaintenance && !onMaintenancePage) {
         window.location.replace(MAINTENANCE_URL);
+        return;
+      }
+
+      // Kalau maintenance sudah OFF, pastikan halaman maintenance balik normal otomatis
+      if (!isMaintenance && onMaintenancePage) {
+        window.location.replace('/');
       }
     })
     .catch(function () {
       // Kalau fetch gagal, jangan blok user
     });
 })();
-

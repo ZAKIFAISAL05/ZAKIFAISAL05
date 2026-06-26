@@ -199,14 +199,34 @@ function cekTiket() {
     return;
   }
 
-  var token = raw;
-  var m = raw.indexOf('token=');
-  if (m !== -1) {
-    token = raw.slice(m + 6).split('&')[0].split('#')[0];
+  // Bisa input:
+  // - Link tiket (…/tiket/?token=XXXX) atau (…/tiket/?id=GS-XXXX)
+  // - Token saja
+  // - ID tiket saja (GS-XXXX) → biar tidak "tiket tidak ditemukan"
+  var token = '';
+  var id = '';
+
+  var mToken = raw.match(/[?&]token=([^&#]+)/i);
+  if (mToken) {
+    token = mToken[1];
     try { token = decodeURIComponent(token); } catch (e) {}
   }
 
-  window.location.href = '/tiket/?token=' + encodeURIComponent(token);
+  var mId = raw.match(/[?&]id=([^&#]+)/i);
+  if (mId) {
+    id = mId[1];
+    try { id = decodeURIComponent(id); } catch (e) {}
+  }
+
+  if (!token && !id) {
+    // kalau user input "GS-..." anggap sebagai id
+    if (/^GS-[A-Z0-9]+/i.test(raw)) id = raw.toUpperCase();
+    else token = raw;
+  }
+
+  window.location.href = id
+    ? '/tiket/?id=' + encodeURIComponent(id)
+    : '/tiket/?token=' + encodeURIComponent(token);
 }
 
 function shakeInput() {
@@ -286,7 +306,7 @@ async function submitReport(type) {
       var ticketBox = document.getElementById('bug-ticket-box');
       var ticketNum = document.getElementById('bug-ticket-num');
       if (ticketBox) ticketBox.style.display = '';
-      if (ticketNum) ticketNum.textContent = '#' + data.ticketId;
+      if (ticketNum) ticketNum.textContent = data.ticketNum ? ('Tiket #' + data.ticketNum) : ('#' + data.ticketId);
     }
 
     rerenderFeather();
