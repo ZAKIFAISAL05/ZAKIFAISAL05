@@ -336,9 +336,21 @@ async function loadTicket() {
   renderLoading();
 
   try {
-    const qs = token
-      ? `token=${encodeURIComponent(token)}`
-      : `id=${encodeURIComponent(id)}`;
+    const normalizedId = !id && token && /^GS-[A-Z0-9]+$/i.test(String(token).trim())
+      ? String(token).trim().toUpperCase()
+      : '';
+
+    // Kalau user buka link salah format seperti `?token=GS-XXXX`, otomatis normalkan ke `?id=GS-XXXX`
+    if (normalizedId) {
+      const targetUrl = `/tiket/?id=${encodeURIComponent(normalizedId)}`;
+      if (window.location.search !== `?id=${encodeURIComponent(normalizedId)}`) {
+        window.history.replaceState({}, '', targetUrl);
+      }
+    }
+
+    const qs = normalizedId
+      ? `id=${encodeURIComponent(normalizedId)}`
+      : (token ? `token=${encodeURIComponent(token)}` : `id=${encodeURIComponent(id)}`);
 
     const res = await fetch(`${TICKET_API}?${qs}`);
 

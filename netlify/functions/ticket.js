@@ -157,6 +157,31 @@ exports.handler = async (event) => {
     // User: lihat tiket dengan token rahasia
     if (q.token) {
       const tokenQ = String(q.token || '').trim().toUpperCase();
+
+      // Fallback: banyak user paste ID tiket (GS-xxxx) ke parameter `token`
+      // Tetap layani sebagai ID agar halaman tiket tidak dianggap hilang.
+      if (/^GS-[A-Z0-9]+$/i.test(tokenQ)) {
+        const ticket = await getTicket(store, tokenQ);
+        if (!ticket) return { statusCode: 404, headers: CORS, body: JSON.stringify({ error: 'Tiket tidak ditemukan' }) };
+
+        const safeById = {
+          id: ticket.id,
+          num: ticket.num,
+          type: ticket.type,
+          game: ticket.game,
+          desc: ticket.desc,
+          status: ticket.status,
+          statusLabel: STATUS[ticket.status]?.label || ticket.status,
+          statusStep: STATUS[ticket.status]?.step ?? 0,
+          createdAt: ticket.createdAt,
+          updatedAt: ticket.updatedAt,
+          done: ticket.done,
+          devNote: ticket.devNote || '',
+        };
+
+        return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, ticket: safeById }) };
+      }
+
       const entry = idx.find(e => String(e.token || '').toUpperCase() === tokenQ);
       if (!entry) return { statusCode: 404, headers: CORS, body: JSON.stringify({ error: 'Tiket tidak ditemukan atau token tidak valid' }) };
       if (entry.done) return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, expired: true, num: entry.num }) };

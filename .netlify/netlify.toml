@@ -135,18 +135,6 @@ force = true
 [redirects.headers]
 
 [[redirects]]
-from = "/errors/maintenance.html"
-to = "/maintenance"
-status = 301.0
-force = true
-
-[redirects.query]
-
-[redirects.conditions]
-
-[redirects.headers]
-
-[[redirects]]
 from = "/403"
 to = "/errors/403.html"
 status = 200.0

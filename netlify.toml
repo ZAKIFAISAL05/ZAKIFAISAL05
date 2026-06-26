@@ -100,12 +100,6 @@
   force  = true
 
 [[redirects]]
-  from   = "/errors/maintenance.html"
-  to     = "/maintenance"
-  status = 301
-  force  = true
-
-[[redirects]]
   from   = "/403"
   to     = "/errors/403.html"
   status = 200
