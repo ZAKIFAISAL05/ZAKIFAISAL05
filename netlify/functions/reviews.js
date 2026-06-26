@@ -60,6 +60,7 @@ function defaultReviews(nowIso) {
       name: 'Asep',
       rating: 5,
       review: 'Websitenya keren, tampilannya modern dan gampang dipakai.',
+      avatar: '',
       createdAt: nowIso,
       updatedAt: nowIso,
     },
@@ -68,6 +69,7 @@ function defaultReviews(nowIso) {
       name: 'Nadia',
       rating: 4,
       review: 'Info gamenya jelas, desainnya enak dilihat. Mantap!',
+      avatar: '',
       createdAt: nowIso,
       updatedAt: nowIso,
     },
@@ -76,6 +78,7 @@ function defaultReviews(nowIso) {
       name: 'Rizky',
       rating: 5,
       review: 'Bagian tiket bug/saran membantu banget. Responsnya cepat.',
+      avatar: '',
       createdAt: nowIso,
       updatedAt: nowIso,
     },
@@ -90,6 +93,18 @@ function clampRating(n) {
 
 function safeText(s, max = 300) {
   return String(s || '').trim().slice(0, max);
+}
+
+function safeAvatar(dataUrl, maxLen = 260000) {
+  // Simpan avatar sebagai Data URL (PNG/JPG) di database (Netlify Blobs)
+  // Contoh: data:image/png;base64,....
+  if (dataUrl === null) return '';
+  const s = String(dataUrl || '').trim();
+  if (!s) return '';
+  if (!/^data:image\/(png|jpeg);base64,/i.test(s)) return '';
+  // Batasi ukuran agar payload tidak kebesaran
+  if (s.length > maxLen) return '';
+  return s;
 }
 
 function makeId() {
@@ -171,6 +186,7 @@ exports.handler = async (event) => {
         name: safeText(body.name, 40),
         rating: clampRating(body.rating),
         review: safeText(body.review, 300),
+        avatar: safeAvatar(body.avatar),
         createdAt: nowIso,
         updatedAt: nowIso,
       };
@@ -192,6 +208,12 @@ exports.handler = async (event) => {
       next.name = safeText(body.name, 40);
       next.rating = clampRating(body.rating);
       next.review = safeText(body.review, 300);
+      // Avatar opsional:
+      // - jika field "avatar" dikirim: update (bisa '' untuk menghapus)
+      // - jika tidak dikirim: pertahankan avatar lama
+      if (Object.prototype.hasOwnProperty.call(body, 'avatar')) {
+        next.avatar = safeAvatar(body.avatar);
+      }
       next.updatedAt = nowIso;
       if (!next.name || !next.review) {
         return { statusCode: 400, headers: CORS, body: JSON.stringify({ ok: false, error: 'Nama dan ulasan wajib diisi' }) };
@@ -231,4 +253,3 @@ exports.handler = async (event) => {
 
   return { statusCode: 405, headers: CORS, body: JSON.stringify({ ok: false, error: 'Method tidak diizinkan' }) };
 };
-

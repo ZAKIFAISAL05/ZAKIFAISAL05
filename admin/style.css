@@ -1649,6 +1649,58 @@ img {
     line-height: 1.6;
 }
 
+.avatar-upload-wrap {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: rgba(255,255,255,0.02);
+}
+
+.avatar-preview {
+    width: 56px;
+    height: 56px;
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: radial-gradient(circle at 30% 30%, rgba(245,158,11,0.35), rgba(255,255,255,0.06));
+    box-shadow: 0 12px 30px rgba(0,0,0,0.22);
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+}
+
+.avatar-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.avatar-fallback {
+    font-family: var(--font-title);
+    color: rgba(255,255,255,0.92);
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.avatar-upload-info p {
+    margin: 8px 0 0;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+.avatar-actions {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
 .reviews-admin-list {
     display: flex;
     flex-direction: column;
@@ -1670,10 +1722,41 @@ img {
     flex: 1;
 }
 
+.rar-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    min-width: 0;
+}
+
+.rar-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: radial-gradient(circle at 30% 30%, rgba(245,158,11,0.35), rgba(255,255,255,0.06));
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+}
+
+.rar-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.rar-head-meta {
+    min-width: 0;
+}
+
 .rar-name {
     font-weight: 800;
     color: var(--text-dark);
-    margin-bottom: 6px;
+    margin-bottom: 4px;
 }
 
 .rar-rating {

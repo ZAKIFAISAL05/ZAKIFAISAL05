@@ -797,12 +797,60 @@ nav::after { display: none; }
     margin-bottom: 12px;
 }
 
-.review-name {
+.review-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.review-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.25);
+    flex-shrink: 0;
+    background: radial-gradient(circle at 30% 30%, rgba(245,158,11,0.35), rgba(255,255,255,0.06));
+    display: grid;
+    place-items: center;
+}
+
+.review-avatar svg,
+.review-avatar img {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.review-avatar img {
+    object-fit: cover;
+}
+
+.review-avatar-fallback {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
     font-family: var(--font-title);
-    font-size: 0.62rem;
-    letter-spacing: 1.2px;
-    color: var(--brand);
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    color: rgba(255,255,255,0.9);
     text-transform: uppercase;
+}
+
+.review-name {
+    font-family: var(--font-base);
+    font-size: 0.98rem;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    color: var(--text-bright);
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 240px;
 }
 
 .review-rating {
@@ -822,9 +870,9 @@ nav::after { display: none; }
 
 .review-text {
     margin: 0;
-    color: var(--text-muted);
-    font-family: var(--font-mono);
-    font-size: 0.82rem;
+    color: var(--text-soft);
+    font-family: var(--font-base);
+    font-size: 0.92rem;
     line-height: 1.8;
 }
 
