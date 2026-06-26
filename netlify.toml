@@ -1,3 +1,8 @@
+# ============================================================
+#  netlify.toml — Nusabit Studio
+#  Build config, headers, redirects, custom error pages
+# ============================================================
+
 [build]
   functions = "netlify/functions"
   publish   = "."
@@ -5,55 +10,95 @@
 [functions]
   node_bundler = "esbuild"
 
+# ── GLOBAL SECURITY HEADERS ──────────────────────────────────
 [[headers]]
   for = "/*"
   [headers.values]
     X-Frame-Options        = "DENY"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy        = "strict-origin-when-cross-origin"
+    Permissions-Policy     = "camera=(), microphone=(), geolocation=()"
 
 [[headers]]
   for = "/admin/*"
   [headers.values]
-    X-Robots-Tag = "noindex"
+    X-Robots-Tag = "noindex, nofollow"
+    Cache-Control = "no-store, no-cache"
 
 [[headers]]
   for = "/tiket/*"
   [headers.values]
-    X-Robots-Tag = "noindex, nofollow"
+    X-Robots-Tag  = "noindex, nofollow"
+    Cache-Control = "no-store, no-cache"
 
-# ── Game detail pages ──
+# ── ASSET CACHING ────────────────────────────────────────────
+[[headers]]
+  for = "/assets/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400, stale-while-revalidate=3600"
+
+[[headers]]
+  for = "/assets/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400, stale-while-revalidate=3600"
+
+[[headers]]
+  for = "/assets/img/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800, immutable"
+
+# ── ERROR PAGE PREVIEW ROUTES ────────────────────────────────
+# Catatan:
+# - `404.html` di root akan otomatis dipakai Netlify untuk halaman tidak ditemukan.
+# - Jangan pakai wildcard `/*` untuk 403/500 karena itu bisa menimpa alur 404 normal.
+# - Route di bawah hanya untuk membuka halaman error secara manual saat testing.
 [[redirects]]
-  from = "/Minecraft-Parkun-2D"
-  to   = "/game/?id=minecraft-parkour-2d"
+  from   = "/403"
+  to     = "/errors/403.html"
   status = 200
 
 [[redirects]]
-  from = "/The-One-For-Zombie"
-  to   = "/game/?id=the-one-for-zombie"
+  from   = "/500"
+  to     = "/errors/500.html"
   status = 200
 
 [[redirects]]
-  from = "/Desa-Karya-Investasi-Zombie"
-  to   = "/game/?id=desa-karya-investasi-zombie"
+  from   = "/maintenance"
+  to     = "/errors/maintenance.html"
+  status = 200
+
+# ── GAME DETAIL PAGES ────────────────────────────────────────
+[[redirects]]
+  from   = "/Minecraft-Parkun-2D"
+  to     = "/game/?id=minecraft-parkour-2d"
   status = 200
 
 [[redirects]]
-  from = "/Gerbang-Parkun-2D"
-  to   = "/game/?id=gerbang-parkun-2d"
+  from   = "/The-One-For-Zombie"
+  to     = "/game/?id=the-one-for-zombie"
   status = 200
 
 [[redirects]]
-  from = "/Desa-Cipta-Karya-Ch2"
-  to   = "/game/?id=desa-cipta-karya-ch2"
+  from   = "/Desa-Karya-Investasi-Zombie"
+  to     = "/game/?id=desa-karya-investasi-zombie"
   status = 200
 
 [[redirects]]
-  from = "/The-Undeads-Roblox"
-  to   = "/game/?id=the-undeads-roblox"
+  from   = "/Gerbang-Parkun-2D"
+  to     = "/game/?id=gerbang-parkun-2d"
   status = 200
 
 [[redirects]]
-  from = "/Frequency-Fury-Obby"
-  to   = "/game/?id=frequency-fury-obby"
+  from   = "/Desa-Cipta-Karya-Ch2"
+  to     = "/game/?id=desa-cipta-karya-ch2"
+  status = 200
+
+[[redirects]]
+  from   = "/The-Undeads-Roblox"
+  to     = "/game/?id=the-undeads-roblox"
+  status = 200
+
+[[redirects]]
+  from   = "/Frequency-Fury-Obby"
+  to     = "/game/?id=frequency-fury-obby"
   status = 200

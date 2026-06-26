@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>500 — Server Error | Nusabit Studio</title>
+  <!-- CSS error page harus pakai path absolut karena file ini sudah berada di folder `errors` -->
+  <link rel="stylesheet" href="/errors/style.css">
+  <style>
+    .error-code-big { color: #e74c3c; text-shadow: 0 0 40px rgba(231,76,60,0.4); }
+    .orb-1 { background: radial-gradient(circle, #e74c3c, transparent); }
+    .orb-2 { background: radial-gradient(circle, #c0392b, transparent); }
+    .btn-primary-err { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+
+    /* glitch effect on 500 */
+    .error-code-big {
+      animation: glitch 4s ease-in-out infinite;
+    }
+    @keyframes glitch {
+      0%, 90%, 100% {
+        text-shadow: 0 0 40px rgba(231,76,60,0.4);
+        transform: none;
+      }
+      92% {
+        text-shadow: -3px 0 #00e5ff, 3px 0 #e74c3c;
+        transform: skewX(-2deg);
+      }
+      94% {
+        text-shadow: 3px 0 #7c4dff, -3px 0 #e74c3c;
+        transform: skewX(2deg);
+      }
+      96% {
+        text-shadow: 0 0 40px rgba(231,76,60,0.4);
+        transform: none;
+      }
+    }
+  </style>
+<script src="https://unpkg.com/feather-icons"></script>
+<script>document.addEventListener("DOMContentLoaded",function(){feather.replace()});</script>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="error-container">
+
+  <!-- Big Code -->
+  <div class="error-code-big">500</div>
+  <div class="error-flavor">[ FATAL ERROR — INTERNAL SERVER ERROR ]</div>
+
+  <!-- CARD -->
+  <div class="error-card">
+    <div class="error-title">Aduh, server kami crash <i data-feather="frown"></i></div>
+    <div class="error-desc">
+      Sepertinya ada bug di server kami yang tidak terduga.
+      Tim developer sudah otomatis dinotifikasi dan sedang memperbaikinya.
+      Ini bukan salahmu — ini salah kami!
+    </div>
+
+    <div class="tips-box">
+      <span class="tips-label"><i data-feather="clock"></i> Apa yang bisa kamu lakukan?</span>
+      <ul class="tips-list">
+        <li>Tunggu beberapa menit lalu coba refresh halaman</li>
+        <li>Kosongkan cache browser kamu (Ctrl+Shift+R)</li>
+        <li>Kalau masalah berlanjut, hubungi kami via Customer Service</li>
+      </ul>
+    </div>
+
+    <div class="error-actions">
+      <button class="btn-err btn-primary-err" onclick="location.reload()">↺ Coba Lagi</button>
+      <a href="/" class="btn-err btn-ghost-err"><i data-feather="home"></i> Kembali ke Home</a>
+      <a href="/cs/" class="btn-err btn-ghost-err"><i data-feather="message-circle"></i> Laporkan ke CS</a>
+    </div>
+  </div>
+
+  <div class="error-brand">
+    <img src="/assets/img/studio_logo.png" alt="Nusabit Studio">
+    <span>Nusabit Studio</span>
+  </div>
+
+</div>
+</body>
+</html>

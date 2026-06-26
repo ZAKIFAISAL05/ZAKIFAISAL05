@@ -1,0 +1,270 @@
+/* ============================================================
+   errors/style.css — Nusabit Studio
+   Shared styles untuk semua custom error pages
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Inter:wght@400;600;700;800&display=swap');
+
+/* ── VARS ── */
+:root {
+  --bg:        #0a0b1a;
+  --card:      #0f1124;
+  --border:    rgba(255,255,255,0.07);
+  --text:      #e2e2f0;
+  --muted:     #7070a0;
+  --dim:       #40405a;
+  --font-game: 'Press Start 2P', monospace;
+  --font:      'Inter', system-ui, sans-serif;
+  --radius:    14px;
+}
+
+/* ── RESET ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { height: 100%; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── PIXEL GRID BG ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+}
+
+/* ── GLOW ORBS ── */
+.orb {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(80px);
+  opacity: 0.25;
+  animation: orbFloat 12s ease-in-out infinite;
+}
+.orb-1 {
+  width: 400px; height: 400px;
+  top: -100px; left: -100px;
+}
+.orb-2 {
+  width: 300px; height: 300px;
+  bottom: -80px; right: -80px;
+  animation-delay: -6s;
+}
+@keyframes orbFloat {
+  0%, 100% { transform: translate(0,0); }
+  50%       { transform: translate(30px,20px); }
+}
+
+/* ── MAIN CONTAINER ── */
+.error-container {
+  position: relative; z-index: 1;
+  text-align: center;
+  max-width: 560px;
+  width: 100%;
+}
+
+/* ── ERROR CODE BIG ── */
+.error-code-big {
+  font-family: var(--font-game);
+  font-size: clamp(3.5rem, 15vw, 7rem);
+  line-height: 1;
+  margin-bottom: 8px;
+  position: relative;
+  display: inline-block;
+}
+/* scanline effect on big code */
+.error-code-big::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 4px,
+    rgba(0,0,0,0.08) 4px,
+    rgba(0,0,0,0.08) 5px
+  );
+  pointer-events: none;
+}
+
+/* ── FLAVOR TEXT ── */
+.error-flavor {
+  font-family: var(--font-game);
+  font-size: clamp(0.45rem, 2vw, 0.65rem);
+  color: var(--muted);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 28px;
+  animation: blink 1.8s step-end infinite;
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+/* ── CARD ── */
+.error-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 32px;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+}
+.error-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+.error-desc {
+  font-size: 0.88rem;
+  color: var(--muted);
+  line-height: 1.65;
+  margin-bottom: 20px;
+}
+
+/* ── TIPS BOX ── */
+.tips-box {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px 18px;
+  text-align: left;
+  margin-bottom: 20px;
+}
+.tips-label {
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--dim);
+  margin-bottom: 10px;
+  display: block;
+}
+.tips-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.tips-list li {
+  font-size: 0.82rem;
+  color: var(--muted);
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.5;
+}
+.tips-list li::before {
+  content: '›';
+  color: var(--dim);
+  flex-shrink: 0;
+}
+
+/* ── BUTTONS ── */
+.error-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.btn-err {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 22px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  font-family: var(--font);
+}
+.btn-primary-err {
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+.btn-primary-err:hover { transform: translateY(-2px); filter: brightness(1.1); }
+.btn-ghost-err {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.btn-ghost-err:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+
+/* ── BOTTOM BRAND ── */
+.error-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+  opacity: 0.45;
+}
+.error-brand img { width: 22px; height: 22px; border-radius: 5px; }
+.error-brand span { font-size: 0.75rem; font-weight: 600; }
+
+/* ── COUNTDOWN ── */
+.countdown-bar {
+  width: 100%;
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  margin-top: 18px;
+  overflow: hidden;
+}
+.countdown-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 1s linear;
+}
+
+/* ── PROGRESS RING (maintenance) ── */
+.maint-icon {
+  width: 80px; height: 80px;
+  margin: 0 auto 20px;
+  position: relative;
+}
+.maint-icon svg { animation: spin 3s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── STATUS BADGE ── */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 18px;
+}
+.status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 480px) {
+  .error-card { padding: 22px 18px; }
+  .error-actions { flex-direction: column; }
+  .btn-err { justify-content: center; }
+}

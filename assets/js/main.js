@@ -38,26 +38,28 @@
     }
 
     // ────────────────────────────────────────────────
-    // TYPING ANIMATION
+    // HERO TAGLINE (sinkron dengan pilihan bahasa)
     // ────────────────────────────────────────────────
-    const taglineText = "Studio Pengembangan Game Indie — Berkomitmen pada Kualitas dan Gameplay. Spesialis dalam Survival, RPG, dan Strategy dengan sentuhan cerita yang memikat.";
-    let charIndex = 0;
+    const HERO_TAGLINES = {
+        id: 'Studio pengembangan game indie, berkomitmen pada kualitas dan gameplay. Fokus pada Survival, RPG, dan Strategy dengan sentuhan cerita yang memikat.',
+        en: 'An indie game development studio committed to quality and gameplay. Focused on Survival, RPG, and Strategy with immersive storytelling.'
+    };
 
-    function typeWriter() {
-        if (charIndex < taglineText.length) {
-            typingEl.textContent += taglineText.charAt(charIndex++);
-            setTimeout(typeWriter, 45);
-        } else {
-            if (cursorEl)  cursorEl.style.display = 'inline-block';
-            if (heroTitle) heroTitle.classList.add('fade-loop');
-            if (primaryBtn) primaryBtn.classList.add('fade-loop');
-        }
+    function renderHeroTagline(lang) {
+        if (!typingEl) return;
+        typingEl.textContent = HERO_TAGLINES[lang] || HERO_TAGLINES.id;
+        if (cursorEl) cursorEl.style.display = 'none';
+        if (heroTitle) heroTitle.classList.add('fade-loop');
+        if (primaryBtn) primaryBtn.classList.add('fade-loop');
     }
 
     setTimeout(() => {
-        if (cursorEl) cursorEl.style.display = 'none';
-        typeWriter();
-    }, 900);
+        renderHeroTagline(localStorage.getItem('gs_lang') || 'id');
+    }, 300);
+
+    document.addEventListener('gs:lang-changed', function (event) {
+        renderHeroTagline(event && event.detail ? event.detail.lang : (localStorage.getItem('gs_lang') || 'id'));
+    });
 
     // ────────────────────────────────────────────────
     // HAMBURGER MENU

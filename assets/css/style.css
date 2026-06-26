@@ -1454,7 +1454,7 @@ footer {
 #mascot-wrap {
     position: fixed;
     bottom: 24px; right: 24px;
-    z-index: 500;
+    z-index: 1200;
     display: flex;
     flex-direction: column;
     align-items: flex-end;
@@ -1496,6 +1496,9 @@ footer {
     box-shadow: 0 4px 16px rgba(0,0,0,0.1);
     line-height: 1.5;
     letter-spacing: 0.3px;
+    min-height: 42px;
+    display: flex;
+    align-items: center;
 }
 .bcursor { color: var(--brand); animation: blink 1s steps(1) infinite; }
 
@@ -1602,6 +1605,70 @@ footer {
 /* ── Z-INDEX STACKING ── */
 nav, #hero, #stats-section, #games, #about, #cek-tiket,
 footer, .section-padding, .about-section, .cek-tiket-section { position: relative; z-index: 1; }
+
+/* ────────────────────────────────────────────────
+   PENGUMUMAN WEBSITE (HOME)
+   Dikelola dari Admin Panel → muncul/hilang otomatis
+──────────────────────────────────────────────── */
+.site-announcement {
+    background: rgba(212,130,10,0.10);
+    border-bottom: 1px solid rgba(212,130,10,0.22);
+    color: var(--text-dark);
+    padding: 10px 5%;
+    position: sticky;
+    top: 64px; /* tepat di bawah navbar */
+    z-index: 901;
+    backdrop-filter: blur(4px);
+}
+.sa-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.sa-badge {
+    background: var(--brand);
+    color: #fff;
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-family: var(--font-title);
+    font-size: 0.45rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+.sa-text {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--text-dark);
+    letter-spacing: 0.2px;
+    line-height: 1.4;
+}
+.sa-close {
+    margin-left: auto;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: 1px solid var(--border-vis);
+    background: var(--bg-main);
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    line-height: 1;
+    transition: all 0.15s;
+}
+.sa-close:hover {
+    border-color: var(--brand);
+    color: var(--brand);
+    background: var(--brand-dim);
+}
+
+@media (max-width: 768px) {
+    .site-announcement { top: 64px; }
+    .sa-text { font-size: 0.75rem; }
+}
 
 /* ────────────────────────────────────────────────
    RESPONSIVE

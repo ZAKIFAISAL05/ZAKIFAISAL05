@@ -6,7 +6,7 @@
 
 // ── SYNC THEME FROM MAIN SITE ──
 (function () {
-    var t = localStorage.getItem('gs-theme') || 'dark';
+    var t = localStorage.getItem('gs-theme') || 'light';
     document.documentElement.setAttribute('data-theme', t);
 })();
 

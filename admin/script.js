@@ -7,6 +7,7 @@
 
 const GAMES_API    = '/.netlify/functions/games';
 const REPORT_STORE = 'gs_reports';
+const SITE_SETTINGS_API = '/.netlify/functions/site-settings';
 
 /* ── AUTH CONFIG ── */
 const ADMIN_CREDENTIALS = {
@@ -54,11 +55,182 @@ function escHtml(s) {
 }
 
 /* ════════════════════════════════════════
+   WEBSITE STATUS (Maintenance + Pengumuman)
+   ════════════════════════════════════════ */
+let _siteSettingsCache = null;
+
+async function fetchSiteSettings() {
+  try {
+    const res = await fetch(SITE_SETTINGS_API, { method: 'GET', cache: 'no-store' });
+    const data = await res.json();
+    if (data && data.ok) {
+      _siteSettingsCache = data.settings || {};
+      return _siteSettingsCache;
+    }
+  } catch (e) {
+    addLog('Gagal ambil site settings: ' + e.message, 'warn');
+  }
+  return _siteSettingsCache || {};
+}
+
+function renderSiteSettingsPanel(settings) {
+  const maintEl = document.getElementById('ss-maintenance-status');
+  const annInfo = document.getElementById('ss-ann-info');
+  if (!maintEl && !annInfo) return;
+
+  const isMaint = !!(settings && settings.maintenance && settings.maintenance.enabled);
+  if (maintEl) {
+    maintEl.textContent = isMaint ? 'AKTIF (maintenance ON)' : 'NONAKTIF (normal)';
+    maintEl.className = 'site-settings-value ' + (isMaint ? 'ss-on' : 'ss-off');
+  }
+
+  const ann = settings && settings.announcement;
+  if (annInfo) {
+    if (ann && ann.enabled && ann.message) {
+      const exp = ann.expiresAt ? new Date(ann.expiresAt).toLocaleString('id-ID') : '—';
+      annInfo.textContent = 'Pengumuman aktif sampai: ' + exp;
+    } else {
+      annInfo.textContent = 'Pengumuman sedang nonaktif.';
+    }
+  }
+}
+
+async function initSiteSettingsPanel() {
+  const settings = await fetchSiteSettings();
+  renderSiteSettingsPanel(settings);
+}
+
+async function setMaintenance(enabled) {
+  const adminToken = getAdminToken();
+  if (!adminToken) {
+    showToast('Session admin tidak valid. Login ulang.', 'err');
+    return;
+  }
+  try {
+    const res = await fetch(SITE_SETTINGS_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'setMaintenance', enabled: !!enabled, adminToken }),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Gagal set maintenance');
+    _siteSettingsCache = data.settings || {};
+    renderSiteSettingsPanel(_siteSettingsCache);
+    addLog('MAINTENANCE → ' + (enabled ? 'ON' : 'OFF'), enabled ? 'warn' : 'evt');
+    showToast('Maintenance ' + (enabled ? 'ON' : 'OFF'), 'ok');
+  } catch (e) {
+    addLog('MAINTENANCE ERROR: ' + e.message, 'err');
+    showToast('Gagal: ' + e.message, 'err');
+  }
+}
+
+async function publishAnnouncement() {
+  const adminToken = getAdminToken();
+  const msgEl = document.getElementById('ss-ann-message');
+  const minEl = document.getElementById('ss-ann-minutes');
+  const message = (msgEl ? msgEl.value : '').trim();
+  const durationMinutes = parseInt(minEl ? minEl.value : '60', 10) || 60;
+
+  if (!adminToken) {
+    showToast('Session admin tidak valid. Login ulang.', 'err');
+    return;
+  }
+  if (!message) {
+    showToast('Isi pengumuman tidak boleh kosong.', 'warn');
+    return;
+  }
+  try {
+    const res = await fetch(SITE_SETTINGS_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'setAnnouncement', message, durationMinutes, adminToken }),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Gagal publish pengumuman');
+    _siteSettingsCache = data.settings || {};
+    renderSiteSettingsPanel(_siteSettingsCache);
+    addLog('ANNOUNCEMENT PUBLISHED (' + durationMinutes + ' menit)', 'evt');
+    showToast('Pengumuman ditampilkan.', 'ok');
+  } catch (e) {
+    addLog('ANNOUNCEMENT ERROR: ' + e.message, 'err');
+    showToast('Gagal: ' + e.message, 'err');
+  }
+}
+
+async function clearAnnouncement() {
+  const adminToken = getAdminToken();
+  if (!adminToken) {
+    showToast('Session admin tidak valid. Login ulang.', 'err');
+    return;
+  }
+  try {
+    const res = await fetch(SITE_SETTINGS_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'clearAnnouncement', adminToken }),
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Gagal mematikan pengumuman');
+    _siteSettingsCache = data.settings || {};
+    renderSiteSettingsPanel(_siteSettingsCache);
+    addLog('ANNOUNCEMENT OFF', 'warn');
+    showToast('Pengumuman dimatikan.', 'ok');
+  } catch (e) {
+    addLog('ANNOUNCEMENT OFF ERROR: ' + e.message, 'err');
+    showToast('Gagal: ' + e.message, 'err');
+  }
+}
+
+function slugify(str) {
+  return String(str || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+}
+
+const SECTIONS = ['dashboard','games','reports','logs'];
+const SECTION_TITLES = {
+  dashboard: 'Dashboard',
+  games: 'Manajemen Game',
+  reports: 'Laporan & Tiket',
+  logs: 'Activity Log'
+};
+
+function navTo(id) {
+  SECTIONS.forEach(s => {
+    const section = document.getElementById('sec-' + s);
+    if (section) section.classList.toggle('active', s === id);
+    const link = document.querySelector(`.sidebar-link[data-section="${s}"]`);
+    if (link) link.classList.toggle('active', s === id);
+  });
+  const title = document.getElementById('topbarTitle');
+  if (title) title.textContent = SECTION_TITLES[id] || id;
+  closeSidebar();
+  if (id === 'games') {
+    renderGameTable();
+    syncLivePreview();
+  }
+  if (id === 'reports') renderReports();
+}
+
+function toggleSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  if (sidebar) sidebar.classList.toggle('open');
+  if (overlay) overlay.classList.toggle('visible');
+}
+
+function closeSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebarOverlay');
+  if (sidebar) sidebar.classList.remove('open');
+  if (overlay) overlay.classList.remove('visible');
+}
+
+/* ════════════════════════════════════════
    GAME CATALOG — SERVER-SIDE (Netlify Blobs)
    ════════════════════════════════════════ */
 
 // Cache lokal supaya tidak fetch terus
 let _gamesCache = null;
+let _ticketCache = [];
 
 async function fetchGames(forceRefresh = false) {
   if (_gamesCache && !forceRefresh) return _gamesCache;
@@ -111,6 +283,7 @@ function handleIconUpload(e) {
   reader.onload = ev => {
     pendingIconDataUrl = ev.target.result;
     document.getElementById('iconPreview').innerHTML = `<img src="${pendingIconDataUrl}" alt="preview">`;
+    syncLivePreview();
   };
   reader.readAsDataURL(file);
 }
@@ -129,8 +302,9 @@ function addPlatformRow(cls = 'btn-taptap', url = '') {
   row.className = 'platform-row'; row.id = id;
   row.innerHTML = `<select class="p-type">${platformSelectHTML(cls)}</select><input class="p-url" type="url" placeholder="https://..." value="${escHtml(url)}"><button class="btn-rm-platform" onclick="removePlatform('${id}')" title="Hapus">×</button>`;
   document.getElementById('platformBuilder').appendChild(row);
+  syncLivePreview();
 }
-function removePlatform(id) { const el = document.getElementById(id); if (el) el.remove(); }
+function removePlatform(id) { const el = document.getElementById(id); if (el) el.remove(); syncLivePreview(); }
 function collectPlatforms() {
   return [...document.querySelectorAll('#platformBuilder .platform-row')].map(row => {
     const cls = row.querySelector('.p-type').value;
@@ -152,10 +326,13 @@ function resetForm() {
     `<div class="platform-row" id="prow-0"><select class="p-type">${platformSelectHTML()}</select><input class="p-url" type="url" placeholder="https://..."><button class="btn-rm-platform" onclick="removePlatform('prow-0')" title="Hapus">×</button></div>`;
   platformRowCount = 1;
   editingGameId = null;
-  document.getElementById('btn-add-game').textContent = '▶ Simpan Game ke Katalog';
+  document.getElementById('btn-add-game').innerHTML = '<i class="fas fa-floppy-disk"></i><span>Simpan game ke katalog</span>';
   document.getElementById('btn-cancel-edit').style.display = 'none';
   const formTitle = document.getElementById('formPanelTitle') || document.querySelector('.admin-section-title[data-form]');
-  if (formTitle) formTitle.innerHTML = '<i class="fas fa-plus-circle"></i> Tambah Game Baru';
+  if (formTitle) formTitle.innerHTML = '<i class="fas fa-plus-circle"></i><span>Tambah game baru</span>';
+  const iconFile = document.getElementById('iconFile');
+  if (iconFile) iconFile.value = '';
+  syncLivePreview();
 }
 
 function editGame(id) {
@@ -182,10 +359,11 @@ function editGame(id) {
     addPlatformRow();
   }
 
-  document.getElementById('btn-add-game').textContent = '💾 Update Game';
+  document.getElementById('btn-add-game').innerHTML = '<i class="fas fa-floppy-disk"></i><span>Update game</span>';
   document.getElementById('btn-cancel-edit').style.display = 'inline-block';
   const formTitle = document.getElementById('formPanelTitle') || document.querySelector('.admin-section-title[data-form]');
-  if (formTitle) formTitle.innerHTML = `<i class="fas fa-pen-to-square"></i> Edit Game: ${escHtml(game.title)}`;
+  if (formTitle) formTitle.innerHTML = `<i class="fas fa-pen-to-square"></i><span>Edit game: ${escHtml(game.title)}</span>`;
+  syncLivePreview();
   document.querySelector('.add-form').scrollIntoView({behavior:'smooth', block:'start'});
 }
 
@@ -217,7 +395,7 @@ async function submitAddGame() {
 
   try {
     const game = {
-      id:        editingGameId || title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,''),
+      id:        editingGameId || slugify(title),
       title, genre,
       desc:      desc || 'Game baru dari Nusabit Studio.',
       icon:      pendingIconDataUrl || (editingGameId ? (_gamesCache.find(g=>g.id===editingGameId)||{}).icon||'' : ''),
@@ -242,7 +420,9 @@ async function submitAddGame() {
     addLog('ERROR: ' + e.message, 'err');
   } finally {
     btn.disabled    = false;
-    btn.textContent = editingGameId ? '💾 Update Game' : '▶ Simpan Game ke Katalog';
+    btn.innerHTML = editingGameId
+      ? '<i class="fas fa-floppy-disk"></i><span>Update game</span>'
+      : '<i class="fas fa-floppy-disk"></i><span>Simpan game ke katalog</span>';
   }
 }
 let pendingDeleteId = null;
@@ -276,8 +456,11 @@ async function doDeleteGame(id, title) {
 function showAlert(msg, type) {
   const el = document.getElementById('alertBox');
   el.textContent = msg;
-  el.className   = `alert ${type} show`;
-  setTimeout(() => el.classList.remove('show'), 4500);
+  el.className   = `alert ${type === 'error' ? 'err' : type === 'success' ? 'ok' : type}`;
+  setTimeout(() => {
+    el.className = 'alert';
+    el.textContent = '';
+  }, 4500);
 }
 
 /* ── RENDER TABLE ── */
@@ -318,7 +501,7 @@ async function updateStats() {
   const roblox  = games.filter(g=>(g.platforms||[]).some(p=>p.cls==='btn-roblox')).length;
   const plats   = new Set(games.flatMap(g=>(g.platforms||[]).map(p=>p.cls)));
   // Update semua elemen stats (ada di dashboard & section games)
-  document.querySelectorAll('#statTotal').forEach(el     => el.textContent = total);
+  document.querySelectorAll('#statTotal, #statTotalDashProxy').forEach(el     => el.textContent = total);
   document.querySelectorAll('#statRoblox').forEach(el    => el.textContent = roblox);
   document.querySelectorAll('#statPlatforms').forEach(el => el.textContent = plats.size || 0);
   // Update report badge di sidebar
@@ -341,7 +524,7 @@ async function exportGameData() {
   a.href = url; a.download = 'gameData.js'; a.click();
   URL.revokeObjectURL(url);
   addLog('EXPORTED gameData.js — ' + games.length + ' games');
-  showAlert('gameData.js diexport! Upload ke assets/js/ di website.', 'success');
+  showAlert('gameData.js berhasil diexport. Upload ke assets/js/ website jika diperlukan.', 'success');
 }
 
 /* ── LOGIN ── */
@@ -358,7 +541,7 @@ async function doLogin() {
   const pass = document.getElementById('adminPass').value;
   if (!user || !pass) { errEl.textContent = 'Username dan password wajib diisi!'; return; }
 
-  btnEl.disabled = true; btnEl.textContent = 'Mengautentikasi...';
+  btnEl.disabled = true; btnEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Mengautentikasi...</span>';
 
   try {
     const hash = await sha256(pass);
@@ -388,7 +571,7 @@ async function doLogin() {
     console.error(e);
   } finally {
     btnEl.disabled    = false;
-    btnEl.textContent = 'Masuk ke Panel';
+    btnEl.innerHTML = '<i class="fas fa-right-to-bracket"></i><span>Masuk ke panel</span>';
     document.getElementById('adminPass').value = '';
   }
 }
@@ -424,6 +607,10 @@ async function showAdmin(sess) {
   renderReports();
   initKeyboardShortcuts();
   initAutoSlug();
+  initLivePreview();
+  initCommandCenter();
+  initLogActions();
+  initSiteSettingsPanel();
   addLog(`Session aktif — expires in ${SESSION_MINUTES} minutes`);
 }
 
@@ -505,6 +692,7 @@ async function fetchTickets() {
     }
 
     const tickets = data.tickets || [];
+    _ticketCache = tickets;
     if (countEl) countEl.textContent = `${tickets.length} tiket (${tickets.filter(t=>!t.done).length} aktif)`;
     renderTicketPanel(tickets);
 
@@ -572,7 +760,7 @@ function renderTicketPanel(tickets) {
     `;
 
     return `
-<div class="report-item${isDone ? ' report-done' : ''}">
+<div class="report-item${isDone ? ' report-done' : ''}" data-type="${escHtml(t.type||'')}" data-status="${escHtml(t.status||'received')}">
   <div class="report-item-head">
     <span class="report-badge ${t.type==='bug'?'bug':'saran'}">${t.type==='bug'?'🐛 Bug Report':'💡 Saran'}</span>
     <span class="s-badge ${badgeCls}">${badgeLabel}</span>
@@ -742,8 +930,8 @@ function filterGameTable() {
   const rows = document.querySelectorAll('#gameTableBody tr[data-id]');
   let visible = 0;
   rows.forEach(row => {
-    const title = (row.cells[2]?.textContent || '').toLowerCase();
-    const genre = (row.cells[3]?.textContent || '').toLowerCase();
+    const title = (row.cells[3]?.textContent || '').toLowerCase();
+    const genre = (row.cells[4]?.textContent || '').toLowerCase();
     const matchSearch = !_searchQuery || title.includes(_searchQuery);
     const matchGenre  = !_filterGenre || genre.includes(_filterGenre.toLowerCase());
     const show = matchSearch && matchGenre;
@@ -756,7 +944,7 @@ function filterGameTable() {
     if (!noResult) {
       noResult = document.createElement('tr');
       noResult.id = 'table-no-result';
-      noResult.innerHTML = '<td colspan="6" class="table-empty">Tidak ada game yang cocok.</td>';
+      noResult.innerHTML = '<td colspan="7" class="table-empty">Tidak ada game yang cocok.</td>';
       document.getElementById('gameTableBody').appendChild(noResult);
     }
     noResult.style.display = '';
@@ -835,7 +1023,7 @@ function showGamePreview() {
   modal.id    = 'game-preview-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9998;display:flex;align-items:center;justify-content:center;';
   modal.innerHTML = `
-    <div style="background:var(--bg-card);border:1px solid var(--border-dim);border-radius:8px;padding:24px;max-width:380px;width:90%;font-family:var(--font-body);position:relative;">
+    <div style="background:var(--bg-card);border:1px solid var(--border-dim);border-radius:16px;padding:24px;max-width:380px;width:90%;font-family:var(--font-body);position:relative;">
       <button onclick="document.getElementById('game-preview-modal').remove()" style="position:absolute;top:10px;right:14px;background:none;border:none;color:var(--text-muted);font-size:1.3em;cursor:pointer;">×</button>
       <div style="color:var(--c-cyan);font-family:var(--font-title);font-size:0.75em;margin-bottom:12px;letter-spacing:1px;">▶ PREVIEW GAME CARD</div>
       <div style="display:flex;gap:14px;align-items:flex-start;">
@@ -862,7 +1050,7 @@ function initAutoSlug() {
   titleInput._slugInited = true;
   titleInput.addEventListener('input', () => {
     if (editingGameId) return; // jangan ubah slug saat edit
-    const slug = titleInput.value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const slug = slugify(titleInput.value);
     let slugEl = document.getElementById('auto-slug-display');
     if (!slugEl) {
       slugEl = document.createElement('div');
@@ -914,8 +1102,7 @@ function filterTickets() {
   const items = document.querySelectorAll('#reports-panel .report-item');
   items.forEach(item => {
     const isDone   = item.classList.contains('report-done');
-    const typeEl   = item.querySelector('.report-type, [data-type]');
-    const typeText = (typeEl ? typeEl.textContent : item.textContent).toLowerCase();
+    const typeText = String(item.dataset.type || item.textContent).toLowerCase();
 
     const matchType   = !_ticketFilterType   || typeText.includes(_ticketFilterType);
     const matchStatus = !_ticketFilterStatus || (_ticketFilterStatus === 'aktif' ? !isDone : isDone);
@@ -936,18 +1123,18 @@ function updateReportStats(tickets) {
   ['statReportTotal',  'statReportTotalDash' ].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=total; });
   ['statReportActive', 'statReportActiveDash'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=active; });
   ['statReportDone',   'statReportDoneDash'  ].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=done; });
-  ['statBugActive',    'statBugActiveDash'   ].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=bugsAct; });
+  ['statBugActive', 'statBugActiveDash', 'statBugActiveDashProxy'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=bugsAct; });
 
   // Inject ringkasan ke dashboard jika belum ada
   const dashSec = document.getElementById('dashboard-report-summary');
   if (dashSec) {
     dashSec.innerHTML = `
-      <span style="color:var(--text-muted);font-size:0.8em;">📊 Laporan:</span>
-      <span style="color:var(--c-red);font-weight:700;">${bugsAct} bug aktif</span>
-      <span style="color:var(--text-muted);">·</span>
-      <span style="color:var(--c-cyan);">${active} belum ditangani</span>
-      <span style="color:var(--text-muted);">·</span>
-      <span style="color:var(--c-green);">${done} selesai</span>`;
+      <span style="color:var(--text-muted);font-size:0.92rem;">Ringkasan tiket:</span>
+      <span style="color:#fca5a5;font-weight:700;">${bugsAct} bug aktif</span>
+      <span style="color:var(--text-muted);">•</span>
+      <span style="color:#a5f3fc;">${active} masih diproses</span>
+      <span style="color:var(--text-muted);">•</span>
+      <span style="color:#86efac;">${done} sudah selesai</span>`;
   }
 }
 
@@ -978,7 +1165,97 @@ function initKeyboardShortcuts() {
   });
 }
 
+function initLivePreview() {
+  ['fg-title', 'fg-genre', 'fg-desc'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el || el.dataset.previewBound) return;
+    el.dataset.previewBound = '1';
+    el.addEventListener('input', syncLivePreview);
+    el.addEventListener('change', syncLivePreview);
+  });
+  const platformBuilder = document.getElementById('platformBuilder');
+  if (platformBuilder && !platformBuilder.dataset.previewBound) {
+    platformBuilder.dataset.previewBound = '1';
+    platformBuilder.addEventListener('input', syncLivePreview);
+    platformBuilder.addEventListener('change', syncLivePreview);
+  }
+  syncLivePreview();
+}
+
+function syncLivePreview() {
+  const title = document.getElementById('fg-title')?.value.trim() || 'Judul game';
+  const genre = document.getElementById('fg-genre')?.value || 'Genre';
+  const desc = document.getElementById('fg-desc')?.value.trim() || 'Deskripsi game akan muncul di sini saat Anda mulai mengetik.';
+  const slug = editingGameId || slugify(title) || '-';
+  const titleEl = document.getElementById('liveGameTitle');
+  const genreEl = document.getElementById('liveGameGenre');
+  const descEl = document.getElementById('liveGameDesc');
+  const slugEl = document.getElementById('liveGameSlug');
+  const iconEl = document.getElementById('liveGameIcon');
+  const platformsEl = document.getElementById('liveGamePlatforms');
+
+  if (titleEl) titleEl.textContent = title;
+  if (genreEl) genreEl.textContent = genre;
+  if (descEl) descEl.textContent = desc;
+  if (slugEl) slugEl.textContent = slug;
+  if (iconEl) {
+    iconEl.innerHTML = pendingIconDataUrl
+      ? `<img src="${pendingIconDataUrl}" alt="preview">`
+      : '<i class="fas fa-gamepad"></i>';
+  }
+  if (platformsEl) {
+    const platforms = collectPlatforms();
+    platformsEl.innerHTML = platforms.length
+      ? platforms.map(p => `<span class="preview-tag">${escHtml(p.name)}</span>`).join('')
+      : '<span class="preview-tag muted">Belum ada platform</span>';
+  }
+}
+
+function initCommandCenter() {
+  document.querySelectorAll('[data-copy-command]').forEach(btn => {
+    if (btn.dataset.copyBound) return;
+    btn.dataset.copyBound = '1';
+    btn.addEventListener('click', async () => {
+      const command = btn.getAttribute('data-copy-command') || '';
+      try {
+        await navigator.clipboard.writeText(command);
+        showToast(`Command disalin: ${command}`, 'ok');
+      } catch {
+        showToast('Gagal menyalin command.', 'err');
+      }
+    });
+  });
+}
+
+function initLogActions() {
+  const copyBtn = document.getElementById('copyLogsBtn');
+  const clearBtn = document.getElementById('clearLogsBtn');
+
+  if (copyBtn && !copyBtn.dataset.bound) {
+    copyBtn.dataset.bound = '1';
+    copyBtn.addEventListener('click', async () => {
+      try {
+        const text = logLines.map(l => `[${l.ts}] ${l.msg}`).join('\n');
+        await navigator.clipboard.writeText(text);
+        showToast('Log berhasil disalin.', 'ok');
+      } catch {
+        showToast('Gagal menyalin log.', 'err');
+      }
+    });
+  }
+
+  if (clearBtn && !clearBtn.dataset.bound) {
+    clearBtn.dataset.bound = '1';
+    clearBtn.addEventListener('click', () => {
+      logLines.length = 0;
+      renderLog();
+      showToast('Tampilan log dibersihkan.', 'info');
+    });
+  }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('sidebarClose')?.addEventListener('click', closeSidebar);
   ['adminUser','adminPass'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
@@ -1001,4 +1278,8 @@ document.addEventListener('DOMContentLoaded', function() {
     if (e.key==='F12'||(e.ctrlKey&&e.shiftKey&&['I','J','C'].includes(e.key))||(e.ctrlKey&&e.key==='U'))
       e.preventDefault();
   });
+  initLivePreview();
+  initCommandCenter();
+  initLogActions();
+  feather.replace();
 });

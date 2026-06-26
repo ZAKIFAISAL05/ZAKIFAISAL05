@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>403 — Akses Ditolak | Nusabit Studio</title>
+  <!-- CSS error page harus pakai path absolut karena file ini sudah berada di folder `errors` -->
+  <link rel="stylesheet" href="/errors/style.css">
+  <style>
+    .error-code-big { color: #f39c12; text-shadow: 0 0 40px rgba(243,156,18,0.4); }
+    .orb-1 { background: radial-gradient(circle, #f39c12, transparent); }
+    .orb-2 { background: radial-gradient(circle, #e67e22, transparent); }
+    .btn-primary-err { background: linear-gradient(135deg, #f39c12, #e67e22); }
+
+    .lock-icon {
+      font-size: 3rem;
+      margin-bottom: 12px;
+      animation: shake 5s ease-in-out infinite;
+    }
+    @keyframes shake {
+      0%, 90%, 100% { transform: rotate(0deg); }
+      92% { transform: rotate(-10deg); }
+      94% { transform: rotate(10deg); }
+      96% { transform: rotate(-5deg); }
+      98% { transform: rotate(5deg); }
+    }
+  </style>
+<script src="https://unpkg.com/feather-icons"></script>
+<script>document.addEventListener("DOMContentLoaded",function(){feather.replace()});</script>
+</head>
+<body>
+
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="error-container">
+
+  <div class="lock-icon"><i data-feather="lock"></i></div>
+  <div class="error-code-big">403</div>
+  <div class="error-flavor">[ ACCESS DENIED — FORBIDDEN ZONE ]</div>
+
+  <div class="error-card">
+    <div class="error-title">Zona Terlarang <i data-feather="alert-triangle"></i>️</div>
+    <div class="error-desc">
+      Kamu tidak punya izin untuk mengakses halaman ini.
+      Halaman ini mungkin khusus untuk admin atau memerlukan login.
+    </div>
+
+    <div class="tips-box">
+      <span class="tips-label"><i data-feather="zap"></i> Kenapa ini terjadi?</span>
+      <ul class="tips-list">
+        <li>Halaman ini khusus untuk admin Nusabit Studio</li>
+        <li>Kamu mungkin belum login atau sesi sudah habis</li>
+        <li>URL yang kamu akses tidak diizinkan untuk publik</li>
+      </ul>
+    </div>
+
+    <div class="error-actions">
+      <a href="/" class="btn-err btn-primary-err"><i data-feather="home"></i> Kembali ke Home</a>
+      <a href="/cs/" class="btn-err btn-ghost-err"><i data-feather="message-circle"></i> Butuh Bantuan?</a>
+    </div>
+  </div>
+
+  <div class="error-brand">
+    <img src="/assets/img/studio_logo.png" alt="Nusabit Studio">
+    <span>Nusabit Studio</span>
+  </div>
+
+</div>
+</body>
+</html>

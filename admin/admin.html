@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Admin Nusabit Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/feather-icons"></script>
+</head>
+<body>
+    <div class="login-wrap" id="loginWrap">
+        <div class="login-bg-grid"></div>
+        <div class="login-shell">
+            <section class="login-intro">
+                <div class="login-intro-badge">Admin Access</div>
+                <h1>Control center untuk katalog game dan tiket user.</h1>
+                <p>Panel admin dibuat lebih rapi, cepat dipindai, dan tetap memakai storage server Netlify yang sama seperti sebelumnya.</p>
+                <div class="login-feature-list">
+                    <div class="login-feature-card">
+                        <i class="fas fa-database"></i>
+                        <div>
+                            <strong>Storage tetap aman</strong>
+                            <span>Game dan tiket tetap tersimpan di Netlify Blobs.</span>
+                        </div>
+                    </div>
+                    <div class="login-feature-card">
+                        <i class="fas fa-layer-group"></i>
+                        <div>
+                            <strong>Dashboard lebih jelas</strong>
+                            <span>Statistik, quick action, dan laporan dipisah per blok.</span>
+                        </div>
+                    </div>
+                    <div class="login-feature-card">
+                        <i class="fas fa-terminal"></i>
+                        <div>
+                            <strong>Command siap pakai</strong>
+                            <span>Ada shortcut command untuk local dev dan deploy.</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="login-box">
+                <div class="login-logo">
+                    <img src="../assets/img/studio_logo.png" alt="Nusabit Studio" onerror="this.style.display='none'">
+                    <div class="login-logo-fallback"><i class="fas fa-shield-halved"></i></div>
+                </div>
+                <div class="login-title">ADMIN PANEL</div>
+                <div class="login-sub">Nusabit Studio Secure Session</div>
+
+                <div class="login-field">
+                    <label for="adminUser">Username</label>
+                    <input type="text" id="adminUser" autocomplete="off" spellcheck="false" placeholder="Masukkan username" maxlength="32">
+                </div>
+                <div class="login-field">
+                    <label for="adminPass">Password</label>
+                    <input type="password" id="adminPass" autocomplete="off" placeholder="••••••••" maxlength="64">
+                </div>
+
+                <button class="btn-login" id="loginBtn" onclick="doLogin()">
+                    <i class="fas fa-right-to-bracket"></i>
+                    <span>Masuk ke panel</span>
+                </button>
+
+                <div class="login-err" id="loginErr"></div>
+                <div class="login-attempts" id="loginAttempts"></div>
+                <div class="lockout-msg" id="lockoutMsg" style="display:none;"></div>
+            </section>
+        </div>
+    </div>
+
+    <div class="admin-wrap" id="adminWrap">
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <canvas id="adminCharCanvas" width="36" height="60"></canvas>
+                </div>
+                <div class="sidebar-brand">
+                    <span class="sidebar-title">NUSABIT STUDIO</span>
+                    <span class="sidebar-sub">Admin Command Center</span>
+                </div>
+                <button class="sidebar-close" id="sidebarClose" aria-label="Tutup sidebar">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </div>
+
+            <nav class="sidebar-nav">
+                <div class="sidebar-section-label">Navigasi</div>
+                <button class="sidebar-link active" data-section="dashboard" onclick="navTo('dashboard')">
+                    <i class="fas fa-gauge-high"></i>
+                    <span>Dashboard</span>
+                    <span class="kbd-hint">Alt+1</span>
+                </button>
+                <button class="sidebar-link" data-section="games" onclick="navTo('games')">
+                    <i class="fas fa-gamepad"></i>
+                    <span>Manajemen Game</span>
+                    <span class="kbd-hint">Alt+2</span>
+                </button>
+                <button class="sidebar-link" data-section="reports" onclick="navTo('reports')">
+                    <i class="fas fa-flag"></i>
+                    <span>Laporan &amp; Tiket</span>
+                    <span class="sidebar-badge" id="reportBadge" style="display:none;">0</span>
+                    <span class="kbd-hint">Alt+3</span>
+                </button>
+                <button class="sidebar-link" data-section="logs" onclick="navTo('logs')">
+                    <i class="fas fa-terminal"></i>
+                    <span>Activity Log</span>
+                    <span class="kbd-hint">Alt+4</span>
+                </button>
+
+                <div class="sidebar-divider"></div>
+                <div class="sidebar-section-label">Session</div>
+                <div class="sidebar-status-card">
+                    <div class="sidebar-info-row">
+                        <i class="fas fa-user-shield"></i>
+                        <span id="adminUserDisplay">—</span>
+                    </div>
+                    <div class="sidebar-info-row small">
+                        <i class="fas fa-clock"></i>
+                        <span id="sessionTimer">--:--</span>
+                    </div>
+                    <div class="sidebar-info-row small">
+                        <i class="fas fa-server"></i>
+                        <span>Netlify Blobs</span>
+                    </div>
+                </div>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button class="btn-logout" onclick="doLogout()">
+                    <i class="fas fa-right-from-bracket"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+        <main class="admin-main">
+            <header class="admin-topbar">
+                <div class="topbar-left">
+                    <button class="topbar-menu-btn" id="sidebarToggle" onclick="toggleSidebar()" aria-label="Buka menu">
+                        <span class="hamburger-line"></span>
+                        <span class="hamburger-line"></span>
+                        <span class="hamburger-line"></span>
+                    </button>
+                    <div>
+                        <div class="topbar-caption">Nusabit Studio</div>
+                        <div class="topbar-title" id="topbarTitle">Dashboard</div>
+                    </div>
+                </div>
+
+                <div class="topbar-right">
+                    <div class="session-chip">
+                        <span class="session-dot"></span>
+                        <span>Live</span>
+                    </div>
+                    <div class="topbar-storage">
+                        <i class="fas fa-cloud"></i>
+                        <span>Netlify server aktif</span>
+                    </div>
+                </div>
+            </header>
+
+            <div class="session-bar">
+                <div class="session-item">
+                    <span class="session-label">Session</span>
+                    <span id="sessionId">—</span>
+                </div>
+                <div class="session-item">
+                    <span class="session-label">Login</span>
+                    <span id="loginTime">—</span>
+                </div>
+                <div class="session-item">
+                    <span class="session-label">Storage</span>
+                    <span class="status-green"><i data-feather="circle"></i> Server Netlify</span>
+                </div>
+                <div class="session-item">
+                    <span class="session-label">Status</span>
+                    <span class="status-green"><i data-feather="circle"></i> Active</span>
+                </div>
+            </div>
+
+            <section class="admin-section active" id="sec-dashboard">
+                <div class="section-header">
+                    <div>
+                        <p class="section-kicker">Ringkasan</p>
+                        <h2 class="section-title"><i class="fas fa-gauge-high"></i> Dashboard admin</h2>
+                    </div>
+                </div>
+
+                <div class="hero-panel">
+                    <div class="hero-copy">
+                        <span class="hero-badge">Admin workspace</span>
+                        <h3>Kelola katalog, monitor tiket, dan jalankan command penting dari satu tempat.</h3>
+                        <p>Desain baru dibuat lebih bersih dan lebih cepat dibaca tanpa mengubah endpoint game, tiket, atau storage blog Netlify yang sudah ada.</p>
+                    </div>
+                    <div class="hero-mini-stats">
+                        <div class="mini-stat-card">
+                            <span class="mini-stat-label">Session</span>
+                            <strong id="sessionTimerDash">00:00</strong>
+                        </div>
+                        <div class="mini-stat-card">
+                            <span class="mini-stat-label">Game aktif</span>
+                            <strong id="statTotal">0</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-gamepad"></i></div>
+                        <div class="stat-num" id="statTotalDashProxy">0</div>
+                        <div class="stat-label">Total game katalog</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-mobile-screen"></i></div>
+                        <div class="stat-num" id="statPlatforms">0</div>
+                        <div class="stat-label">Platform aktif</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-cube"></i></div>
+                        <div class="stat-num" id="statRoblox">0</div>
+                        <div class="stat-label">Game Roblox</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-bug"></i></div>
+                        <div class="stat-num" id="statBugActiveDash">0</div>
+                        <div class="stat-label">Bug aktif</div>
+                    </div>
+                </div>
+
+                <div id="dashboard-report-summary" class="dashboard-report-summary">
+                    <span>Memuat statistik laporan...</span>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="panel-box">
+                        <div class="panel-box-title">
+                            <i class="fas fa-bolt"></i>
+                            <span>Quick actions</span>
+                        </div>
+                        <div class="panel-content">
+                            <div class="quick-actions">
+                                <button class="quick-btn" onclick="navTo('games')">
+                                    <i class="fas fa-plus"></i>
+                                    <span>Tambah game</span>
+                                </button>
+                                <button class="quick-btn" onclick="renderGameTable()">
+                                    <i class="fas fa-rotate"></i>
+                                    <span>Refresh katalog</span>
+                                </button>
+                                <button class="quick-btn" onclick="navTo('reports')">
+                                    <i class="fas fa-ticket"></i>
+                                    <span>Buka tiket</span>
+                                </button>
+                                <button class="quick-btn" onclick="navTo('logs')">
+                                    <i class="fas fa-terminal"></i>
+                                    <span>Lihat log</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel-box">
+                        <div class="panel-box-title">
+                            <i class="fas fa-chart-column"></i>
+                            <span>Ringkasan tiket</span>
+                        </div>
+                        <div class="panel-content compact-grid">
+                            <div class="compact-metric">
+                                <span>Total tiket</span>
+                                <strong id="statReportTotalDash">0</strong>
+                            </div>
+                            <div class="compact-metric">
+                                <span>Masih aktif</span>
+                                <strong id="statReportActiveDash">0</strong>
+                            </div>
+                            <div class="compact-metric">
+                                <span>Selesai</span>
+                                <strong id="statReportDoneDash">0</strong>
+                            </div>
+                            <div class="compact-metric">
+                                <span>Bug aktif</span>
+                                <strong id="statBugActive">0</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel-box">
+                        <div class="panel-box-title">
+                            <i class="fas fa-terminal"></i>
+                            <span>Command center</span>
+                        </div>
+                        <div class="panel-content command-list">
+                            <button class="command-chip" data-copy-command="npm install">
+                                <span>Install dependency</span>
+                                <code>npm install</code>
+                            </button>
+                            <button class="command-chip" data-copy-command="npm run dev">
+                                <span>Jalankan lokal</span>
+                                <code>npm run dev</code>
+                            </button>
+                            <button class="command-chip" data-copy-command="npm run build">
+                                <span>Cek build Netlify</span>
+                                <code>npm run build</code>
+                            </button>
+                            <button class="command-chip" data-copy-command="npm run deploy:prod">
+                                <span>Deploy production</span>
+                                <code>npm run deploy:prod</code>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- WEBSITE STATUS (maintenance + pengumuman) -->
+                    <div class="panel-box">
+                        <div class="panel-box-title">
+                            <i class="fas fa-bullhorn"></i>
+                            <span>Website status</span>
+                        </div>
+                        <div class="panel-content">
+                            <div class="site-settings-wrap">
+                                <div class="site-settings-row">
+                                    <div class="site-settings-meta">
+                                        <div class="site-settings-label">Maintenance</div>
+                                        <div class="site-settings-value" id="ss-maintenance-status">Memuat...</div>
+                                    </div>
+                                    <div class="site-settings-actions">
+                                        <button class="btn-small btn-maint-on" type="button" onclick="setMaintenance(true)">ON</button>
+                                        <button class="btn-small btn-maint-off" type="button" onclick="setMaintenance(false)">OFF</button>
+                                    </div>
+                                </div>
+
+                                <div class="site-settings-divider"></div>
+
+                                <div class="site-settings-label">Pengumuman (muncul di homepage)</div>
+                                <textarea id="ss-ann-message" class="site-settings-textarea" rows="3" placeholder="Tulis pengumuman untuk semua pengunjung..." maxlength="300"></textarea>
+
+                                <div class="site-settings-row">
+                                    <div class="site-settings-meta">
+                                        <div class="site-settings-label">Durasi tampil (menit)</div>
+                                        <input id="ss-ann-minutes" class="site-settings-input" type="number" min="1" max="43200" value="60">
+                                    </div>
+                                    <div class="site-settings-actions">
+                                        <button class="btn-small btn-ann-publish" type="button" onclick="publishAnnouncement()">Tampilkan</button>
+                                        <button class="btn-delete" type="button" onclick="clearAnnouncement()">Matikan</button>
+                                    </div>
+                                </div>
+
+                                <div class="site-settings-hint" id="ss-ann-info">—</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="admin-section" id="sec-games">
+                <div class="section-header">
+                    <div>
+                        <p class="section-kicker">Editor katalog</p>
+                        <h2 class="section-title"><i class="fas fa-gamepad"></i> Manajemen game</h2>
+                    </div>
+                </div>
+
+                <div class="games-layout">
+                    <div class="panel-box">
+                        <div class="panel-box-title" id="formPanelTitle">
+                            <i class="fas fa-plus-circle"></i>
+                            <span>Tambah game baru</span>
+                        </div>
+
+                        <div id="alertBox" class="alert"></div>
+
+                        <div class="add-form">
+                            <div class="form-row">
+                                <div class="form-field">
+                                    <label for="fg-title">Nama game *</label>
+                                    <input type="text" id="fg-title" placeholder="Contoh: Desa Cipta Karya Chapter 3" maxlength="80">
+                                </div>
+                                <div class="form-field">
+                                    <label for="fg-genre">Genre *</label>
+                                    <select id="fg-genre">
+                                        <option value="">Pilih genre</option>
+                                        <option value="Arcade">Arcade</option>
+                                        <option value="Action">Action</option>
+                                        <option value="Simulation">Simulation</option>
+                                        <option value="Platformer">Platformer</option>
+                                        <option value="Survival">Survival</option>
+                                        <option value="RPG">RPG</option>
+                                        <option value="Strategy">Strategy</option>
+                                        <option value="Puzzle">Puzzle</option>
+                                        <option value="Horror">Horror</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-field full">
+                                <label for="fg-desc">Deskripsi</label>
+                                <textarea id="fg-desc" rows="4" placeholder="Tulis deskripsi singkat game untuk katalog admin..."></textarea>
+                            </div>
+
+                            <div class="form-field full">
+                                <label>Icon atau logo game</label>
+                                <div class="icon-upload-wrap">
+                                    <div class="icon-preview" id="iconPreview">
+                                        <i class="fas fa-gamepad"></i>
+                                    </div>
+                                    <div class="icon-upload-info">
+                                        <button class="btn-upload-icon" type="button" onclick="document.getElementById('iconFile').click()">
+                                            <i class="fas fa-upload"></i>
+                                            <span>Pilih gambar</span>
+                                        </button>
+                                        <input type="file" id="iconFile" accept="image/*" hidden onchange="handleIconUpload(event)">
+                                        <p>PNG, JPG, WEBP. Maksimal 2MB.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-field full">
+                                <label>Platform &amp; link download</label>
+                                <div class="platform-builder" id="platformBuilder">
+                                    <div class="platform-row" id="prow-0">
+                                        <select class="p-type">
+                                            <option value="btn-taptap">TapTap</option>
+                                            <option value="btn-itchio">Itch.io</option>
+                                            <option value="btn-roblox">Roblox</option>
+                                            <option value="btn-amazon">Amazon</option>
+                                            <option value="btn-gplay">Google Play</option>
+                                            <option value="btn-steam">Steam</option>
+                                        </select>
+                                        <input class="p-url" type="url" placeholder="https://...">
+                                        <button class="btn-rm-platform" type="button" onclick="removePlatform('prow-0')" title="Hapus">
+                                            <i class="fas fa-xmark"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <button class="btn-add-platform" type="button" onclick="addPlatformRow()">
+                                    <i class="fas fa-plus"></i>
+                                    <span>Tambah platform</span>
+                                </button>
+                            </div>
+
+                            <div class="form-actions">
+                                <button class="btn-save" id="btn-add-game" type="button" onclick="submitAddGame()">
+                                    <i class="fas fa-floppy-disk"></i>
+                                    <span>Simpan game ke katalog</span>
+                                </button>
+                                <button class="btn-cancel" id="btn-cancel-edit" type="button" onclick="resetForm()" style="display:none;">
+                                    <i class="fas fa-xmark"></i>
+                                    <span>Batal edit</span>
+                                </button>
+                                <button class="btn-cancel" type="button" onclick="showGamePreview()">
+                                    <i class="fas fa-eye"></i>
+                                    <span>Preview card</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel-box preview-panel">
+                        <div class="panel-box-title">
+                            <i class="fas fa-wand-magic-sparkles"></i>
+                            <span>Live preview</span>
+                        </div>
+                        <div class="panel-content">
+                            <div class="live-card-preview">
+                                <div class="live-card-media" id="liveGameIcon">
+                                    <i class="fas fa-gamepad"></i>
+                                </div>
+                                <div class="live-card-body">
+                                    <span class="live-card-label" id="liveGameGenre">Genre</span>
+                                    <h3 id="liveGameTitle">Judul game</h3>
+                                    <p id="liveGameDesc">Deskripsi game akan muncul di sini saat Anda mulai mengetik.</p>
+                                </div>
+                            </div>
+
+                            <div class="preview-meta">
+                                <div class="preview-meta-row">
+                                    <span>ID game</span>
+                                    <code id="liveGameSlug">-</code>
+                                </div>
+                                <div class="preview-meta-row preview-meta-stack">
+                                    <span>Platform terpasang</span>
+                                    <div id="liveGamePlatforms" class="preview-tags">
+                                        <span class="preview-tag muted">Belum ada platform</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="editor-hint">
+                                ID dibuat otomatis dari judul saat tambah game baru. Saat mode edit, ID lama tetap dipertahankan.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-box">
+                    <div class="panel-box-title">
+                        <i class="fas fa-list"></i>
+                        <span>Game catalog</span>
+                    </div>
+
+                    <div class="table-toolbar">
+                        <button class="btn-tool" type="button" onclick="renderGameTable()">
+                            <i class="fas fa-rotate"></i>
+                            <span>Refresh</span>
+                        </button>
+                        <button class="btn-tool" type="button" onclick="exportGameData()">
+                            <i class="fas fa-download"></i>
+                            <span>Export gameData.js</span>
+                        </button>
+                        <span class="toolbar-note">Data tersimpan permanen di Netlify Blobs</span>
+                    </div>
+
+                    <div class="admin-table-wrap">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th style="width:40px;" title="Drag untuk ubah urutan"><i class="fas fa-grip-vertical"></i></th>
+                                    <th>#</th>
+                                    <th>Icon</th>
+                                    <th>Game title</th>
+                                    <th>Genre</th>
+                                    <th>Platforms</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="gameTableBody">
+                                <tr><td colspan="7" class="table-empty">Memuat data game...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section class="admin-section" id="sec-reports">
+                <div class="section-header">
+                    <div>
+                        <p class="section-kicker">Ticket desk</p>
+                        <h2 class="section-title"><i class="fas fa-flag"></i> Laporan bug &amp; saran</h2>
+                    </div>
+                </div>
+
+                <div class="report-overview-grid">
+                    <div class="compact-metric">
+                        <span>Total tiket</span>
+                        <strong id="statReportTotal">0</strong>
+                    </div>
+                    <div class="compact-metric">
+                        <span>Tiket aktif</span>
+                        <strong id="statReportActive">0</strong>
+                    </div>
+                    <div class="compact-metric">
+                        <span>Tiket selesai</span>
+                        <strong id="statReportDone">0</strong>
+                    </div>
+                    <div class="compact-metric">
+                        <span>Bug aktif</span>
+                        <strong id="statBugActiveDashProxy">0</strong>
+                    </div>
+                </div>
+
+                <div class="panel-box">
+                    <div class="reports-toolbar">
+                        <button class="btn-tool" type="button" onclick="renderReports()">
+                            <i class="fas fa-rotate"></i>
+                            <span>Refresh</span>
+                        </button>
+                        <button class="btn-danger-sm" type="button" onclick="clearDoneReports()">
+                            <i class="fas fa-trash"></i>
+                            <span>Hapus selesai</span>
+                        </button>
+                        <span class="toolbar-note" id="reportCount">Memuat...</span>
+                    </div>
+                    <div id="reports-panel"></div>
+                </div>
+            </section>
+
+            <section class="admin-section" id="sec-logs">
+                <div class="section-header">
+                    <div>
+                        <p class="section-kicker">Console</p>
+                        <h2 class="section-title"><i class="fas fa-terminal"></i> Activity log</h2>
+                    </div>
+                </div>
+
+                <div class="panel-box">
+                    <div class="reports-toolbar">
+                        <button class="btn-tool" type="button" id="copyLogsBtn">
+                            <i class="fas fa-copy"></i>
+                            <span>Salin log</span>
+                        </button>
+                        <button class="btn-tool" type="button" id="clearLogsBtn">
+                            <i class="fas fa-broom"></i>
+                            <span>Bersihkan tampilan</span>
+                        </button>
+                    </div>
+                    <div class="admin-log" id="activityLog"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div class="confirm-overlay" id="confirmOverlay">
+        <div class="confirm-box">
+            <div class="confirm-icon"><i class="fas fa-triangle-exclamation"></i></div>
+            <div class="confirm-title">Konfirmasi</div>
+            <div class="confirm-msg" id="confirmMsg">Lanjutkan aksi ini?</div>
+            <div class="confirm-actions">
+                <button class="btn-danger" id="confirmYes">
+                    <i class="fas fa-trash"></i>
+                    <span>Ya, lanjutkan</span>
+                </button>
+                <button class="btn-cancel" type="button" onclick="closeConfirm()">
+                    <i class="fas fa-xmark"></i>
+                    <span>Batal</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

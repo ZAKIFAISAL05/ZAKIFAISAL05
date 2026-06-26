@@ -28,26 +28,69 @@
     /* ══════════════════════════════════════════
        MASCOT BUBBLE TYPING
     ══════════════════════════════════════════ */
-    var msgs = [
-        'HELLO! 👾', 'WELCOME!', 'PLAY OUR GAMES!',
-        'NUSABIT STUDIO!', 'SELAMAT DATANG!', 'KLIK AKU! 😄',
-        'INDIE FROM ID! 🇮🇩', 'HAVE FUN! 🎮', 'EST. 2024 ⚔️'
-    ];
-    var mi = 0, ci = 0, typing = true, pt = null;
+    function getMascotMessages() {
+        var lang = localStorage.getItem('gs_lang') || 'id';
+        if (lang === 'en') {
+            return [
+                'HELLO! 👾',
+                'WELCOME!',
+                'PLAY OUR GAMES!',
+                'NUSABIT STUDIO!',
+                'CLICK ME! 😄',
+                'INDIE FROM ID! 🇮🇩',
+                'HAVE FUN! 🎮',
+                'EST. 2024 ⚔️'
+            ];
+        }
+        return [
+            'HALO! 👾',
+            'SELAMAT DATANG!',
+            'MAINKAN GAME KAMI!',
+            'NUSABIT STUDIO!',
+            'KLIK AKU! 😄',
+            'INDIE DARI INDONESIA! 🇮🇩',
+            'SEMOGA SERU! 🎮',
+            'EST. 2024 ⚔️'
+        ];
+    }
+
+    var msgs = getMascotMessages();
+    var mi = 0, ci = 0, typing = true, pt = null, tickTimer = null;
     var btxt = document.getElementById('btext');
+
+    function scheduleTick(delay) {
+        clearTimeout(tickTimer);
+        tickTimer = setTimeout(tick, delay);
+    }
 
     function tick() {
         if (!btxt) return;
         var m = msgs[mi];
         if (typing) {
-            if (ci < m.length) { btxt.textContent += m.charAt(ci++); setTimeout(tick, 80); }
+            if (ci < m.length) { btxt.textContent += m.charAt(ci++); scheduleTick(80); }
             else { pt = setTimeout(function () { typing = false; tick(); }, 2400); }
         } else {
-            if (ci > 0) { btxt.textContent = btxt.textContent.slice(0, --ci); setTimeout(tick, 38); }
-            else { mi = (mi + 1) % msgs.length; typing = true; setTimeout(tick, 350); }
+            if (ci > 0) { btxt.textContent = btxt.textContent.slice(0, --ci); scheduleTick(38); }
+            else { mi = (mi + 1) % msgs.length; typing = true; scheduleTick(350); }
         }
     }
-    setTimeout(tick, 1400);
+
+    function resetMascotBubble() {
+        msgs = getMascotMessages();
+        mi = 0;
+        ci = 0;
+        typing = true;
+        clearTimeout(pt);
+        clearTimeout(tickTimer);
+        if (btxt) btxt.textContent = '';
+        scheduleTick(250);
+    }
+
+    resetMascotBubble();
+
+    document.addEventListener('gs:lang-changed', function () {
+        resetMascotBubble();
+    });
 
     var mascotEl = document.getElementById('mascot');
     if (mascotEl) {
@@ -57,7 +100,7 @@
             ci = 0; typing = true;
             mi = (mi + 1) % msgs.length;
             tick();
-            showToast('> NUSABIT STUDIO!');
+            showToast((localStorage.getItem('gs_lang') || 'id') === 'en' ? '> NUSABIT STUDIO!' : '> NUSABIT STUDIO!');
         });
     }
 
