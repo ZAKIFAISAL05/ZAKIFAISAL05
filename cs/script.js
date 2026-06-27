@@ -19,6 +19,10 @@ var sessionId       = 'cs_' + Math.random().toString(36).slice(2, 9);
 var ttsEnabled      = true;
 var soundEnabled    = true;
 var pendingFiles    = [];
+var MAX_ATTACHMENTS = 5;
+var MAX_IMAGE_SIZE  = 3 * 1024 * 1024;
+var MAX_VIDEO_SIZE  = 15 * 1024 * 1024;
+var MAX_TOTAL_SIZE  = 20 * 1024 * 1024;
 
 var QUICK = [
     { label: '🎮 Info Game',        text: 'Ceritain dong game-game dari Nusabit Studio!' },
@@ -28,6 +32,95 @@ var QUICK = [
     { label: '📞 Kontak Tim',       text: 'Gimana cara menghubungi tim Nusabit Studio?' },
     { label: '📋 Cek Tiket',        text: '__TIKET__' },
 ];
+
+function formatBytes(bytes) {
+    if (!bytes) return '0 B';
+    var units = ['B', 'KB', 'MB', 'GB'];
+    var size = bytes;
+    var idx = 0;
+    while (size >= 1024 && idx < units.length - 1) {
+        size /= 1024;
+        idx++;
+    }
+    return (size >= 10 || idx === 0 ? Math.round(size) : size.toFixed(1)) + ' ' + units[idx];
+}
+
+function getFileLimit(file) {
+    return file && file.type && file.type.startsWith('video/') ? MAX_VIDEO_SIZE : MAX_IMAGE_SIZE;
+}
+
+function setUploadWarning(targetId, messages) {
+    var box = document.getElementById(targetId);
+    if (!box) return;
+    if (!messages || !messages.length) {
+        box.style.display = 'none';
+        box.textContent = '';
+        return;
+    }
+    box.style.display = 'block';
+    box.innerHTML = messages.map(function(msg) { return '<div>' + msg + '</div>'; }).join('');
+}
+
+function filterAcceptedFiles(files, currentFiles, warningId) {
+    var incoming = Array.from(files || []);
+    var existing = Array.isArray(currentFiles) ? currentFiles.slice() : [];
+    var accepted = [];
+    var warnings = [];
+
+    incoming.forEach(function(file) {
+        if (!file || (!file.type.startsWith('image/') && !file.type.startsWith('video/'))) {
+            warnings.push('Hanya gambar atau video yang bisa dilampirkan.');
+            return;
+        }
+
+        if ((existing.length + accepted.length) >= MAX_ATTACHMENTS) {
+            warnings.push('Maksimal ' + MAX_ATTACHMENTS + ' file per laporan/chat.');
+            return;
+        }
+
+        var limit = getFileLimit(file);
+        if (file.size > limit) {
+            warnings.push(file.name + ' terlalu besar. Batas ' + (file.type.startsWith('video/') ? 'video' : 'gambar') + ' adalah ' + formatBytes(limit) + '.');
+            return;
+        }
+
+        var totalSize = existing.concat(accepted).reduce(function(sum, f) {
+            return sum + (f && f.size ? f.size : 0);
+        }, 0) + file.size;
+        if (totalSize > MAX_TOTAL_SIZE) {
+            warnings.push('Total lampiran melebihi ' + formatBytes(MAX_TOTAL_SIZE) + '. Kurangi jumlah atau ukuran file.');
+            return;
+        }
+
+        accepted.push(file);
+    });
+
+    setUploadWarning(warningId, warnings);
+    return accepted;
+}
+
+function validatePreparedFiles(files, warningId) {
+    var warnings = [];
+    var totalSize = 0;
+
+    (files || []).forEach(function(file) {
+        if (!file) return;
+        totalSize += file.size || 0;
+        if (file.size > getFileLimit(file)) {
+            warnings.push(file.name + ' melewati batas ukuran aman.');
+        }
+    });
+
+    if ((files || []).length > MAX_ATTACHMENTS) {
+        warnings.push('Jumlah file melebihi batas maksimal ' + MAX_ATTACHMENTS + ' file.');
+    }
+    if (totalSize > MAX_TOTAL_SIZE) {
+        warnings.push('Total lampiran melebihi ' + formatBytes(MAX_TOTAL_SIZE) + '.');
+    }
+
+    setUploadWarning(warningId, warnings);
+    return warnings.length === 0;
+}
 
 // Quick reply kontekstual — muncul sesuai konteks percakapan (bergaya Shopee/WA)
 var QUICK_CONTEXTS = {
@@ -286,10 +379,8 @@ function initFileInput() {
     if (!fileInput) return;
 
     fileInput.addEventListener('change', function() {
-        Array.from(fileInput.files).forEach(function(f) {
-            if (pendingFiles.length >= 5) return;
-            pendingFiles.push(f);
-        });
+        var accepted = filterAcceptedFiles(fileInput.files, pendingFiles, 'upload-warning');
+        accepted.forEach(function(f) { pendingFiles.push(f); });
         fileInput.value = '';
         renderPendingPreviews();
     });
@@ -297,6 +388,7 @@ function initFileInput() {
     if (clearBtn) {
         clearBtn.addEventListener('click', function() {
             pendingFiles = [];
+            setUploadWarning('upload-warning');
             renderPendingPreviews();
         });
     }
@@ -341,11 +433,48 @@ function fileToBase64(file) {
     });
 }
 
+function scrollChatToBottom() {
+    var msgs = document.getElementById('messages');
+    if (!msgs) return;
+    requestAnimationFrame(function() {
+        msgs.scrollTop = msgs.scrollHeight;
+    });
+}
+
+function initMobileViewportFix() {
+    var input = document.getElementById('msg-input');
+    var wrap = document.querySelector('.input-area-wrap');
+    if (!input || !wrap) return;
+
+    function syncViewportHeight() {
+        var vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+        document.documentElement.style.setProperty('--app-vh', vh + 'px');
+        scrollChatToBottom();
+    }
+
+    syncViewportHeight();
+
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', syncViewportHeight);
+        window.visualViewport.addEventListener('scroll', syncViewportHeight);
+    } else {
+        window.addEventListener('resize', syncViewportHeight);
+    }
+
+    input.addEventListener('focus', function() {
+        setTimeout(function() {
+            wrap.scrollIntoView({ block: 'end', behavior: 'smooth' });
+            scrollChatToBottom();
+        }, 180);
+    });
+}
+
 /* ── SEND MSG ── */
 function sendMsg(text, forcedFiles) {
     var files = forcedFiles || pendingFiles.slice();
     if ((!text || !text.trim()) && !files.length) return;
     if (isWaiting) return;
+    if (!validatePreparedFiles(files, 'upload-warning')) return;
 
     text = (text || '').trim();
 
@@ -491,6 +620,7 @@ function openModal(type) {
     modalFiles = [];
     var mPrev = document.getElementById('modal-upload-preview');
     if (mPrev) mPrev.innerHTML = '';
+    setUploadWarning('modal-upload-warning');
 
     // Bersihkan error highlight
     ['r-desc','r-email'].forEach(function(id) {
@@ -525,9 +655,8 @@ function initModalFileInput() {
     var mInput = document.getElementById('modal-file-input');
     if (!mInput) return;
     mInput.addEventListener('change', function() {
-        Array.from(mInput.files).forEach(function(f) {
-            if (modalFiles.length < 5) modalFiles.push(f);
-        });
+        var accepted = filterAcceptedFiles(mInput.files, modalFiles, 'modal-upload-warning');
+        accepted.forEach(function(f) { modalFiles.push(f); });
         mInput.value = '';
         renderModalPreviews();
     });
@@ -574,6 +703,7 @@ function submitReport() {
         setTimeout(function() { descEl.style.borderColor = ''; descEl.style.boxShadow = ''; }, 2000);
         return;
     }
+    if (!validatePreparedFiles(modalFiles, 'modal-upload-warning')) return;
 
     var ticketId = generateTicket();
     btn.disabled    = true;
@@ -741,6 +871,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initToggles();
     initFileInput();
     initModalFileInput();
+    initMobileViewportFix();
     sendWelcome();
 
     if (window.speechSynthesis) {

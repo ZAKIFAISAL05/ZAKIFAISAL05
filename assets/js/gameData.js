@@ -132,39 +132,54 @@ const gameData = [
 ];
 
 // ─────────────────────────────────────────────────────────
-//  SMART LOADER — cek localStorage dulu (dari Admin Panel)
-//  Kalau admin sudah hapus/tambah game, pakai data itu.
-//  Format admin simpan { id, title, genre, desc, icon, platforms }
-//  kita merge supaya tetap punya field gallery & developer.
+//  LEGACY LOCAL PREVIEW MERGE
+//  Ada versi lama panel admin yang pernah menyimpan katalog ke
+//  localStorage. Sebelumnya data itu mengganti seluruh game bawaan,
+//  akibatnya game asli bisa hilang dan halaman detail jadi
+//  "Game tidak ditemukan". Sekarang data lokal hanya dipakai untuk
+//  menimpa / menambah entry, bukan menghapus game bawaan.
 // ─────────────────────────────────────────────────────────
-(function mergeAdminData() {
+(function mergeLegacyAdminData() {
     var STORAGE_KEY = 'gs_catalog_games';
     var raw;
-    try { raw = localStorage.getItem(STORAGE_KEY); } catch(e) { return; }
+    try { raw = localStorage.getItem(STORAGE_KEY); } catch (e) { return; }
     if (!raw) return;
 
     var adminGames;
-    try { adminGames = JSON.parse(raw); } catch(e) { return; }
+    try { adminGames = JSON.parse(raw); } catch (e) { return; }
     if (!Array.isArray(adminGames) || !adminGames.length) return;
 
-    // Konversi format admin → format gameData
-    var merged = adminGames.map(function(ag) {
-        // Cari entry lama (pakai gallery & developer dari sana)
-        var existing = gameData.find(function(g) { return g.id === ag.id; });
-        return {
-            id:        ag.id,
-            title:     ag.title,
-            logo:      ag.icon  || (existing && existing.logo)  || 'assets/img/studio_logo.png',
-            thumb:     ag.icon  || (existing && existing.thumb) || 'assets/img/studio_logo.png',
-            desc:      ag.desc  || (existing && existing.desc)  || '',
-            genre:     ag.genre || (existing && existing.genre) || '',
-            gallery:   (existing && existing.gallery)  || [],
-            platforms: ag.platforms || (existing && existing.platforms) || [],
-            developer: 'Nusabit Studio'
+    var byId = {};
+    gameData.forEach(function (g) {
+        byId[g.id] = Object.assign({}, g);
+    });
+
+    adminGames.forEach(function (ag) {
+        if (!ag || !ag.id) return;
+
+        var existing = byId[ag.id] || {};
+        var nextPlatforms = Array.isArray(ag.platforms)
+            ? ag.platforms
+            : (Array.isArray(existing.platforms) ? existing.platforms : []);
+        var nextGallery = Array.isArray(ag.gallery) && ag.gallery.length
+            ? ag.gallery
+            : (Array.isArray(existing.gallery) ? existing.gallery : []);
+
+        byId[ag.id] = {
+            id: ag.id,
+            title: ag.title || existing.title || ag.id,
+            logo: ag.logo || ag.icon || existing.logo || 'assets/img/studio_logo.png',
+            thumb: ag.thumb || ag.icon || existing.thumb || existing.logo || 'assets/img/studio_logo.png',
+            desc: ag.desc || existing.desc || '',
+            genre: ag.genre || existing.genre || 'Other',
+            gallery: nextGallery,
+            platforms: nextPlatforms,
+            developer: existing.developer || 'Nusabit Studio'
         };
     });
 
-    // Ganti gameData global dengan hasil merge
     gameData.length = 0;
-    merged.forEach(function(g) { gameData.push(g); });
+    Object.keys(byId).forEach(function (id) {
+        gameData.push(byId[id]);
+    });
 })();

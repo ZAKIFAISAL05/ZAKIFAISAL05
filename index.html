@@ -202,6 +202,14 @@
 <!-- ===== GAMES SECTION ===== -->
 <section id="games" class="section-padding" aria-label="Game catalog">
     <h2 class="section-header-title" data-id="sec-games">PROYEK GAME KAMI</h2>
+    <div class="games-search-wrap">
+        <label class="games-search-label" for="game-search" data-id="games-search-label">Cari proyek / game</label>
+        <div class="games-search-box">
+            <i class="fas fa-search" aria-hidden="true"></i>
+            <input type="search" id="game-search" class="games-search-input" data-placeholder-id="games-search-placeholder" placeholder="Cari judul, genre, atau deskripsi game..." autocomplete="off" spellcheck="false">
+            <button type="button" id="game-search-clear" class="games-search-clear" aria-label="Hapus pencarian">×</button>
+        </div>
+    </div>
     <div class="filter-tabs" role="tablist">
         <button class="filter-tab active" data-genre="all" data-id="filter-all">SEMUA</button>
         <button class="filter-tab" data-genre="arcade" data-id="filter-arcade">ARCADE</button>
@@ -268,18 +276,9 @@
             </div>
         </a>
     </div>
-</section>
-
-<!-- ===== ABOUT SECTION ===== -->
-<section id="about" class="about-section" aria-label="About us">
-    <h2 class="section-header-title" data-id="sec-about">TENTANG NUSABIT STUDIO</h2>
-    <p data-id="about-desc">Kami adalah studio game indie yang bersemangat menciptakan pengalaman bermain yang unik dan menantang. Dari Indonesia, kami fokus pada genre Survival, RPG, dan Strategy — dengan sentuhan cerita yang dalam di setiap gameplay. Semoga game kami menghiburmu!</p>
-    <p class="about-tip">
-        <i data-feather="zap"></i> TIP: <span data-id="about-tip">Coba ketik</span> <span class="about-tip-highlight">↑↑↓↓←→←→BA</span> <span data-id="about-tip2">untuk easter egg!</span>
-    </p>
-    <div class="about-actions">
-        <button class="btn-bug" onclick="openReportModal('bug')" data-id="btn-bug"><i data-feather="alert-triangle"></i> LAPORKAN BUG</button>
-        <button class="btn-saran" onclick="openReportModal('saran')" data-id="btn-saran"><i data-feather="zap"></i> KIRIM SARAN</button>
+    <div class="games-empty-state" id="games-empty-state" hidden>
+        <i class="fas fa-magnifying-glass"></i>
+        <span data-id="games-empty-text">Belum ada game yang cocok dengan pencarian atau filter kamu.</span>
     </div>
 </section>
 
@@ -303,6 +302,19 @@
     </div>
 
     <div class="review-dots" id="reviewDots" aria-label="Navigasi ulasan"></div>
+</section>
+
+<!-- ===== ABOUT SECTION ===== -->
+<section id="about" class="about-section" aria-label="About us">
+    <h2 class="section-header-title" data-id="sec-about">TENTANG NUSABIT STUDIO</h2>
+    <p data-id="about-desc">Kami adalah studio game indie yang bersemangat menciptakan pengalaman bermain yang unik dan menantang. Dari Indonesia, kami fokus pada genre Survival, RPG, dan Strategy — dengan sentuhan cerita yang dalam di setiap gameplay. Semoga game kami menghiburmu!</p>
+    <p class="about-tip">
+        <i data-feather="zap"></i> TIP: <span data-id="about-tip">Coba ketik</span> <span class="about-tip-highlight">↑↑↓↓←→←→BA</span> <span data-id="about-tip2">untuk easter egg!</span>
+    </p>
+    <div class="about-actions">
+        <button class="btn-bug" onclick="openReportModal('bug')" data-id="btn-bug"><i data-feather="alert-triangle"></i> LAPORKAN BUG</button>
+        <button class="btn-saran" onclick="openReportModal('saran')" data-id="btn-saran"><i data-feather="zap"></i> KIRIM SARAN</button>
+    </div>
 </section>
 
 <!-- ===== CEK TIKET SECTION ===== -->

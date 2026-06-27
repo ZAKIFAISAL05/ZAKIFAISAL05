@@ -62,7 +62,6 @@
     <div id="quick-area">
         <span class="quick-label">Pilihan Cepat</span>
         <div class="quick-section" id="quick-chips"></div>
-        </div>
     </div>
 </div>
 
@@ -82,6 +81,10 @@
                 <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
         </button>
+    </div>
+    <div class="upload-warning" id="upload-warning" style="display:none;"></div>
+    <div class="upload-hint">
+        Maksimal `5` file. Gambar besar akan ditolak otomatis supaya chat tidak berat atau crash.
     </div>
 
     <!-- Input bar -->
@@ -145,6 +148,8 @@
                         <span>Pilih gambar / video (opsional)</span>
                         <input type="file" id="modal-file-input" accept="image/*,video/*" multiple style="display:none">
                     </label>
+                    <div class="modal-upload-note">Batas aman: gambar maks. 3 MB per file, video maks. 15 MB per file.</div>
+                    <div class="upload-warning" id="modal-upload-warning" style="display:none;"></div>
                     <div class="modal-upload-preview" id="modal-upload-preview"></div>
                 </div>
             </div>

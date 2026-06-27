@@ -122,23 +122,56 @@
     ══════════════════════════════════════════ */
     var tabs     = document.querySelectorAll('.filter-tab');
     var allCards = document.querySelectorAll('.game-card');
+    var searchInput = document.getElementById('game-search');
+    var searchClear = document.getElementById('game-search-clear');
+    var emptyState  = document.getElementById('games-empty-state');
+    var activeGenre = 'all';
+
+    function normalizeText(s) {
+        return String(s || '').toLowerCase().trim();
+    }
+
+    function applyGameFilters() {
+        var keyword = normalizeText(searchInput && searchInput.value);
+        var visibleCount = 0;
+        var hasActiveFilter = activeGenre !== 'all' || !!keyword;
+
+        allCards.forEach(function (card) {
+            var genreText = normalizeText(card.getAttribute('data-genre'));
+            var haystack = normalizeText(card.textContent + ' ' + genreText);
+            var matchGenre = activeGenre === 'all' ? true : genreText.indexOf(activeGenre) !== -1;
+            var matchKeyword = !keyword || haystack.indexOf(keyword) !== -1;
+            var show = matchGenre && matchKeyword;
+            card.classList.toggle('hidden', !show);
+            if (show) visibleCount++;
+        });
+
+        if (emptyState) emptyState.hidden = !hasActiveFilter || visibleCount !== 0;
+        if (searchClear) searchClear.style.display = keyword ? 'inline-flex' : 'none';
+    }
 
     tabs.forEach(function (tab) {
         tab.addEventListener('click', function () {
-            var genre = tab.getAttribute('data-genre');
+            activeGenre = tab.getAttribute('data-genre');
             tabs.forEach(function (t) { t.classList.remove('active'); });
             tab.classList.add('active');
-
-            allCards.forEach(function (card) {
-                if (genre === 'all') {
-                    card.classList.remove('hidden');
-                } else {
-                    var g = (card.getAttribute('data-genre') || '').toLowerCase();
-                    card.classList.toggle('hidden', g.indexOf(genre) === -1);
-                }
-            });
+            applyGameFilters();
         });
     });
+
+    if (searchInput) {
+        searchInput.addEventListener('input', applyGameFilters);
+        searchInput.addEventListener('search', applyGameFilters);
+    }
+    if (searchClear) {
+        searchClear.addEventListener('click', function () {
+            if (!searchInput) return;
+            searchInput.value = '';
+            applyGameFilters();
+            searchInput.focus();
+        });
+    }
+    applyGameFilters();
 
     /* ══════════════════════════════════════════
        STATS COUNTER ANIMATION

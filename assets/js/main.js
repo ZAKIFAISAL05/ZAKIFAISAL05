@@ -230,22 +230,15 @@
     };
 
     // ────────────────────────────────────────────────
-    // SYNC DENGAN ADMIN PANEL
-    // Kalau admin hapus game, sembunyikan card-nya
+    // LEGACY LOCALSTORAGE GUARD
+    // Sinkronisasi hapus game via localStorage lama dinonaktifkan
+    // karena bisa membuat game bawaan ikut hilang dari homepage
+    // saat data browser lama / korup masih tersimpan.
+    // Sumber katalog utama sekarang dari file + backend.
     // ────────────────────────────────────────────────
-    (function syncAdminDeletes() {
-        var raw;
-        try { raw = localStorage.getItem('gs_catalog_games'); } catch(e) { return; }
-        if (!raw) return;
-        var adminGames;
-        try { adminGames = JSON.parse(raw); } catch(e) { return; }
-        if (!Array.isArray(adminGames)) return;
-        var activeIds = adminGames.map(function(g) { return g.id; });
+    (function normalizeLegacyHiddenCards() {
         document.querySelectorAll('.game-card').forEach(function(card) {
-            var id = card.getAttribute('data-game-id');
-            if (id && activeIds.indexOf(id) === -1) {
-                card.style.display = 'none';
-            }
+            if (card.style.display === 'none') card.style.display = '';
         });
     })();
 
