@@ -60,6 +60,7 @@ function defaultReviews(nowIso) {
       name: 'Asep',
       rating: 5,
       review: 'Websitenya keren, tampilannya modern dan gampang dipakai.',
+      avatar: '',
       createdAt: nowIso,
       updatedAt: nowIso,
     },
@@ -68,6 +69,7 @@ function defaultReviews(nowIso) {
       name: 'Nadia',
       rating: 4,
       review: 'Info gamenya jelas, desainnya enak dilihat. Mantap!',
+      avatar: '',
       createdAt: nowIso,
       updatedAt: nowIso,
     },
@@ -76,10 +78,45 @@ function defaultReviews(nowIso) {
       name: 'Rizky',
       rating: 5,
       review: 'Bagian tiket bug/saran membantu banget. Responsnya cepat.',
+      avatar: '',
       createdAt: nowIso,
       updatedAt: nowIso,
     },
   ];
+}
+
+function normalizeReview(item, nowIso, index) {
+  const src = item && typeof item === 'object' ? item : {};
+  return {
+    id: safeText(src.id, 80) || ('rev-fallback-' + index),
+    name: safeText(src.name, 40) || 'Anonim',
+    rating: clampRating(src.rating),
+    review: safeText(src.review, 300) || 'Belum ada isi ulasan.',
+    avatar: safeAvatar(src.avatar),
+    createdAt: safeText(src.createdAt, 60) || nowIso,
+    updatedAt: safeText(src.updatedAt, 60) || nowIso,
+  };
+}
+
+function normalizeReviewList(list, nowIso) {
+  if (!Array.isArray(list)) return [];
+  return list
+    .map((item, index) => normalizeReview(item, nowIso, index + 1))
+    .filter((item) => item.name && item.review);
+}
+
+function buildFallbackGetResponse(nowIso, reason) {
+  return {
+    statusCode: 200,
+    headers: CORS,
+    body: JSON.stringify({
+      ok: true,
+      fallback: true,
+      storageAvailable: false,
+      reason: reason || 'fallback-default-reviews',
+      reviews: defaultReviews(nowIso),
+    }),
+  };
 }
 
 function clampRating(n) {
@@ -90,6 +127,18 @@ function clampRating(n) {
 
 function safeText(s, max = 300) {
   return String(s || '').trim().slice(0, max);
+}
+
+function safeAvatar(dataUrl, maxLen = 1600000) {
+  // Simpan avatar sebagai Data URL (PNG/JPG) di database (Netlify Blobs)
+  // Contoh: data:image/png;base64,....
+  if (dataUrl === null) return '';
+  const s = String(dataUrl || '').trim();
+  if (!s) return '';
+  if (!/^data:image\/(png|jpeg);base64,/i.test(s)) return '';
+  // Batasi ukuran agar payload tidak kebesaran
+  if (s.length > maxLen) return '';
+  return s;
 }
 
 function makeId() {
@@ -113,44 +162,65 @@ async function getReviews(store, nowIso) {
     const raw = await store.get(STORE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : null;
+    if (Array.isArray(parsed)) return normalizeReviewList(parsed, nowIso);
+    if (parsed && Array.isArray(parsed.reviews)) return normalizeReviewList(parsed.reviews, nowIso);
+    return null;
   } catch {
     return null;
   }
 }
 
 async function saveReviews(store, reviews) {
-  await store.set(STORE_KEY, JSON.stringify(reviews));
+  const normalized = normalizeReviewList(reviews, new Date().toISOString());
+  await store.set(STORE_KEY, JSON.stringify(normalized));
 }
 
 exports.handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers: CORS, body: '' };
 
-  let store;
+  let store = null;
+  let storeError = null;
   try {
     store = createStore();
   } catch (e) {
-    return {
-      statusCode: 503,
-      headers: CORS,
-      body: JSON.stringify({ ok: false, error: 'Storage tidak tersedia', detail: e.message }),
-    };
+    storeError = e;
   }
 
   const nowIso = new Date().toISOString();
 
   // ── GET (public) ──
   if (event.httpMethod === 'GET') {
+    if (!store) {
+      return buildFallbackGetResponse(nowIso, storeError && storeError.message);
+    }
+
     let reviews = await getReviews(store, nowIso);
     if (!reviews || !reviews.length) {
       // Jika belum ada data, pakai default supaya section tidak kosong.
       reviews = defaultReviews(nowIso);
+      try {
+        await saveReviews(store, reviews);
+      } catch {
+        // ignore — frontend tetap dapat fallback reviews
+      }
     }
     return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, reviews }) };
   }
 
   // ── POST (admin) ──
   if (event.httpMethod === 'POST') {
+    if (!store) {
+      return {
+        statusCode: 503,
+        headers: CORS,
+        body: JSON.stringify({
+          ok: false,
+          error: 'Database ulasan tidak tersedia untuk mode admin',
+          detail: storeError ? storeError.message : 'Storage tidak tersedia',
+        }),
+      };
+    }
+
     let body;
     try {
       body = JSON.parse(event.body || '{}');
@@ -171,6 +241,7 @@ exports.handler = async (event) => {
         name: safeText(body.name, 40),
         rating: clampRating(body.rating),
         review: safeText(body.review, 300),
+        avatar: safeAvatar(body.avatar),
         createdAt: nowIso,
         updatedAt: nowIso,
       };
@@ -192,6 +263,12 @@ exports.handler = async (event) => {
       next.name = safeText(body.name, 40);
       next.rating = clampRating(body.rating);
       next.review = safeText(body.review, 300);
+      // Avatar opsional:
+      // - jika field "avatar" dikirim: update (bisa '' untuk menghapus)
+      // - jika tidak dikirim: pertahankan avatar lama
+      if (Object.prototype.hasOwnProperty.call(body, 'avatar')) {
+        next.avatar = safeAvatar(body.avatar);
+      }
       next.updatedAt = nowIso;
       if (!next.name || !next.review) {
         return { statusCode: 400, headers: CORS, body: JSON.stringify({ ok: false, error: 'Nama dan ulasan wajib diisi' }) };
@@ -231,4 +308,3 @@ exports.handler = async (event) => {
 
   return { statusCode: 405, headers: CORS, body: JSON.stringify({ ok: false, error: 'Method tidak diizinkan' }) };
 };
-

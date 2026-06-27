@@ -528,6 +528,71 @@ nav::after { display: none; }
 }
 
 /* ── FILTER TABS ── */
+.games-search-wrap {
+    margin-bottom: 18px;
+}
+
+.games-search-label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    letter-spacing: 0.8px;
+}
+
+.games-search-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-vis);
+    border-radius: 10px;
+    padding: 12px 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+.games-search-box:focus-within {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 4px rgba(212,130,10,0.08);
+}
+
+.games-search-box i {
+    color: var(--brand);
+    flex-shrink: 0;
+}
+
+.games-search-input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--text-bright);
+    font-size: 0.92rem;
+    font-family: var(--font-base);
+}
+
+.games-search-input::placeholder {
+    color: var(--text-muted);
+}
+
+.games-search-clear {
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 999px;
+    background: rgba(212,130,10,0.12);
+    color: var(--brand);
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
 .filter-tabs {
     display: flex;
     gap: 6px;
@@ -594,6 +659,25 @@ nav::after { display: none; }
 }
 .game-card:hover::before { opacity: 1; }
 .game-card.hidden { display: none; }
+
+.games-empty-state {
+    margin-top: 18px;
+    display: grid;
+    place-items: center;
+    gap: 8px;
+    min-height: 110px;
+    text-align: center;
+    color: var(--text-muted);
+    background: rgba(255,255,255,0.02);
+    border: 1px dashed var(--border-vis);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.games-empty-state i {
+    color: var(--brand);
+    font-size: 1.2rem;
+}
 
 .game-image-wrapper {
     aspect-ratio: 16/9;
@@ -797,12 +881,60 @@ nav::after { display: none; }
     margin-bottom: 12px;
 }
 
-.review-name {
+.review-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+}
+
+.review-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.25);
+    flex-shrink: 0;
+    background: radial-gradient(circle at 30% 30%, rgba(245,158,11,0.35), rgba(255,255,255,0.06));
+    display: grid;
+    place-items: center;
+}
+
+.review-avatar svg,
+.review-avatar img {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.review-avatar img {
+    object-fit: cover;
+}
+
+.review-avatar-fallback {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    place-items: center;
     font-family: var(--font-title);
-    font-size: 0.62rem;
-    letter-spacing: 1.2px;
-    color: var(--brand);
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    color: rgba(255,255,255,0.9);
     text-transform: uppercase;
+}
+
+.review-name {
+    font-family: var(--font-base);
+    font-size: 0.98rem;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    color: var(--text-bright);
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 240px;
 }
 
 .review-rating {
@@ -822,9 +954,9 @@ nav::after { display: none; }
 
 .review-text {
     margin: 0;
-    color: var(--text-muted);
-    font-family: var(--font-mono);
-    font-size: 0.82rem;
+    color: var(--text-soft);
+    font-family: var(--font-base);
+    font-size: 0.92rem;
     line-height: 1.8;
 }
 

@@ -45,6 +45,8 @@ body {
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
+    min-height: 100dvh;
+    height: var(--app-vh, 100dvh);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -471,6 +473,7 @@ body::after {
     background: var(--surface);
     border-top: 2px solid var(--brand);
     padding: 8px 10px 10px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
     flex-shrink: 0;
     box-shadow: 0 -2px 0 var(--brand-dark);
 }
@@ -531,6 +534,27 @@ body::after {
     transition: color 0.15s;
 }
 .upload-clear-btn:hover { color: var(--c-red); }
+
+.upload-warning {
+    display: none;
+    margin: 0 0 7px;
+    padding: 9px 10px;
+    border: 1px solid rgba(231,76,60,0.45);
+    background: rgba(231,76,60,0.08);
+    color: #ffb3ae;
+    font-family: var(--font-body);
+    font-size: 0.76rem;
+    line-height: 1.45;
+    letter-spacing: 0.2px;
+}
+
+.upload-hint {
+    margin: 0 0 8px;
+    color: var(--muted);
+    font-family: var(--font-body);
+    font-size: 0.72rem;
+    line-height: 1.45;
+}
 
 .input-bar {
     display: flex;
@@ -760,6 +784,13 @@ body::after {
     letter-spacing: 0.3px;
 }
 .modal-upload-label:hover { background: rgba(255,179,0,0.04); }
+.modal-upload-note {
+    padding: 0 10px 8px;
+    color: var(--muted);
+    font-family: var(--font-body);
+    font-size: 0.72rem;
+    line-height: 1.4;
+}
 .modal-upload-preview {
     display: flex;
     flex-wrap: wrap;
@@ -865,6 +896,65 @@ body::after {
 @media (min-width: 600px) {
     .modal-bg { align-items: center; }
     .modal-card { border-bottom: 2px solid var(--brand); border-radius: 0; max-width: 480px; }
+}
+@media (max-width: 768px) {
+    body {
+        min-height: 100dvh;
+        height: 100dvh;
+    }
+
+    .topbar {
+        padding: 0 10px;
+        gap: 8px;
+    }
+
+    .topbar-actions {
+        gap: 4px;
+    }
+
+    .topbar-btn,
+    .topbar-back {
+        width: 34px;
+        height: 34px;
+    }
+
+    .topbar-name {
+        font-size: 0.48rem;
+    }
+
+    .topbar-status {
+        font-size: 0.62rem;
+    }
+
+    .messages {
+        padding: 12px 10px 12px;
+    }
+
+    .msg-content {
+        max-width: min(86%, 420px);
+    }
+
+    #quick-area {
+        padding: 8px 10px 10px;
+    }
+
+    .see-all-btn {
+        padding: 12px 10px;
+    }
+
+    .input-area-wrap {
+        padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+    }
+
+    .input-bar {
+        align-items: flex-end;
+        padding: 8px;
+    }
+
+    #msg-input {
+        font-size: 16px;
+        max-height: 32dvh;
+    }
 }
 @media (max-width: 380px) {
     

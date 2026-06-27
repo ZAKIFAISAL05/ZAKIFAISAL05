@@ -334,12 +334,73 @@ async function apiReorderGames(games) {
    REVIEWS / RATING — SERVER-SIDE
    ════════════════════════════════════════ */
 let editingReviewId = '';
+let pendingReviewAvatarDataUrl = '';
+
+function initialsFromName(name) {
+  const n = String(name || '').trim();
+  if (!n) return '?';
+  const parts = n.split(/\s+/).filter(Boolean);
+  const a = (parts[0] || '').charAt(0);
+  const b = parts.length > 1 ? (parts[parts.length - 1] || '').charAt(0) : '';
+  return (a + b).toUpperCase() || '?';
+}
+
+function renderReviewAvatarPreview() {
+  const preview = document.getElementById('reviewAvatarPreview');
+  const btnClear = document.getElementById('btn-clear-review-avatar');
+  const name = (document.getElementById('rv-name')?.value || '').trim();
+  if (!preview) return;
+
+  if (pendingReviewAvatarDataUrl && /^data:image\/(png|jpeg);base64,/i.test(pendingReviewAvatarDataUrl)) {
+    preview.innerHTML = `<img src="${pendingReviewAvatarDataUrl}" alt="avatar">`;
+    if (btnClear) btnClear.style.display = '';
+  } else {
+    preview.innerHTML = `<span class="avatar-fallback">${escHtml(initialsFromName(name))}</span>`;
+    if (btnClear) btnClear.style.display = 'none';
+  }
+}
+
+function handleReviewAvatarUpload(e) {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  if (!['image/png', 'image/jpeg'].includes(file.type)) {
+    showToast('Format foto harus JPG atau PNG.', 'warn');
+    e.target.value = '';
+    return;
+  }
+  if (file.size > 1 * 1024 * 1024) {
+    showToast('File terlalu besar (maks 1MB).', 'warn');
+    e.target.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    pendingReviewAvatarDataUrl = String(ev.target.result || '');
+    renderReviewAvatarPreview();
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearReviewAvatar() {
+  pendingReviewAvatarDataUrl = '';
+  const input = document.getElementById('reviewAvatarFile');
+  if (input) input.value = '';
+  renderReviewAvatarPreview();
+}
 
 function renderStarsSmall(rating) {
   const r = Math.max(1, Math.min(5, Math.round(Number(rating) || 0)));
   let out = '';
   for (let i = 1; i <= 5; i++) out += i <= r ? '★' : '☆';
   return out;
+}
+
+function fallbackReviewsAdmin() {
+  return [
+    { id: 'rev-1', name: 'Asep', rating: 5, review: 'Websitenya keren, tampilannya modern dan gampang dipakai.', avatar: '' },
+    { id: 'rev-2', name: 'Nadia', rating: 4, review: 'Info gamenya jelas, desainnya enak dilihat. Mantap!', avatar: '' },
+    { id: 'rev-3', name: 'Rizky', rating: 5, review: 'Bagian tiket bug/saran membantu banget. Responsnya cepat.', avatar: '' },
+  ];
 }
 
 async function fetchReviewsAdmin(forceRefresh = false) {
@@ -354,11 +415,14 @@ async function fetchReviewsAdmin(forceRefresh = false) {
     const data = await res.json();
     if (!data || !data.ok) throw new Error(data?.error || 'Gagal load ulasan');
     _reviewsCache = Array.isArray(data.reviews) ? data.reviews : [];
+    if (data.fallback) addLog('Ulasan dimuat dari fallback default karena storage review tidak tersedia', 'warn');
     renderReviewsAdminList(_reviewsCache);
     return _reviewsCache;
   } catch (e) {
     addLog('ERROR load ulasan: ' + e.message, 'err');
-    if (list) list.innerHTML = `<div class="table-empty" style="color:var(--c-red);">Gagal memuat ulasan: ${escHtml(e.message)}</div>`;
+    _reviewsCache = fallbackReviewsAdmin();
+    renderReviewsAdminList(_reviewsCache);
+    showToast('Database ulasan bermasalah. Menampilkan ulasan default sementara.', 'warn');
     return _reviewsCache || [];
   }
 }
@@ -383,11 +447,19 @@ function renderReviewsAdminList(reviews) {
       const text = escHtml(r.review || '');
       const rating = Math.max(1, Math.min(5, Math.round(Number(r.rating) || 0)));
       const stars = renderStarsSmall(rating);
+      const avatar = r.avatar && /^data:image\/(png|jpeg);base64,/i.test(String(r.avatar))
+        ? `<img src="${escHtml(r.avatar)}" alt="">`
+        : `<span class="avatar-fallback">${escHtml(initialsFromName(r.name))}</span>`;
       return `
         <div class="review-admin-row">
           <div class="rar-left">
-            <div class="rar-name">${name}</div>
-            <div class="rar-rating" title="${rating}/5">${stars} <span class="rar-rating-num">${rating}/5</span></div>
+            <div class="rar-head">
+              <div class="rar-avatar">${avatar}</div>
+              <div class="rar-head-meta">
+                <div class="rar-name">${name}</div>
+                <div class="rar-rating" title="${rating}/5">${stars} <span class="rar-rating-num">${rating}/5</span></div>
+              </div>
+            </div>
             <div class="rar-text">${text}</div>
           </div>
           <div class="rar-actions">
@@ -409,6 +481,10 @@ function resetReviewForm() {
   if (nameEl) nameEl.value = '';
   if (ratingEl) ratingEl.value = '5';
   if (textEl) textEl.value = '';
+  pendingReviewAvatarDataUrl = '';
+  const avatarFile = document.getElementById('reviewAvatarFile');
+  if (avatarFile) avatarFile.value = '';
+  renderReviewAvatarPreview();
   const cancelBtn = document.getElementById('btn-cancel-review-edit');
   if (cancelBtn) cancelBtn.style.display = 'none';
   const title = document.getElementById('reviewFormTitle');
@@ -425,6 +501,10 @@ function editReview(id) {
   if (nameEl) nameEl.value = item.name || '';
   if (ratingEl) ratingEl.value = String(Math.max(1, Math.min(5, Math.round(Number(item.rating) || 5))));
   if (textEl) textEl.value = item.review || '';
+  pendingReviewAvatarDataUrl = String(item.avatar || '').trim();
+  const avatarFile = document.getElementById('reviewAvatarFile');
+  if (avatarFile) avatarFile.value = '';
+  renderReviewAvatarPreview();
   const cancelBtn = document.getElementById('btn-cancel-review-edit');
   if (cancelBtn) cancelBtn.style.display = '';
   const title = document.getElementById('reviewFormTitle');
@@ -448,8 +528,8 @@ async function submitReview() {
 
   try {
     const payload = editingReviewId
-      ? { action: 'update', id: editingReviewId, name, rating, review, adminToken }
-      : { action: 'add', name, rating, review, adminToken };
+      ? { action: 'update', id: editingReviewId, name, rating, review, avatar: pendingReviewAvatarDataUrl, adminToken }
+      : { action: 'add', name, rating, review, avatar: pendingReviewAvatarDataUrl, adminToken };
 
     const res = await fetch(REVIEWS_API, {
       method: 'POST',
@@ -1529,5 +1609,10 @@ document.addEventListener('DOMContentLoaded', function() {
   initLivePreview();
   initCommandCenter();
   initLogActions();
+  // Preview foto profil ulasan (fallback pakai inisial)
+  renderReviewAvatarPreview();
+  document.getElementById('rv-name')?.addEventListener('input', () => {
+    if (!pendingReviewAvatarDataUrl) renderReviewAvatarPreview();
+  });
   feather.replace();
 });

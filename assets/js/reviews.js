@@ -32,6 +32,28 @@
     return out;
   }
 
+  // Avatar user:
+  // - kalau admin upload JPG/PNG, backend menyimpan `avatar` sebagai Data URL
+  // - kalau kosong, pakai inisial sebagai fallback (bukan NFT/random)
+  function initialsFromName(name) {
+    var n = String(name || '').trim();
+    if (!n) return '?';
+    var parts = n.split(/\s+/).filter(Boolean);
+    var a = (parts[0] || '').charAt(0);
+    var b = parts.length > 1 ? (parts[parts.length - 1] || '').charAt(0) : '';
+    var out = (a + b).toUpperCase();
+    return out || '?';
+  }
+
+  function avatarHtml(r) {
+    var avatar = r && r.avatar ? String(r.avatar) : '';
+    if (/^data:image\/(png|jpeg);base64,/i.test(avatar)) {
+      return '<img class="review-avatar-img" src="' + escHtml(avatar) + '" alt="" loading="lazy" decoding="async">';
+    }
+    var ini = initialsFromName(r && r.name);
+    return '<div class="review-avatar-fallback" aria-hidden="true">' + escHtml(ini) + '</div>';
+  }
+
   function fallbackReviews() {
     return [
       { name: 'Asep', rating: 5, review: 'Websitenya keren, tampilannya modern dan gampang dipakai.' },
@@ -102,7 +124,7 @@
       state.idx = 0;
 
       els.track.innerHTML = reviews
-        .map(function (r) {
+        .map(function (r, idx) {
           var name = escHtml(r.name || 'Anonim');
           var rating = clampRating(r.rating);
           var review = escHtml(r.review || '');
@@ -110,7 +132,10 @@
             '<div class="review-slide">' +
             '  <article class="review-card">' +
             '    <div class="review-card-top">' +
-            '      <div class="review-name">' + name + '</div>' +
+            '      <div class="review-left">' +
+            '        <div class="review-avatar">' + avatarHtml(r) + '</div>' +
+            '        <div class="review-name">' + name + '</div>' +
+            '      </div>' +
             '      <div class="review-rating" aria-label="Rating ' + rating + ' dari 5">' +
             '        <span class="review-stars">' + starsHtml(rating) + '</span>' +
             '        <span class="review-score">' + rating + '/5</span>' +
@@ -210,4 +235,3 @@
   // Expose agar bisa dipanggil dari index-page.js
   window.initReviewsSlider = initReviewsSlider;
 })();
-

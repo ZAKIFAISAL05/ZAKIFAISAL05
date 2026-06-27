@@ -582,6 +582,29 @@
                             </div>
 
                             <div class="form-field full">
+                                <label>Foto profil (opsional)</label>
+                                <div class="avatar-upload-wrap">
+                                    <div class="avatar-preview" id="reviewAvatarPreview" title="Preview foto profil">
+                                        <span class="avatar-fallback">?</span>
+                                    </div>
+                                    <div class="avatar-upload-info">
+                                        <button class="btn-upload-icon" type="button" onclick="document.getElementById('reviewAvatarFile').click()">
+                                            <i class="fas fa-upload"></i>
+                                            <span>Pilih JPG/PNG</span>
+                                        </button>
+                                        <input type="file" id="reviewAvatarFile" accept="image/png,image/jpeg" hidden onchange="handleReviewAvatarUpload(event)">
+                                        <div class="avatar-actions">
+                                            <button class="btn-delete" type="button" id="btn-clear-review-avatar" onclick="clearReviewAvatar()" style="display:none;">
+                                                <i class="fas fa-trash"></i>
+                                                <span>Hapus foto</span>
+                                            </button>
+                                        </div>
+                                        <p>JPG/PNG maksimal 1MB. Foto disimpan ke database Netlify Blobs.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-field full">
                                 <label for="rv-text">Ulasan *</label>
                                 <textarea id="rv-text" rows="4" placeholder="Tulis ulasan singkat..." maxlength="300"></textarea>
                                 <div class="hint-mini">Akan tampil di `index.html` sebagai card slider (nama, bintang, ulasan).</div>
