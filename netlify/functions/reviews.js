@@ -95,7 +95,11 @@ function safeText(s, max = 300) {
   return String(s || '').trim().slice(0, max);
 }
 
+<<<<<<< HEAD
 function safeAvatar(dataUrl, maxLen = 1600000) {
+=======
+function safeAvatar(dataUrl, maxLen = 260000) {
+>>>>>>> 9bba427ce337c98b93d3839634888a42fb994cd1
   // Simpan avatar sebagai Data URL (PNG/JPG) di database (Netlify Blobs)
   // Contoh: data:image/png;base64,....
   if (dataUrl === null) return '';
