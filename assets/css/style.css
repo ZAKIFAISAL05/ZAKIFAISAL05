@@ -1135,9 +1135,10 @@ nav::after { display: none; }
 /* ── POPUP UI (untuk ulasan publik) ── */
 .ui-popup {
     position: fixed;
-    inset: 0;
-    display: grid;
-    place-items: center;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100dvh;
     padding: 18px;
     background: rgba(20,16,10,0.38);
     opacity: 0;
@@ -1147,7 +1148,10 @@ nav::after { display: none; }
 }
 .ui-popup.open { opacity: 1; pointer-events: auto; }
 .ui-popup-card {
-    width: min(420px, 100%);
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: min(420px, calc(100vw - 32px));
     max-height: 85vh;
     overflow: auto;
     border-radius: 16px;
@@ -1155,11 +1159,11 @@ nav::after { display: none; }
     background: rgba(245,240,232,0.96);
     box-shadow: 0 24px 80px rgba(0,0,0,0.25);
     padding: 16px 16px 14px;
-    transform: scale(0.96) translateY(10px);
+    transform: translate(-50%, -50%) scale(0.96);
     opacity: 0;
 }
 /* fallback supaya popup selalu kelihatan walau animasi dimatikan device */
-.ui-popup.open .ui-popup-card { opacity: 1; transform: scale(1) translateY(0); }
+.ui-popup.open .ui-popup-card { opacity: 1; transform: translate(-50%, -50%) scale(1); }
 
 @media (prefers-reduced-motion: no-preference) {
     .ui-popup.open .ui-popup-card {
@@ -1167,8 +1171,8 @@ nav::after { display: none; }
     }
 }
 @keyframes uiPopIn {
-    from { transform: scale(0.96) translateY(10px); opacity: 0; }
-    to { transform: scale(1) translateY(0); opacity: 1; }
+    from { transform: translate(-50%, calc(-50% + 10px)) scale(0.96); opacity: 0; }
+    to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
 }
 .ui-popup-icon {
     width: 44px;
@@ -1222,6 +1226,24 @@ nav::after { display: none; }
     .pr-details { order: 2; }
     .review-public-stars.pr-stars-big { gap: 8px; }
     .pr-star { width: 42px; height: 42px; }
+    .ui-popup {
+        padding: 14px;
+    }
+    .ui-popup-card {
+        width: min(380px, calc(100vw - 20px));
+        padding: 14px 14px 12px;
+        border-radius: 14px;
+    }
+    .ui-popup-text {
+        font-size: 0.88rem;
+    }
+    .ui-popup-actions {
+        justify-content: stretch;
+    }
+    .ui-popup-btn {
+        flex: 1;
+        text-align: center;
+    }
 }
 
 /* ────────────────────────────────────────────────
