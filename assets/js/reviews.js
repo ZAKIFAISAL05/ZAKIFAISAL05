@@ -34,7 +34,7 @@
 
   // Avatar user:
   // - kalau admin upload JPG/PNG, backend menyimpan `avatar` sebagai Data URL
-  // - kalau kosong, pakai inisial sebagai fallback (bukan NFT/random)
+  // - kalau kosong, JANGAN tampilkan profil (sesuai request: publik tanpa profil)
   function initialsFromName(name) {
     var n = String(name || '').trim();
     if (!n) return '?';
@@ -50,8 +50,7 @@
     if (/^data:image\/(png|jpeg);base64,/i.test(avatar)) {
       return '<img class="review-avatar-img" src="' + escHtml(avatar) + '" alt="" loading="lazy" decoding="async">';
     }
-    var ini = initialsFromName(r && r.name);
-    return '<div class="review-avatar-fallback" aria-hidden="true">' + escHtml(ini) + '</div>';
+    return '';
   }
 
   function fallbackReviews() {
@@ -128,12 +127,14 @@
           var name = escHtml(r.name || 'Anonim');
           var rating = clampRating(r.rating);
           var review = escHtml(r.review || '');
+          var avatar = avatarHtml(r);
+          var avatarBlock = avatar ? '<div class="review-avatar">' + avatar + '</div>' : '';
           return (
             '<div class="review-slide">' +
             '  <article class="review-card">' +
             '    <div class="review-card-top">' +
             '      <div class="review-left">' +
-            '        <div class="review-avatar">' + avatarHtml(r) + '</div>' +
+            '        ' + avatarBlock +
             '        <div class="review-name">' + name + '</div>' +
             '      </div>' +
             '      <div class="review-rating" aria-label="Rating ' + rating + ' dari 5">' +
@@ -214,22 +215,134 @@
       startAuto();
     }
 
-    // Load data
-    els.section.style.display = '';
-    fetch(REVIEWS_API, { method: 'GET', cache: 'no-store' })
-      .then(function (r) {
-        return r.json();
-      })
-      .then(function (data) {
-        if (data && data.ok && Array.isArray(data.reviews) && data.reviews.length) {
-          render(data.reviews);
-        } else {
+    function loadAndRender() {
+      els.section.style.display = '';
+      return fetch(REVIEWS_API, { method: 'GET', cache: 'no-store' })
+        .then(function (r) {
+          return r.json();
+        })
+        .then(function (data) {
+          if (data && data.ok && Array.isArray(data.reviews) && data.reviews.length) {
+            render(data.reviews);
+          } else {
+            render(fallbackReviews());
+          }
+        })
+        .catch(function () {
           render(fallbackReviews());
+        });
+    }
+
+    function initPublicReviewForm() {
+      var form = document.getElementById('publicReviewForm');
+      if (!form || form.dataset.bound) return;
+      form.dataset.bound = '1';
+
+      var nameEl = document.getElementById('pr-name');
+      var ratingEl = document.getElementById('pr-rating');
+      var ratingTextEl = document.getElementById('pr-rating-text');
+      var starsWrap = document.getElementById('pr-stars');
+      var textEl = document.getElementById('pr-text');
+      var msgEl = document.getElementById('pr-msg');
+      var btnEl = document.getElementById('pr-submit');
+      var cancelEl = document.getElementById('pr-cancel');
+
+      function setMsg(text, type) {
+        if (!msgEl) return;
+        msgEl.textContent = String(text || '');
+        msgEl.className = 'review-public-msg ' + (type || '');
+      }
+
+      function clampRatingLocal(n) {
+        var v = Math.round(Number(n) || 0);
+        if (!isFinite(v)) v = 5;
+        if (v < 1) v = 1;
+        if (v > 5) v = 5;
+        return v;
+      }
+
+      function setRatingUI(n) {
+        var r = clampRatingLocal(n);
+        if (ratingEl) ratingEl.value = String(r);
+        if (ratingTextEl) ratingTextEl.textContent = String(r);
+        if (!starsWrap) return;
+        var btns = starsWrap.querySelectorAll('button.pr-star');
+        btns.forEach(function (b) {
+          var v = parseInt(b.getAttribute('data-v') || '0', 10) || 0;
+          var active = v <= r;
+          b.classList.toggle('active', active);
+          b.setAttribute('aria-checked', v === r ? 'true' : 'false');
+          var icon = b.querySelector('i');
+          if (icon) icon.className = active ? 'fa-solid fa-star' : 'fa-regular fa-star';
+        });
+      }
+
+      function resetForm() {
+        if (nameEl) nameEl.value = '';
+        if (textEl) textEl.value = '';
+        setRatingUI(5);
+        setMsg('', '');
+      }
+
+      if (starsWrap && !starsWrap.dataset.bound) {
+        starsWrap.dataset.bound = '1';
+        starsWrap.querySelectorAll('button.pr-star').forEach(function (b) {
+          b.addEventListener('click', function () {
+            var v = parseInt(b.getAttribute('data-v') || '5', 10) || 5;
+            setRatingUI(v);
+          });
+        });
+      }
+
+      if (cancelEl && !cancelEl.dataset.bound) {
+        cancelEl.dataset.bound = '1';
+        cancelEl.addEventListener('click', function () {
+          resetForm();
+        });
+      }
+
+      // Set default UI
+      setRatingUI(parseInt((ratingEl && ratingEl.value) || '5', 10) || 5);
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var name = (nameEl && nameEl.value ? String(nameEl.value) : '').trim();
+        var rating = parseInt(ratingEl && ratingEl.value ? ratingEl.value : '5', 10) || 5;
+        var review = (textEl && textEl.value ? String(textEl.value) : '').trim();
+
+        if (!name || !review) {
+          setMsg('Nama dan ulasan wajib diisi.', 'err');
+          return;
         }
-      })
-      .catch(function () {
-        render(fallbackReviews());
+
+        if (btnEl) btnEl.disabled = true;
+        setMsg('Mengirim ulasan...', 'info');
+
+        fetch(REVIEWS_API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'public_add', name: name, rating: rating, review: review }),
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (!data || !data.ok) throw new Error((data && data.error) || 'Gagal kirim ulasan');
+            setMsg('Terima kasih! Ulasan kamu sudah terkirim.', 'ok');
+            resetForm();
+            // Refresh slider biar langsung kelihatan
+            return loadAndRender();
+          })
+          .catch(function (err) {
+            setMsg('Gagal: ' + (err && err.message ? err.message : 'Terjadi kesalahan'), 'err');
+          })
+          .finally(function () {
+            if (btnEl) btnEl.disabled = false;
+          });
       });
+    }
+
+    // Load data + bind form
+    initPublicReviewForm();
+    loadAndRender();
   }
 
   // Expose agar bisa dipanggil dari index-page.js

@@ -207,7 +207,7 @@ exports.handler = async (event) => {
     return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, reviews }) };
   }
 
-  // ── POST (admin) ──
+  // ── POST (public/admin) ──
   if (event.httpMethod === 'POST') {
     if (!store) {
       return {
@@ -215,7 +215,7 @@ exports.handler = async (event) => {
         headers: CORS,
         body: JSON.stringify({
           ok: false,
-          error: 'Database ulasan tidak tersedia untuk mode admin',
+          error: 'Database ulasan tidak tersedia',
           detail: storeError ? storeError.message : 'Storage tidak tersedia',
         }),
       };
@@ -229,11 +229,32 @@ exports.handler = async (event) => {
     }
 
     const { action, adminToken } = body;
+    let reviews = (await getReviews(store, nowIso)) || defaultReviews(nowIso);
+
+    // ── PUBLIC: siapa saja boleh kirim ulasan (tanpa foto profil) ──
+    // Catatan: demi keamanan sederhana, avatar selalu dikosongkan untuk aksi public.
+    if (action === 'public_add') {
+      const item = {
+        id: makeId(),
+        name: safeText(body.name, 40),
+        rating: clampRating(body.rating),
+        review: safeText(body.review, 300),
+        avatar: '',
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      };
+      if (!item.name || !item.review) {
+        return { statusCode: 400, headers: CORS, body: JSON.stringify({ ok: false, error: 'Nama dan ulasan wajib diisi' }) };
+      }
+      reviews.unshift(item);
+      await saveReviews(store, reviews);
+      return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, reviews }) };
+    }
+
+    // ── ADMIN: aksi edit data (butuh adminToken) ──
     if (!(await verifyAdmin(adminToken))) {
       return { statusCode: 403, headers: CORS, body: JSON.stringify({ ok: false, error: 'Akses ditolak' }) };
     }
-
-    let reviews = (await getReviews(store, nowIso)) || defaultReviews(nowIso);
 
     if (action === 'add') {
       const item = {

@@ -302,6 +302,37 @@
     </div>
 
     <div class="review-dots" id="reviewDots" aria-label="Navigasi ulasan"></div>
+
+    <!-- Form ulasan publik (tanpa foto profil) -->
+    <div class="review-public-wrap" aria-label="Kirim ulasan">
+        <div class="review-public-title">KIRIM ULASAN</div>
+        <form id="publicReviewForm" class="review-public-form" autocomplete="off">
+            <div class="review-public-row">
+                <div class="review-public-stars-wrap">
+                    <div class="review-public-stars-label">Rating</div>
+                    <div class="review-public-stars" id="pr-stars" aria-label="Pilih rating bintang" role="radiogroup">
+                        <button type="button" class="pr-star active" data-v="1" aria-label="1 bintang" aria-checked="false"><i class="fa-regular fa-star"></i></button>
+                        <button type="button" class="pr-star active" data-v="2" aria-label="2 bintang" aria-checked="false"><i class="fa-regular fa-star"></i></button>
+                        <button type="button" class="pr-star active" data-v="3" aria-label="3 bintang" aria-checked="false"><i class="fa-regular fa-star"></i></button>
+                        <button type="button" class="pr-star active" data-v="4" aria-label="4 bintang" aria-checked="false"><i class="fa-regular fa-star"></i></button>
+                        <button type="button" class="pr-star active" data-v="5" aria-label="5 bintang" aria-checked="true"><i class="fa-solid fa-star"></i></button>
+                    </div>
+                    <div class="review-public-stars-value" aria-hidden="true"><span id="pr-rating-text">5</span>/5</div>
+                    <input type="hidden" id="pr-rating" value="5">
+                </div>
+                <input id="pr-name" class="review-public-input" type="text" placeholder="Nama kamu" maxlength="40" required>
+            </div>
+            <textarea id="pr-text" class="review-public-textarea" placeholder="Tulis ulasan kamu..." maxlength="300" required></textarea>
+            <div class="review-public-actions">
+                <button id="pr-submit" class="review-public-btn" type="submit">Kirim</button>
+                <button id="pr-cancel" class="review-public-btn ghost" type="button">Batal</button>
+            </div>
+            <div class="review-public-note">
+                Setelah dikirim, ulasan <b>tidak bisa dihapus sendiri</b>. Kalau mau hapus/edit, hubungi admin atau CS.
+            </div>
+            <div id="pr-msg" class="review-public-msg" role="status" aria-live="polite"></div>
+        </form>
+    </div>
 </section>
 
 <!-- ===== ABOUT SECTION ===== -->

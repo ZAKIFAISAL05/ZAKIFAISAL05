@@ -983,6 +983,121 @@ nav::after { display: none; }
     box-shadow: 0 0 0 4px rgba(212,130,10,0.18);
 }
 
+/* ── PUBLIC REVIEW FORM (tanpa foto profil) ── */
+.review-public-wrap {
+    max-width: 820px;
+    margin: 22px auto 0;
+    padding: 16px 18px;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(0,0,0,0.12);
+}
+.review-public-title {
+    font-family: var(--font-title);
+    letter-spacing: 2px;
+    color: var(--brand);
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+}
+.review-public-form { display: grid; gap: 10px; }
+.review-public-row {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 10px;
+}
+.review-public-stars-wrap {
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.10);
+    background: rgba(255,255,255,0.03);
+    padding: 10px 12px;
+    display: grid;
+    gap: 8px;
+    align-content: start;
+}
+.review-public-stars-label {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+.review-public-stars {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+.pr-star {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.10);
+    background: rgba(0,0,0,0.15);
+    color: rgba(255,255,255,0.55);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    transition: transform 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+.pr-star:hover { transform: translateY(-1px); background: rgba(255,255,255,0.06); }
+.pr-star.active { color: #fde68a; border-color: rgba(212,130,10,0.35); }
+.review-public-stars-value {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+.review-public-input,
+.review-public-select,
+.review-public-textarea {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.10);
+    background: rgba(255,255,255,0.03);
+    color: var(--text-bright);
+    padding: 12px 12px;
+    outline: none;
+}
+.review-public-textarea { min-height: 110px; resize: vertical; line-height: 1.6; }
+.review-public-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+.review-public-btn {
+    justify-self: start;
+    padding: 11px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(212,130,10,0.55);
+    background: linear-gradient(135deg, rgba(212,130,10,0.35), rgba(0,0,0,0.15));
+    color: #fff;
+    cursor: pointer;
+}
+.review-public-btn.ghost {
+    border-color: rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.03);
+    color: rgba(255,255,255,0.85);
+}
+.review-public-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.review-public-note {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+}
+.review-public-msg {
+    min-height: 18px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+.review-public-msg.ok { color: #4ade80; }
+.review-public-msg.err { color: #fb7185; }
+.review-public-msg.info { color: #93c5fd; }
+
+@media (max-width: 720px) {
+    .review-public-row { grid-template-columns: 1fr; }
+    .review-public-stars-wrap { order: 1; }
+    .review-public-input { order: 2; }
+}
+
 /* ────────────────────────────────────────────────
    CEK TIKET SECTION
 ──────────────────────────────────────────────── */
