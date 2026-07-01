@@ -79,8 +79,8 @@
 
 [[redirects]]
   from   = "/maintenance/"
-  to     = "/maintenance"
-  status = 301
+  to     = "/errors/maintenance.html"
+  status = 200
   force  = true
 
 [[redirects]]
@@ -133,6 +133,7 @@
   from   = "/maintenance"
   to     = "/errors/maintenance.html"
   status = 200
+  force  = true
 
 # ── ADMIN ROUTE ───────────────────────────────────────────────
 # /admin (tanpa file) harusnya masuk ke file panel admin
