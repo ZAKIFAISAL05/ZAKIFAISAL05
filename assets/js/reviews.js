@@ -256,17 +256,31 @@
       var popupTitleEl = document.getElementById('uiPopupTitle');
       var popupTextEl = document.getElementById('uiPopupText');
       var popupOkBtn = document.getElementById('uiPopupOk');
+      var popupCancelBtn = document.getElementById('uiPopupCancel');
+      var popupConfirmBtn = document.getElementById('uiPopupConfirm');
       var popupIconEl = document.getElementById('uiPopupIcon');
+      var confirmCb = null;
 
       function hidePopup() {
         if (!popupEl) return;
         popupEl.classList.remove('open');
         popupEl.setAttribute('aria-hidden', 'true');
         document.body.classList.remove('modal-open');
+        confirmCb = null;
+      }
+
+      function popupMode(mode) {
+        // mode: 'ok' | 'confirm'
+        var isConfirm = mode === 'confirm';
+        if (popupOkBtn) popupOkBtn.hidden = isConfirm;
+        if (popupCancelBtn) popupCancelBtn.hidden = !isConfirm;
+        if (popupConfirmBtn) popupConfirmBtn.hidden = !isConfirm;
       }
 
       function showPopup(type, title, text) {
         if (!popupEl) return;
+        // Jika sedang mode konfirmasi, jangan ke-reset jadi OK
+        popupMode(confirmCb ? 'confirm' : 'ok');
         popupEl.classList.add('open');
         popupEl.setAttribute('aria-hidden', 'false');
         document.body.classList.add('modal-open');
@@ -287,9 +301,20 @@
         }
       }
 
+      function showPopupConfirm(title, text, onConfirm) {
+        if (!popupEl) return;
+        confirmCb = typeof onConfirm === 'function' ? onConfirm : null;
+        showPopup('warn', title, text);
+      }
+
       if (popupEl && !popupEl.dataset.bound) {
         popupEl.dataset.bound = '1';
         if (popupOkBtn) popupOkBtn.addEventListener('click', hidePopup);
+        if (popupCancelBtn) popupCancelBtn.addEventListener('click', hidePopup);
+        if (popupConfirmBtn) popupConfirmBtn.addEventListener('click', function () {
+          if (confirmCb) confirmCb();
+          hidePopup();
+        });
         popupEl.addEventListener('click', function (e) {
           if (e.target === popupEl) hidePopup();
         });
@@ -392,31 +417,40 @@
           return;
         }
 
-        if (btnEl) btnEl.disabled = true;
-        setMsg('Mengirim ulasan...', 'info');
-        showPopup('info', 'Mengirim...', 'Ulasan kamu sedang dikirim. Tunggu sebentar ya.');
+        // Konfirmasi agar info "tidak bisa dihapus" tampil rapi di popup (bukan jadi teks tetap)
+        var confirmText =
+          'Setelah dikirim, ulasan tidak bisa dihapus sendiri. Kalau mau hapus/edit, hubungi admin atau CS.\n\n' +
+          'Klik "Kirim" untuk lanjut.';
 
-        fetch(REVIEWS_API, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'public_add', name: name, rating: rating, review: review }),
-        })
-          .then(function (r) { return r.json(); })
-          .then(function (data) {
-            if (!data || !data.ok) throw new Error((data && data.error) || 'Gagal kirim ulasan');
-            setMsg('Terima kasih! Ulasan kamu sudah terkirim.', 'ok');
-            showPopup('ok', 'Terkirim', 'Terima kasih! Ulasan kamu sudah terkirim.');
-            resetForm();
-            // Refresh slider biar langsung kelihatan
-            return loadAndRender();
+        showPopupConfirm('Yakin kirim ulasan?', confirmText, function () {
+          if (btnEl) btnEl.disabled = true;
+          setMsg('Mengirim ulasan...', 'info');
+          showPopup('info', 'Mengirim...', 'Ulasan kamu sedang dikirim. Tunggu sebentar ya.');
+
+          fetch(REVIEWS_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'public_add', name: name, rating: rating, review: review }),
           })
-          .catch(function (err) {
-            showPopup('err', 'Gagal', err && err.message ? err.message : 'Terjadi kesalahan saat mengirim ulasan.');
-            setMsg('Gagal: ' + (err && err.message ? err.message : 'Terjadi kesalahan'), 'err');
-          })
-          .finally(function () {
-            if (btnEl) btnEl.disabled = false;
-          });
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+              if (!data || !data.ok) throw new Error((data && data.error) || 'Gagal kirim ulasan');
+              setMsg('Terima kasih! Ulasan kamu sudah terkirim.', 'ok');
+              showPopup('ok', 'Terkirim', 'Terima kasih! Ulasan kamu sudah terkirim.');
+              resetForm();
+              // Refresh slider biar langsung kelihatan
+              return loadAndRender();
+            })
+            .catch(function (err) {
+              showPopup('err', 'Gagal', err && err.message ? err.message : 'Terjadi kesalahan saat mengirim ulasan.');
+              setMsg('Gagal: ' + (err && err.message ? err.message : 'Terjadi kesalahan'), 'err');
+            })
+            .finally(function () {
+              if (btnEl) btnEl.disabled = false;
+            });
+        });
+
+        // fetch akan jalan setelah user klik "Kirim" di popup
       });
     }
 

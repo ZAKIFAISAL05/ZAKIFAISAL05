@@ -1003,11 +1003,6 @@ nav::after { display: none; }
     text-transform: uppercase;
 }
 .review-public-form { display: grid; gap: 10px; }
-.review-public-row {
-    display: grid;
-    grid-template-columns: 220px 1fr;
-    gap: 10px;
-}
 .review-public-stars-wrap {
     border-radius: 12px;
     border: 1px solid var(--border);
@@ -1017,6 +1012,7 @@ nav::after { display: none; }
     gap: 8px;
     align-content: start;
 }
+.review-public-stars-wrap.pr-stars-center { text-align: center; }
 .review-public-stars-label {
     font-family: var(--font-mono);
     font-size: 0.72rem;
@@ -1036,16 +1032,18 @@ nav::after { display: none; }
     gap: 6px;
     align-items: center;
 }
+.review-public-stars.pr-stars-big { justify-content: center; gap: 10px; }
 .pr-star {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
     border: 1px solid var(--border);
     background: rgba(0,0,0,0.04);
     color: rgba(30,26,16,0.65);
     cursor: pointer;
     display: grid;
     place-items: center;
+    font-size: 1.05rem;
     transition: transform 0.12s ease, background 0.12s ease, color 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
 }
 .pr-star:hover { transform: translateY(-1px); background: rgba(212,130,10,0.08); }
@@ -1150,6 +1148,8 @@ nav::after { display: none; }
 .ui-popup.open { opacity: 1; pointer-events: auto; }
 .ui-popup-card {
     width: min(420px, 100%);
+    max-height: 85vh;
+    overflow: auto;
     border-radius: 16px;
     border: 1px solid rgba(212,130,10,0.28);
     background: rgba(245,240,232,0.96);
@@ -1158,8 +1158,13 @@ nav::after { display: none; }
     transform: scale(0.96) translateY(10px);
     opacity: 0;
 }
-.ui-popup.open .ui-popup-card {
-    animation: uiPopIn 0.28s cubic-bezier(.2,.9,.2,1) both;
+/* fallback supaya popup selalu kelihatan walau animasi dimatikan device */
+.ui-popup.open .ui-popup-card { opacity: 1; transform: scale(1) translateY(0); }
+
+@media (prefers-reduced-motion: no-preference) {
+    .ui-popup.open .ui-popup-card {
+        animation: uiPopIn 0.28s cubic-bezier(.2,.9,.2,1) both;
+    }
 }
 @keyframes uiPopIn {
     from { transform: scale(0.96) translateY(10px); opacity: 0; }
@@ -1205,13 +1210,18 @@ nav::after { display: none; }
     font-family: var(--font-mono);
     transition: transform 0.12s ease, background 0.12s ease;
 }
+.ui-popup-btn.ghost {
+    border-color: var(--border);
+    background: rgba(255,255,255,0.55);
+    color: var(--text-dark);
+}
 .ui-popup-btn:hover { transform: translateY(-1px); background: rgba(212,130,10,0.18); }
 .ui-popup-btn:active { transform: translateY(0); }
 
 @media (max-width: 720px) {
-    .review-public-row { grid-template-columns: 1fr; }
-    .review-public-stars-wrap { order: 1; }
     .pr-details { order: 2; }
+    .review-public-stars.pr-stars-big { gap: 8px; }
+    .pr-star { width: 42px; height: 42px; }
 }
 
 /* ────────────────────────────────────────────────
