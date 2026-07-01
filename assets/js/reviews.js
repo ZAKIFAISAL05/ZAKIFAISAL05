@@ -241,11 +241,62 @@
       var nameEl = document.getElementById('pr-name');
       var ratingEl = document.getElementById('pr-rating');
       var ratingTextEl = document.getElementById('pr-rating-text');
+      var starsValueWrap = document.getElementById('pr-stars-value');
+      var hintEl = document.getElementById('pr-stars-hint');
       var starsWrap = document.getElementById('pr-stars');
       var textEl = document.getElementById('pr-text');
       var msgEl = document.getElementById('pr-msg');
       var btnEl = document.getElementById('pr-submit');
       var cancelEl = document.getElementById('pr-cancel');
+      var details1 = document.getElementById('pr-details');
+      var details2 = document.getElementById('pr-details-2');
+
+      // Popup UI (animasi) — dipakai saat klik kirim
+      var popupEl = document.getElementById('uiPopup');
+      var popupTitleEl = document.getElementById('uiPopupTitle');
+      var popupTextEl = document.getElementById('uiPopupText');
+      var popupOkBtn = document.getElementById('uiPopupOk');
+      var popupIconEl = document.getElementById('uiPopupIcon');
+
+      function hidePopup() {
+        if (!popupEl) return;
+        popupEl.classList.remove('open');
+        popupEl.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('modal-open');
+      }
+
+      function showPopup(type, title, text) {
+        if (!popupEl) return;
+        popupEl.classList.add('open');
+        popupEl.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('modal-open');
+
+        if (popupTitleEl) popupTitleEl.textContent = String(title || 'Info');
+        if (popupTextEl) popupTextEl.textContent = String(text || '');
+
+        if (popupIconEl) {
+          popupIconEl.className = 'ui-popup-icon ' + (type || '');
+          popupIconEl.innerHTML =
+            type === 'ok'
+              ? '<i class="fa-solid fa-circle-check"></i>'
+              : type === 'err'
+                ? '<i class="fa-solid fa-triangle-exclamation"></i>'
+                : type === 'warn'
+                  ? '<i class="fa-solid fa-circle-exclamation"></i>'
+                  : '<i class="fa-solid fa-circle-info"></i>';
+        }
+      }
+
+      if (popupEl && !popupEl.dataset.bound) {
+        popupEl.dataset.bound = '1';
+        if (popupOkBtn) popupOkBtn.addEventListener('click', hidePopup);
+        popupEl.addEventListener('click', function (e) {
+          if (e.target === popupEl) hidePopup();
+        });
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape') hidePopup();
+        });
+      }
 
       function setMsg(text, type) {
         if (!msgEl) return;
@@ -255,23 +306,39 @@
 
       function clampRatingLocal(n) {
         var v = Math.round(Number(n) || 0);
-        if (!isFinite(v)) v = 5;
+        if (!isFinite(v)) v = 0;
         if (v < 1) v = 1;
         if (v > 5) v = 5;
         return v;
       }
 
+      function setDetailsVisible(on) {
+        var show = !!on;
+        [details1, details2].forEach(function (el) {
+          if (!el) return;
+          el.classList.toggle('show', show);
+          el.setAttribute('aria-hidden', show ? 'false' : 'true');
+        });
+
+        // Hindari error validasi required saat elemen masih disembunyiin
+        if (nameEl) nameEl.required = show;
+        if (textEl) textEl.required = show;
+        if (btnEl) btnEl.disabled = !show;
+      }
+
       function setRatingUI(n) {
-        var r = clampRatingLocal(n);
-        if (ratingEl) ratingEl.value = String(r);
-        if (ratingTextEl) ratingTextEl.textContent = String(r);
+        var r = Number(n) ? clampRatingLocal(n) : 0;
+        if (ratingEl) ratingEl.value = r ? String(r) : '';
+        if (ratingTextEl) ratingTextEl.textContent = r ? String(r) : '—';
+        if (hintEl) hintEl.style.display = r ? 'none' : '';
+        if (starsValueWrap) starsValueWrap.style.opacity = r ? '1' : '0.85';
         if (!starsWrap) return;
         var btns = starsWrap.querySelectorAll('button.pr-star');
         btns.forEach(function (b) {
           var v = parseInt(b.getAttribute('data-v') || '0', 10) || 0;
-          var active = v <= r;
+          var active = r ? v <= r : false;
           b.classList.toggle('active', active);
-          b.setAttribute('aria-checked', v === r ? 'true' : 'false');
+          b.setAttribute('aria-checked', r && v === r ? 'true' : 'false');
           var icon = b.querySelector('i');
           if (icon) icon.className = active ? 'fa-solid fa-star' : 'fa-regular fa-star';
         });
@@ -280,7 +347,8 @@
       function resetForm() {
         if (nameEl) nameEl.value = '';
         if (textEl) textEl.value = '';
-        setRatingUI(5);
+        setRatingUI(0);
+        setDetailsVisible(false);
         setMsg('', '');
       }
 
@@ -290,6 +358,8 @@
           b.addEventListener('click', function () {
             var v = parseInt(b.getAttribute('data-v') || '5', 10) || 5;
             setRatingUI(v);
+            setDetailsVisible(true);
+            if (nameEl) nameEl.focus();
           });
         });
       }
@@ -302,21 +372,29 @@
       }
 
       // Set default UI
-      setRatingUI(parseInt((ratingEl && ratingEl.value) || '5', 10) || 5);
+      setDetailsVisible(false);
+      setRatingUI(0);
 
       form.addEventListener('submit', function (e) {
         e.preventDefault();
         var name = (nameEl && nameEl.value ? String(nameEl.value) : '').trim();
-        var rating = parseInt(ratingEl && ratingEl.value ? ratingEl.value : '5', 10) || 5;
+        var rating = parseInt(ratingEl && ratingEl.value ? ratingEl.value : '0', 10) || 0;
         var review = (textEl && textEl.value ? String(textEl.value) : '').trim();
 
+        if (!rating) {
+          showPopup('warn', 'Rating dulu', 'Pilih bintang 1 sampai 5 dulu, baru lanjut isi nama & ulasan.');
+          setMsg('Pilih rating bintang dulu.', 'err');
+          return;
+        }
         if (!name || !review) {
+          showPopup('warn', 'Lengkapi dulu', 'Nama dan ulasan wajib diisi sebelum dikirim.');
           setMsg('Nama dan ulasan wajib diisi.', 'err');
           return;
         }
 
         if (btnEl) btnEl.disabled = true;
         setMsg('Mengirim ulasan...', 'info');
+        showPopup('info', 'Mengirim...', 'Ulasan kamu sedang dikirim. Tunggu sebentar ya.');
 
         fetch(REVIEWS_API, {
           method: 'POST',
@@ -327,11 +405,13 @@
           .then(function (data) {
             if (!data || !data.ok) throw new Error((data && data.error) || 'Gagal kirim ulasan');
             setMsg('Terima kasih! Ulasan kamu sudah terkirim.', 'ok');
+            showPopup('ok', 'Terkirim', 'Terima kasih! Ulasan kamu sudah terkirim.');
             resetForm();
             // Refresh slider biar langsung kelihatan
             return loadAndRender();
           })
           .catch(function (err) {
+            showPopup('err', 'Gagal', err && err.message ? err.message : 'Terjadi kesalahan saat mengirim ulasan.');
             setMsg('Gagal: ' + (err && err.message ? err.message : 'Terjadi kesalahan'), 'err');
           })
           .finally(function () {

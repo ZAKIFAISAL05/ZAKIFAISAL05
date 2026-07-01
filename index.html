@@ -102,6 +102,7 @@
           integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
           crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="/assets/css/animations.css">
     <script src="https://unpkg.com/feather-icons"></script>
 </head>
 <body>
@@ -311,26 +312,35 @@
                 <div class="review-public-stars-wrap">
                     <div class="review-public-stars-label">Rating</div>
                     <div class="review-public-stars" id="pr-stars" aria-label="Pilih rating bintang" role="radiogroup">
-                        <button type="button" class="pr-star active" data-v="1" aria-label="1 bintang" aria-checked="false"><i class="fa-regular fa-star"></i></button>
-                        <button type="button" class="pr-star active" data-v="2" aria-label="2 bintang" aria-checked="false"><i class="fa-regular fa-star"></i></button>
-                        <button type="button" class="pr-star active" data-v="3" aria-label="3 bintang" aria-checked="false"><i class="fa-regular fa-star"></i></button>
-                        <button type="button" class="pr-star active" data-v="4" aria-label="4 bintang" aria-checked="false"><i class="fa-regular fa-star"></i></button>
-                        <button type="button" class="pr-star active" data-v="5" aria-label="5 bintang" aria-checked="true"><i class="fa-solid fa-star"></i></button>
+                        <button type="button" class="pr-star" data-v="1" aria-label="1 bintang" aria-checked="false"><i class="fa-regular fa-star"></i></button>
+                        <button type="button" class="pr-star" data-v="2" aria-label="2 bintang" aria-checked="false"><i class="fa-regular fa-star"></i></button>
+                        <button type="button" class="pr-star" data-v="3" aria-label="3 bintang" aria-checked="false"><i class="fa-regular fa-star"></i></button>
+                        <button type="button" class="pr-star" data-v="4" aria-label="4 bintang" aria-checked="false"><i class="fa-regular fa-star"></i></button>
+                        <button type="button" class="pr-star" data-v="5" aria-label="5 bintang" aria-checked="false"><i class="fa-regular fa-star"></i></button>
                     </div>
-                    <div class="review-public-stars-value" aria-hidden="true"><span id="pr-rating-text">5</span>/5</div>
-                    <input type="hidden" id="pr-rating" value="5">
+                    <div class="review-public-stars-value" id="pr-stars-value" aria-hidden="true">
+                        <span id="pr-rating-text">—</span><span class="muted">/5</span>
+                    </div>
+                    <div class="review-public-stars-hint" id="pr-stars-hint">Pilih bintang dulu untuk menulis ulasan.</div>
+                    <input type="hidden" id="pr-rating" value="">
                 </div>
-                <input id="pr-name" class="review-public-input" type="text" placeholder="Nama kamu" maxlength="40" required>
+                <!-- Area ini baru muncul setelah rating dipilih -->
+                <div class="pr-details" id="pr-details" aria-hidden="true">
+                    <input id="pr-name" class="review-public-input" type="text" placeholder="Nama kamu" maxlength="40" autocomplete="name" required>
+                </div>
             </div>
-            <textarea id="pr-text" class="review-public-textarea" placeholder="Tulis ulasan kamu..." maxlength="300" required></textarea>
-            <div class="review-public-actions">
-                <button id="pr-submit" class="review-public-btn" type="submit">Kirim</button>
-                <button id="pr-cancel" class="review-public-btn ghost" type="button">Batal</button>
+
+            <div class="pr-details" id="pr-details-2" aria-hidden="true">
+                <textarea id="pr-text" class="review-public-textarea" placeholder="Tulis ulasan kamu..." maxlength="300" required></textarea>
+                <div class="review-public-actions">
+                    <button id="pr-submit" class="review-public-btn" type="submit">Kirim</button>
+                    <button id="pr-cancel" class="review-public-btn ghost" type="button">Batal</button>
+                </div>
+                <div class="review-public-note">
+                    Setelah dikirim, ulasan <b>tidak bisa dihapus sendiri</b>. Kalau mau hapus/edit, hubungi admin atau CS.
+                </div>
+                <div id="pr-msg" class="review-public-msg" role="status" aria-live="polite"></div>
             </div>
-            <div class="review-public-note">
-                Setelah dikirim, ulasan <b>tidak bisa dihapus sendiri</b>. Kalau mau hapus/edit, hubungi admin atau CS.
-            </div>
-            <div id="pr-msg" class="review-public-msg" role="status" aria-live="polite"></div>
         </form>
     </div>
 </section>
@@ -588,6 +598,18 @@
     </div>
 </div>
 
+<!-- ===== POPUP UI (untuk ulasan publik) ===== -->
+<div class="ui-popup" id="uiPopup" aria-hidden="true">
+    <div class="ui-popup-card" role="dialog" aria-modal="true" aria-labelledby="uiPopupTitle">
+        <div class="ui-popup-icon" id="uiPopupIcon" aria-hidden="true"></div>
+        <div class="ui-popup-title" id="uiPopupTitle">Info</div>
+        <div class="ui-popup-text" id="uiPopupText"></div>
+        <div class="ui-popup-actions">
+            <button type="button" class="ui-popup-btn" id="uiPopupOk">OK</button>
+        </div>
+    </div>
+</div>
+
 <!-- ===== SCRIPT DATA GAME ===== -->
 <script src="assets/js/gameData.js"></script>
 
@@ -596,5 +618,6 @@
 <script src="assets/js/extras.js"></script>
 <script src="assets/js/reviews.js"></script>
 <script src="assets/js/index-page.js"></script>
+<script src="/assets/js/animations.js"></script>
 </body>
 </html>
