@@ -1978,60 +1978,6 @@ footer {
 }
 
 /* ────────────────────────────────────────────────
-   MASCOT
-──────────────────────────────────────────────── */
-#mascot-wrap {
-    position: fixed;
-    bottom: 24px; right: 24px;
-    z-index: 1200;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 8px;
-}
-.mascot-body {
-    width: 52px; height: 52px;
-    cursor: pointer;
-    position: relative;
-    user-select: none;
-    animation: mascotBob 3s ease-in-out infinite;
-    background: var(--brand);
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 16px rgba(212,130,10,0.3);
-}
-@keyframes mascotBob { 0%,100%{transform:translateY(0);} 50%{transform:translateY(-5px);} }
-.mascot-body img { width: 34px; height: 34px; object-fit: contain; }
-.mwave {
-    position: absolute;
-    top: -8px; right: -8px;
-    font-size: 0.9rem;
-    animation: wave 2s infinite;
-}
-@keyframes wave { 0%,100%{transform:rotate(0);} 25%{transform:rotate(20deg);} 75%{transform:rotate(-10deg);} }
-.mshadow { display: none; }
-
-.speech-bubble {
-    background: var(--bg-main);
-    border: 1px solid var(--border-vis);
-    border-radius: 8px;
-    padding: 10px 14px;
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
-    color: var(--text-dark);
-    max-width: 180px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-    line-height: 1.5;
-    letter-spacing: 0.3px;
-    min-height: 42px;
-    display: flex;
-    align-items: center;
-}
-.bcursor { color: var(--brand); animation: blink 1s steps(1) infinite; }
-
-/* ────────────────────────────────────────────────
    SCROLL TOP & TOAST
 ──────────────────────────────────────────────── */
 #scrollTopBtn {
