@@ -1990,6 +1990,27 @@ img {
     line-height: 1;
 }
 .chat-close:hover{ background: rgba(255,255,255,0.14); }
+.chat-icon-text{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1em;
+    height: 1em;
+    line-height: 1;
+    font-size: 1.1em;
+    color: inherit;
+}
+.chat-modal.is-closed .chat-modal-compose{
+    opacity: 0.55;
+}
+.chat-modal.is-closed .chat-attach-btn,
+.chat-modal.is-closed .btn-chat-send,
+.chat-modal.is-closed .chat-textarea{
+    pointer-events: none;
+}
+.chat-modal.is-closed .chat-textarea{
+    filter: grayscale(0.2);
+}
 .chat-modal-body{
     padding: 14px 16px;
     background: var(--bg-deep);

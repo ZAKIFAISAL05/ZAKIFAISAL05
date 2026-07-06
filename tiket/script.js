@@ -116,23 +116,26 @@ function renderChatMessages(messages) {
 }
 
 function buildChatSection(ticket) {
+  const isDone = !!(ticket && (ticket.done || ticket.status === 'done'));
   return `
     <div class="chat-section" aria-label="Chat tiket">
       <div class="section-label">Chat dengan Admin</div>
-      <div class="chat-hint">Kamu bisa kirim pesan atau foto bukti (maks 5MB).</div>
+      <div class="chat-hint">${isDone ? 'Tiket sudah selesai. Chat ditutup.' : 'Kamu bisa kirim pesan atau foto bukti (maks 5MB).'}</div>
 
       <div class="chat-box" id="ticket-chat-box">
         ${renderChatMessages(ticket && ticket.messages)}
       </div>
 
-      <div class="chat-compose">
-        <label class="chat-attach" for="chat-file" title="Kirim foto bukti (maks 5MB)">📎</label>
-        <input id="chat-file" type="file" accept="image/*" style="display:none">
-        <textarea id="chat-input" class="chat-input" rows="1" placeholder="Tulis pesan untuk admin..."></textarea>
-        <button class="chat-send" id="chat-send" type="button">Kirim</button>
-      </div>
-      <div class="chat-file-note" id="chat-file-note" style="display:none;"></div>
-      <div class="chat-warn" id="chat-warn" style="display:none;"></div>
+      ${isDone ? '' : `
+        <div class="chat-compose">
+          <label class="chat-attach" for="chat-file" title="Kirim foto bukti (maks 5MB)">📎</label>
+          <input id="chat-file" type="file" accept="image/*" style="display:none">
+          <textarea id="chat-input" class="chat-input" rows="1" placeholder="Tulis pesan untuk admin..."></textarea>
+          <button class="chat-send" id="chat-send" type="button">Kirim</button>
+        </div>
+        <div class="chat-file-note" id="chat-file-note" style="display:none;"></div>
+        <div class="chat-warn" id="chat-warn" style="display:none;"></div>
+      `}
     </div>
   `;
 }
@@ -374,7 +377,7 @@ function renderTicket(ticket) {
   // Tunjukkan/sembunyikan refresh hint
   document.getElementById('refresh-hint').style.display = isDone ? 'none' : 'block';
 
-  bindChat(ticket);
+  if (!isDone) bindChat(ticket);
 }
 
 /* ══════════════════════════════════════

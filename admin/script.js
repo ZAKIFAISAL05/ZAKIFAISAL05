@@ -1178,6 +1178,7 @@ async function closeTicket(id) {
 let _chatTicketId = '';
 let _chatTicketNum = '';
 let _chatFile = null;
+let _chatTicketClosed = false;
 
 function chatEsc(s) {
   return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1251,6 +1252,7 @@ async function openTicketChat(id) {
   showChatWarn('');
   _chatTicketId = id;
   _chatFile = null;
+  _chatTicketClosed = false;
 
   const overlay = document.getElementById('chatOverlay');
   const metaEl = document.getElementById('chatTicketMeta');
@@ -1266,11 +1268,13 @@ async function openTicketChat(id) {
   if (textEl) textEl.value = '';
   if (fileEl) fileEl.value = '';
   if (noteEl) { noteEl.style.display = 'none'; noteEl.textContent = ''; }
+  setChatClosedState(false);
 
   // Bind file input (reset listener dulu biar tidak dobel)
   if (fileEl) {
     fileEl.onchange = () => {
       showChatWarn('');
+      if (_chatTicketClosed) return;
       const f = fileEl.files && fileEl.files[0] ? fileEl.files[0] : null;
       if (!f) return;
       if (f.size > 5 * 1024 * 1024) {
@@ -1297,6 +1301,10 @@ async function openTicketChat(id) {
     _chatTicketNum = t.num ? String(t.num) : '';
     if (metaEl) metaEl.textContent = `${t.id || id}${_chatTicketNum ? (' · #' + _chatTicketNum) : ''}`;
     renderTicketChatMessages(t.messages || []);
+
+    const isClosed = !!(t.done || t.status === 'done');
+    setChatClosedState(isClosed);
+    if (isClosed) showChatWarn('Tiket sudah selesai. Chat sudah ditutup (tidak bisa kirim pesan lagi).');
 
     // Tandai chat sudah dilihat admin (supaya badge "Chat n" berkurang)
     markTicketChatSeen(id);
@@ -1338,13 +1346,30 @@ function closeTicketChat() {
   _chatTicketId = '';
   _chatTicketNum = '';
   _chatFile = null;
+  _chatTicketClosed = false;
   showChatWarn('');
   const noteEl = document.getElementById('chatFileNote');
   if (noteEl) { noteEl.style.display = 'none'; noteEl.textContent = ''; }
 }
 
+function setChatClosedState(isClosed) {
+  _chatTicketClosed = !!isClosed;
+  const modal = document.querySelector('#chatOverlay .chat-modal');
+  const textEl = document.getElementById('chatTextInput');
+  const fileEl = document.getElementById('chatFileInput');
+  const sendBtn = document.getElementById('chatSendBtn');
+  const attachBtn = document.querySelector('#chatOverlay .chat-attach-btn');
+
+  if (modal) modal.classList.toggle('is-closed', _chatTicketClosed);
+  if (textEl) textEl.disabled = _chatTicketClosed;
+  if (fileEl) fileEl.disabled = _chatTicketClosed;
+  if (sendBtn) sendBtn.disabled = _chatTicketClosed;
+  if (attachBtn) attachBtn.setAttribute('aria-disabled', _chatTicketClosed ? 'true' : 'false');
+}
+
 async function sendTicketChat() {
   if (!_chatTicketId) return;
+  if (_chatTicketClosed) { showChatWarn('Tiket sudah selesai. Chat dinonaktifkan.'); return; }
   const adminToken = getAdminToken();
   const textEl = document.getElementById('chatTextInput');
   const btn = document.getElementById('chatSendBtn');

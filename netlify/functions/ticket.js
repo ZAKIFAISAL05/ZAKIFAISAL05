@@ -174,6 +174,18 @@ async function cleanupExpiredTickets(store, indexInput) {
       continue;
     }
 
+    // Jika tiket sudah selesai: hapus chat secara otomatis supaya tidak bisa lanjut chat
+    // (sekalian rapikan badge chat agar tidak misleading).
+    if (ticket.done || ticket.status === 'done') {
+      const hadMessages = Array.isArray(ticket.messages) && ticket.messages.length > 0;
+      const hadSeen = !!ticket.adminSeenAt;
+      if (hadMessages || hadSeen) {
+        ticket.messages = [];
+        ticket.adminSeenAt = null;
+        await saveTicket(store, ticket);
+      }
+    }
+
     cleaned.push({
       id: ticket.id,
       num: ticket.num,
@@ -350,6 +362,11 @@ exports.handler = async (event) => {
       const ticket = await getTicket(store, id);
       if (!ticket) return { statusCode: 404, headers: CORS, body: JSON.stringify({ error: 'Tiket tidak ditemukan' }) };
 
+      // Jika tiket sudah selesai, chat ditutup total (admin & user tidak bisa kirim lagi)
+      if (ticket.done || ticket.status === 'done') {
+        return { statusCode: 403, headers: CORS, body: JSON.stringify({ error: 'Tiket sudah selesai. Chat ditutup dan tidak bisa mengirim pesan lagi.' }) };
+      }
+
       const isAdmin = await verifyAdmin(adminToken);
       const isOwnerByToken = token ? (toUpperSafe(ticket.token) === toUpperSafe(token)) : false;
 
@@ -443,6 +460,15 @@ exports.handler = async (event) => {
       ticket.statusLabel = STATUS[status].label;
       ticket.updatedAt   = new Date().toISOString();
       if (devNote !== undefined) ticket.devNote = devNote;
+
+      // Jika status di-set ke done, perlakukan sama seperti "close"
+      if (status === 'done') {
+        ticket.done = true;
+        ticket.closedAt = ticket.updatedAt;
+        ticket.messages = [];      // hapus chat otomatis
+        ticket.adminSeenAt = null; // reset badge
+      }
+
       await saveTicket(store, ticket);
 
       // Update index entry
@@ -450,6 +476,10 @@ exports.handler = async (event) => {
       const ei  = idx.findIndex(e => e.id === id);
       if (ei !== -1) {
         idx[ei].status = status;
+        if (status === 'done') {
+          idx[ei].done = true;
+          idx[ei].closedAt = ticket.closedAt || idx[ei].closedAt || null;
+        }
         idx[ei].updatedAt = ticket.updatedAt;
         await saveIndex(store, idx);
       }
@@ -472,6 +502,10 @@ exports.handler = async (event) => {
       ticket.done        = true;
       ticket.updatedAt   = new Date().toISOString();
       ticket.closedAt    = ticket.updatedAt;
+
+      // Hapus chat otomatis saat tiket ditutup
+      ticket.messages = [];
+      ticket.adminSeenAt = null;
       await saveTicket(store, ticket);
 
       // Update index
