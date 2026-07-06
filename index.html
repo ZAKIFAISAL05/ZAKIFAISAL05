@@ -203,6 +203,43 @@
 <!-- ===== DONATUR TERBARU (SAWERIA) =====
      Diletakkan di luar section "PROYEK GAME KAMI" (di atasnya).
      Diisi via JS: assets/js/donations.js (poll real-time) -->
+
+<!-- ===== TARGET DONASI (SAWERIA) =====
+     Diisi via JS: assets/js/donations.js -->
+<div class="donation-card" id="donationCard" aria-label="Target donasi"
+     data-goal-name="Bantu biaya produksi"
+     data-goal-text="Dipakai untuk asset, server, dan tools supaya pengembangan game lebih cepat.">
+    <div class="donation-head">
+        <div class="donation-title">
+            <i data-feather="target"></i>
+            <span>Target donasi</span>
+        </div>
+        <a class="donation-cta" id="donationCta" href="#" target="_blank" rel="noopener">
+            Dukung via Saweria
+        </a>
+    </div>
+
+    <div class="donation-body">
+        <div class="donation-goal">
+            <div class="donation-goal-kicker">Tujuan</div>
+            <div class="donation-goal-name" id="donationGoalName">—</div>
+            <div class="donation-goal-text" id="donationGoalText">—</div>
+            <div class="donation-support" id="donationSupportText">Mau support Nusabit Studio? Klik tombol “Dukung via Saweria”.</div>
+        </div>
+
+        <div class="donation-bar" aria-hidden="true">
+            <div class="donation-bar-fill" id="donationBarFill" style="width:0%;"></div>
+        </div>
+        <div class="donation-metrics" aria-live="polite">
+            <span class="donation-amount" id="donationCollected">Rp0</span>
+            <span class="donation-sep">/</span>
+            <span class="donation-amount muted" id="donationTarget">Rp0</span>
+            <span class="donation-percent" id="donationPercent">0%</span>
+        </div>
+        <div class="donation-sub" id="donationSub">Update berikutnya dalam <span id="donationCountdown">0</span> detik.</div>
+    </div>
+</div>
+
 <div class="donor-strip" id="donorStrip" aria-label="Donatur terbaru">
     <div class="donor-strip-head">
         <div class="donor-strip-title">
@@ -407,33 +444,6 @@
         </div>
         <div class="tiket-result-wrap" id="tiket-result-wrap" style="display:none;"></div>
         <p class="tiket-hint" data-id="tiket-hint">Token tiket dikirim via email saat kamu kirim laporan, atau lihat di bubble chat CS.</p>
-
-        <!-- ===== TARGET DONASI (SAWERIA) =====
-             Diisi via JS: assets/js/donations.js -->
-        <div class="donation-card" id="donationCard" aria-label="Target donasi">
-            <div class="donation-head">
-                <div class="donation-title">
-                    <i data-feather="target"></i>
-                    <span>Target donasi</span>
-                </div>
-                <a class="donation-cta" id="donationCta" href="#" target="_blank" rel="noopener">
-                    Dukung via Saweria
-                </a>
-            </div>
-
-            <div class="donation-body">
-                <div class="donation-bar" aria-hidden="true">
-                    <div class="donation-bar-fill" id="donationBarFill" style="width:0%;"></div>
-                </div>
-                <div class="donation-metrics" aria-live="polite">
-                    <span class="donation-amount" id="donationCollected">Rp0</span>
-                    <span class="donation-sep">/</span>
-                    <span class="donation-amount muted" id="donationTarget">Rp0</span>
-                    <span class="donation-percent" id="donationPercent">0%</span>
-                </div>
-                <div class="donation-sub" id="donationSub">Update otomatis.</div>
-            </div>
-        </div>
     </div>
 </section>
 

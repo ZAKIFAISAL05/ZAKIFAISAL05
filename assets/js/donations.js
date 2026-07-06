@@ -24,6 +24,11 @@
   const elPercent = document.getElementById('donationPercent');
   const elSub = document.getElementById('donationSub');
   const elCtaBottom = document.getElementById('donationCta');
+  const elCountdown = document.getElementById('donationCountdown');
+  const elDonationCard = document.getElementById('donationCard');
+  const elGoalName = document.getElementById('donationGoalName');
+  const elGoalText = document.getElementById('donationGoalText');
+  const elSupportText = document.getElementById('donationSupportText');
 
   // ── Element refs (donor slider) ──
   const elStrip = document.getElementById('donorStrip');
@@ -36,6 +41,44 @@
   // Kalau halaman tertentu tidak punya komponen ini, jangan error.
   const hasAnyUI = !!(elBarFill || elTrack);
   if (!hasAnyUI) return;
+
+  // ────────────────────────────────────────────────
+  // Static texts (Tujuan / Support) dari dataset HTML
+  // ────────────────────────────────────────────────
+  function initGoalText() {
+    const goalName = safeText(elDonationCard?.dataset?.goalName);
+    const goalText = safeText(elDonationCard?.dataset?.goalText);
+    if (elGoalName) elGoalName.textContent = goalName || '—';
+    if (elGoalText) elGoalText.textContent = goalText || '—';
+    if (elSupportText && !safeText(elSupportText.textContent)) {
+      elSupportText.textContent = 'Mau support Nusabit Studio? Klik tombol “Dukung via Saweria”.';
+    }
+  }
+
+  // ────────────────────────────────────────────────
+  // Countdown update (biar angka hitung mundur bergerak)
+  // ────────────────────────────────────────────────
+  let _secondsLeft = POLL_LABEL;
+  let _lastOk = false;
+  let _subMode = ''; // 'ok' | 'err'
+  const _subOkTemplate = elSub ? elSub.innerHTML : '';
+
+  function renderCountdownSub() {
+    if (!elSub) return;
+
+    if (_lastOk) {
+      if (_subMode !== 'ok') {
+        _subMode = 'ok';
+        // Kembalikan template awal (yang sudah ada <span id="donationCountdown">..</span>)
+        if (_subOkTemplate) elSub.innerHTML = _subOkTemplate;
+      }
+      const c = document.getElementById('donationCountdown');
+      if (c) c.textContent = String(_secondsLeft);
+    } else if (_subMode !== 'err') {
+      _subMode = 'err';
+      elSub.textContent = 'Donasi belum tersambung. Admin bisa set env Saweria di Netlify.';
+    }
+  }
 
   function formatRupiah(n) {
     const num = Number(n || 0);
@@ -80,11 +123,6 @@
     if (elTarget) elTarget.textContent = formatRupiah(target);
     if (elPercent) elPercent.textContent = `${pctClamped}%`;
     elBarFill.style.width = `${pctClamped}%`;
-
-    if (elSub) {
-      if (data?.ok) elSub.textContent = `Update otomatis setiap ${POLL_LABEL} detik.`;
-      else elSub.textContent = 'Donasi belum tersambung. Admin bisa set env Saweria di Netlify.';
-    }
   }
 
   // ────────────────────────────────────────────────
@@ -165,15 +203,25 @@
   }
 
   async function refresh() {
+    _secondsLeft = POLL_LABEL;
     const data = await fetchDonationData();
     if (data?.donationUrl) setDonationLink(data.donationUrl);
 
+    _lastOk = !!data?.ok;
     renderProgress(data);
     renderDonors(data);
+    renderCountdownSub();
   }
 
   // ── init ──
   initSliderNav();
+  initGoalText();
   refresh();
   setInterval(refresh, POLL_MS);
+
+  // tick countdown per detik
+  setInterval(() => {
+    if (_lastOk && _secondsLeft > 0) _secondsLeft -= 1;
+    renderCountdownSub();
+  }, 1000);
 })();
