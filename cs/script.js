@@ -782,13 +782,37 @@ function switchType(type) {
         b.classList.toggle('active', b.getAttribute('data-type') === type);
     });
     var isBug = type === 'bug';
-    document.getElementById('modal-icon').className     = 'modal-icon ' + type;
-    document.getElementById('modal-title').textContent  = isBug ? 'Laporan Bug / Error' : 'Kirim Saran';
-    document.getElementById('r-desc-label').textContent = isBug ? 'Deskripsi bug / error *' : 'Isi saran / masukan *';
-    document.getElementById('r-desc').placeholder       = isBug
+    var isReview = type === 'review';
+
+    // Icon: untuk review, pakai style saran agar tidak blank (CSS-nya sudah ada)
+    document.getElementById('modal-icon').className = 'modal-icon ' + (isReview ? 'saran' : type);
+
+    document.getElementById('modal-title').textContent =
+        isBug ? 'Laporan Bug / Error' : (isReview ? 'Edit / Hapus Ulasan' : 'Kirim Saran');
+
+    document.getElementById('r-desc-label').textContent =
+        isBug ? 'Deskripsi bug / error *' : (isReview ? 'Detail permintaan *' : 'Isi saran / masukan *');
+
+    document.getElementById('r-desc').placeholder = isBug
         ? 'Ceritakan bug yang kamu temukan...'
-        : 'Tulis saran atau masukan kamu...';
-    document.getElementById('r-submit').textContent = isBug ? 'Kirim Laporan Bug' : 'Kirim Saran';
+        : (isReview
+            ? 'Tulis detail edit/hapus ulasan kamu:\n' +
+              '- Mau edit atau hapus?\n' +
+              '- Nama yang dipakai saat ulasan\n' +
+              '- Rating/isi ulasan lama (atau perkiraan waktu kirim)\n' +
+              '- Jika edit: tulis rating/isi ulasan yang baru\n' +
+              '- Alasan (opsional)'
+            : 'Tulis saran atau masukan kamu...');
+
+    document.getElementById('r-submit').textContent =
+        isBug ? 'Kirim Laporan Bug' : (isReview ? 'Kirim Permintaan' : 'Kirim Saran');
+
+    // Game select: untuk review, kunci ke "Ulasan Website"
+    var gameEl = document.getElementById('r-game');
+    if (gameEl) {
+        gameEl.disabled = isReview;
+        if (isReview) gameEl.value = 'Ulasan Website';
+    }
 }
 
 /* ── MODAL FILE UPLOAD ── */
@@ -847,9 +871,15 @@ function submitReport() {
     if (!validatePreparedFiles(modalFiles, 'modal-upload-warning')) return;
 
     var ticketId = generateTicket();
+
+    // Mapping mode UI → payload API (backend hanya kenal bug/saran).
+    var apiType = currentType === 'bug' ? 'bug' : 'saran';
+    var apiGame = currentType === 'review' ? 'Ulasan Website' : game;
+
     pendingModalReport = {
-        type: currentType,
-        game: game,
+        uiType: currentType,
+        apiType: apiType,
+        game: apiGame,
         desc: desc,
         contact: contact,
         email: email,
@@ -875,9 +905,10 @@ function showModalConfirm(r) {
     var msgEl   = document.getElementById('success-msg');
     if (titleEl) titleEl.textContent = 'Konfirmasi Pengiriman';
     if (msgEl) {
+        var uiTypeLabel = r.uiType === 'review' ? 'Edit/Hapus Ulasan' : (r.uiType === 'bug' ? 'Bug/Error' : 'Saran');
         msgEl.innerHTML =
             'Sebelum dikirim ke admin/tim developer, mohon konfirmasi dulu ya.<br><br>' +
-            '<b>Jenis:</b> ' + escHtml(r.type === 'bug' ? 'Bug/Error' : 'Saran') + '<br>' +
+            '<b>Jenis:</b> ' + escHtml(uiTypeLabel) + '<br>' +
             '<b>Game:</b> ' + escHtml(r.game || '—') + '<br>' +
             '<b>Detail:</b><br>' + escHtml(r.desc || '').replace(/\n/g, '<br>') + '<br><br>' +
             '<b>Email:</b> ' + escHtml(r.email || '—') + '<br>' +
@@ -938,7 +969,7 @@ function sendConfirmedModalReport() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                type:        r.type,
+                type:        r.apiType,
                 game:        r.game,
                 desc:        r.desc,
                 contact:     r.contact,
@@ -961,7 +992,8 @@ function sendConfirmedModalReport() {
         pendingModalReport = null;
         modalFiles = [];
         isSubmittingReport = false;
-        showSuccess(!!data.ok, false, ticketId, !!r.email, data.ticketNum, data.ticketUrl);
+        var emailSent = data && data.email ? data.email.userSent : undefined;
+        showSuccess(!!data.ok, false, ticketId, !!r.email, data.ticketNum, data.ticketUrl, emailSent);
     })
     .catch(function() {
         saveReportLocal({
@@ -975,11 +1007,11 @@ function sendConfirmedModalReport() {
         pendingModalReport = null;
         modalFiles = [];
         isSubmittingReport = false;
-        showSuccess(false, true, ticketId, false, null, null);
+        showSuccess(false, true, ticketId, false, null, null, false);
     });
 }
 
-function showSuccess(ok, offline, ticketId, hasEmail, ticketNum, ticketUrl) {
+function showSuccess(ok, offline, ticketId, hasEmail, ticketNum, ticketUrl, emailSent) {
     document.getElementById('modal-form').style.display = 'none';
     var s = document.getElementById('modal-success');
     s.classList.add('show');
@@ -993,12 +1025,18 @@ function showSuccess(ok, offline, ticketId, hasEmail, ticketNum, ticketUrl) {
     var ticketNote = document.getElementById('ticket-note');
 
     if (ok) {
-        document.getElementById('success-title').textContent = currentType === 'bug' ? '🐛 Bug Dilaporkan!' : '💡 Saran Terkirim!';
+        document.getElementById('success-title').textContent =
+            currentType === 'bug'
+                ? '🐛 Bug Dilaporkan!'
+                : (currentType === 'review' ? '✏️ Permintaan Diterima!' : '💡 Saran Terkirim!');
         document.getElementById('success-msg').textContent   = '✅ Laporan kamu sudah diteruskan ke admin/tim developer. Terima kasih!';
         if (ticketId) {
             ticketBox.style.display = 'flex';
             ticketNum_.textContent  = ticketNum ? 'Tiket #' + ticketNum : '#' + ticketId;
-            var noteText = hasEmail ? 'Konfirmasi + link tiket dikirim ke email kamu.' : 'Simpan nomor tiket ini untuk follow-up.';
+            var emailOk = hasEmail && emailSent !== false;
+            var noteText = hasEmail
+                ? (emailOk ? 'Konfirmasi + link tiket dikirim ke email kamu.' : 'Catatan: email konfirmasi belum terkirim (cek Spam / konfigurasi).')
+                : 'Simpan nomor tiket ini untuk follow-up.';
             if (ticketUrl) {
                 ticketNote.innerHTML = noteText + ' <a href="' + ticketUrl + '" target="_blank" style="color:var(--accent);text-decoration:none;font-weight:600;">Pantau Status →</a>';
             } else {
@@ -1018,7 +1056,9 @@ function showSuccess(ok, offline, ticketId, hasEmail, ticketNum, ticketUrl) {
     var delay = ok ? 7500 : 3500;
     setTimeout(function() {
         closeModal();
-        postTicketBubble(ok, offline, ticketId, ticketNum, ticketUrl, hasEmail, currentType);
+        // Jangan bilang "link tiket dikirim ke email" kalau ternyata SMTP gagal.
+        var emailOk = hasEmail && emailSent !== false;
+        postTicketBubble(ok, offline, ticketId, ticketNum, ticketUrl, emailOk, currentType);
     }, delay);
 }
 
@@ -1045,8 +1085,12 @@ function postTicketBubble(ok, offline, ticketId, ticketNum, ticketUrl, hasEmail,
 
     var inner = '';
     if (ok && ticketId) {
+        var topLabel =
+            typeForLabel === 'bug'
+                ? '🐛 Laporan Bug Diterima!'
+                : (typeForLabel === 'review' ? '✏️ Permintaan Ulasan Diterima!' : '💡 Laporan / Saran Diterima!');
         inner =
-            '<div style="font-weight:700;margin-bottom:10px;font-size:0.95rem;">' + (typeForLabel === 'bug' ? '🐛 Laporan Bug Diterima!' : '💡 Laporan / Saran Diterima!') + '</div>' +
+            '<div style="font-weight:700;margin-bottom:10px;font-size:0.95rem;">' + topLabel + '</div>' +
             '<div style="background:linear-gradient(135deg,rgba(124,77,255,.3),rgba(0,229,255,.15));' +
             'border:1px solid rgba(124,77,255,.5);border-radius:12px;padding:14px 16px;margin:6px 0;text-align:center;">' +
                 '<div style="font-size:0.65rem;opacity:.65;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;">Nomor Tiket Kamu</div>' +

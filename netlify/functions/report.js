@@ -202,12 +202,20 @@ async function sendEmail({ to, subject, html }) {
       process.env.SMTP_USER ||
       '';
 
-    // Email address otomatis mengikuti akun Gmail SMTP agar konsisten.
-    // Nama pengirim tetap "Nusabit Studio CS" seperti sebelumnya.
-    const from = `Nusabit Studio CS <${user}>`;
+    // Penting untuk deliverability:
+    // - Jangan "spoof" From. Pastikan From sama dengan akun Gmail SMTP yang dipakai.
+    // - Reply-To dibuat konsisten agar tidak dianggap aneh oleh filter.
+    //
+    // Catatan: ini tidak mengubah isi/format email (subject + HTML), hanya header pengirim.
+    const fromEnv =
+      process.env.MAIL_FROM ||
+      process.env.GMAIL_MAIL_FROM ||
+      '';
+    const from = fromEnv || `Nusabit Studio CS <${user}>`;
 
     const info = await transporter.sendMail({
       from,
+      replyTo: user || undefined,
       to,
       subject,
       html,
@@ -341,6 +349,7 @@ exports.handler = async function (event) {
   const fonnteToken  = process.env.FONNTE_API_KEY;
   const adminTarget  = process.env.ADMIN_WA_NUMBER;
   const adminEmail   = process.env.ADMIN_EMAIL || 'dzakifaisal11@gmail.com';
+  const emailConfigured = !!getGmailTransporter();
   const waktuWIB     = getNowWIBString();
   const typeLabel    = type === 'bug' ? '🐛 BUG REPORT' : '💡 SARAN';
   const gameLabel    = game || 'Tidak disebutkan';
@@ -386,6 +395,7 @@ STATUS ${ticketId} seen|confirmed|done
   }
 
   // 4. Email ke user (kalau ada email)
+  let userEmailSent = false;
   if (email && email.includes('@')) {
     const subjUser = `[Tiket #${ticketNum}] ${type === 'bug' ? 'Bug Dilaporkan' : 'Saran Diterima'} — Nusabit Studio`;
     const htmlUser = emailUserHtml(ticketId, type, gameLabel, desc.trim(), waktuWIB)
@@ -394,22 +404,43 @@ STATUS ${ticketId} seen|confirmed|done
     <a href="${ticketUrl}" style="display:block;text-align:center;background:#7c4dff;color:#fff;text-decoration:none;padding:12px 24px;border-radius:10px;font-weight:700;font-size:0.95rem;">🔍 Pantau Status Tiket Kamu</a>
   </div>
 </div>\n</body>`);
-    await sendEmail({ to: email, subject: subjUser, html: htmlUser });
+    if (!emailConfigured) {
+      console.warn('EMAIL NOT CONFIGURED: set env GMAIL_SMTP_USER + GMAIL_SMTP_APP_PASSWORD');
+    } else {
+      userEmailSent = await sendEmail({ to: email, subject: subjUser, html: htmlUser });
+    }
   }
 
   // 5. Email notif ke admin
+  let adminEmailSent = false;
   if (adminEmail && adminEmail.includes('@')) {
     const subjAdmin = `[${typeLabel}] Tiket #${ticketNum} — ${gameLabel}`;
-    await sendEmail({
-      to: adminEmail,
-      subject: subjAdmin,
-      html: emailAdminHtml(ticketId, type, gameLabel, desc.trim(), contact, email, summary, waktuWIB),
-    });
+    if (!emailConfigured) {
+      console.warn('EMAIL NOT CONFIGURED: set env GMAIL_SMTP_USER + GMAIL_SMTP_APP_PASSWORD');
+    } else {
+      adminEmailSent = await sendEmail({
+        to: adminEmail,
+        subject: subjAdmin,
+        html: emailAdminHtml(ticketId, type, gameLabel, desc.trim(), contact, email, summary, waktuWIB),
+      });
+    }
   }
 
   return {
     statusCode: 200,
     headers: CORS,
-    body: JSON.stringify({ ok: true, summary, ticketId, ticketNum, ticketUrl: ticketData?.ticketUrl || '', message: 'Laporan berhasil dikirim!' }),
+    body: JSON.stringify({
+      ok: true,
+      summary,
+      ticketId,
+      ticketNum,
+      ticketUrl: ticketData?.ticketUrl || '',
+      message: 'Laporan berhasil dikirim!',
+      email: {
+        configured: emailConfigured,
+        userSent: userEmailSent,
+        adminSent: adminEmailSent,
+      },
+    }),
   };
 };

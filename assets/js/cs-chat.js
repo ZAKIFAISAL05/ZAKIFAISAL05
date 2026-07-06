@@ -116,6 +116,7 @@ function buildHTML() {
             '<div class="report-type-tabs">' +
                 '<button class="report-type-tab active" data-type="bug">🐛 BUG / ERROR</button>' +
                 '<button class="report-type-tab" data-type="saran">💡 SARAN</button>' +
+                '<button class="report-type-tab" data-type="review">✏️ EDIT/HAPUS ULASAN</button>' +
             '</div>' +
             '<div id="report-form">' +
                 '<div class="rfield">' +
@@ -124,6 +125,7 @@ function buildHTML() {
                         '<option value="">-- Pilih Game --</option>' +
                         GAMES.map(function(g){ return '<option value="'+g+'">'+g+'</option>'; }).join('') +
                         '<option value="Lainnya">Lainnya / Umum</option>' +
+                        '<option value="Ulasan Website">Ulasan Website</option>' +
                     '</select>' +
                 '</div>' +
                 '<div class="rfield">' +
@@ -499,11 +501,29 @@ function setReportType(type) {
     document.querySelectorAll('.report-type-tab').forEach(function(t){
         t.classList.toggle('active', t.getAttribute('data-type') === type);
     });
+    var gameEl = $('r-game');
+    if (gameEl) {
+        gameEl.disabled = (type === 'review');
+        if (type === 'review') gameEl.value = 'Ulasan Website';
+    }
+
     if (type === 'bug') {
         safeText('report-title',  '🐛 LAPORAN BUG / ERROR');
         safeText('r-desc-label',  'DESKRIPSI BUG / ERROR *');
         safePH  ('r-desc',        'Ceritakan bug yang kamu temukan, langkah-langkahnya, dan apa yang terjadi...');
         safeText('r-submit',      '▶ KIRIM LAPORAN BUG');
+    } else if (type === 'review') {
+        safeText('report-title',  '✏️ EDIT / HAPUS ULASAN');
+        safeText('r-desc-label',  'DETAIL PERMINTAAN *');
+        safePH  ('r-desc',
+            'Tulis detail edit/hapus ulasan kamu:\n' +
+            '- Mau edit atau hapus?\n' +
+            '- Nama yang dipakai saat ulasan\n' +
+            '- Rating/isi ulasan lama (atau perkiraan waktu kirim)\n' +
+            '- Jika edit: tulis rating/isi ulasan yang baru\n' +
+            '- Alasan (opsional)'
+        );
+        safeText('r-submit',      '▶ KIRIM PERMINTAAN');
     } else {
         safeText('report-title',  '💡 KIRIM SARAN');
         safeText('r-desc-label',  'ISI SARAN / MASUKAN *');
@@ -550,16 +570,21 @@ function submitReport() {
         return;
     }
 
-    var ticketId = 'GS-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2,5).toUpperCase();
+    var ticketId = generateTicketId();
     if (btn) { btn.disabled = true; btn.textContent = '▶ MENGIRIM...'; }
 
+    // Mapping mode UI → payload API (backend hanya kenal bug/saran).
+    var apiType = currentReportType === 'bug' ? 'bug' : 'saran';
+    var apiGame = currentReportType === 'review' ? 'Ulasan Website' : game;
+
     var payload = {
-        type:     currentReportType,
-        game:     game,
+        type:     apiType,
+        game:     apiGame,
         desc:     desc,
         contact:  contact,
         email:    email,
-        ticketId: ticketId
+        ticketId: ticketId,
+        uiType:   currentReportType
     };
 
     // WAJIB: minta konfirmasi ulang sebelum kirim data apa pun ke admin/dev.
@@ -647,7 +672,13 @@ function sendModalReportPayload() {
             safeText('r-result-title', type === 'bug' ? 'BUG DILAPORKAN!' : 'SARAN TERKIRIM!');
             var titleEl = $('r-result-title');
             if (titleEl) titleEl.style.color = type === 'bug' ? '#00ff41' : '#ffe600';
-            safeText('r-result-msg', '✅ Laporan kamu sudah diteruskan ke admin/tim developer. Terima kasih!');
+            var emailNote = '';
+            if (email && email.includes('@') && data.email && data.email.configured && data.email.userSent === false) {
+                emailNote = ' Catatan: email konfirmasi belum terkirim (cek Spam / konfigurasi SMTP).';
+            } else if (email && email.includes('@') && data.email && data.email.configured === false) {
+                emailNote = ' Catatan: email belum aktif karena SMTP belum dikonfigurasi.';
+            }
+            safeText('r-result-msg', '✅ Laporan kamu sudah diteruskan ke admin/tim developer. Terima kasih!' + emailNote);
 
             var rtb = $('report-ticket-box');
             if (rtb) {
