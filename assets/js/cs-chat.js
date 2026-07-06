@@ -32,15 +32,43 @@ var isTyping  = false;
 var csOpen    = false;
 var sessionId = 'user_' + Math.random().toString(36).slice(2, 10);
 var currentReportType = 'bug';
+// Saat konfirmasi/pengiriman laporan, lock supaya tidak double-submit.
+var isSubmittingReport = false;
+
+// Untuk laporan yang dibuat oleh AI (tag SUBMIT_REPORT), kita simpan dulu sampai user konfirmasi.
+// Format: { payload: {...}, ticketId: 'GS-...' }
+var pendingAIReport = null;
+var pendingModalPayload = null;
 
 /* safe getElementById — tidak crash kalau null */
 var $ = function (id) { return document.getElementById(id); };
 function safeVal(id)  { var el = $(id); return el ? el.value : ''; }
 function safeText(id, txt) { var el = $(id); if (el) el.textContent = txt; }
+function safeHTML(id, html) { var el = $(id); if (el) el.innerHTML = html; }
 function safeStyle(id, prop, val) { var el = $(id); if (el) el.style[prop] = val; }
 function safePH(id, txt)  { var el = $(id); if (el) el.placeholder = txt; }
 function safeClass(id, method, cls) { var el = $(id); if (el) el.classList[method](cls); }
 function safeOn(id, ev, fn) { var el = $(id); if (el) el.addEventListener(ev, fn); }
+
+function escHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+}
+
+function isConfirmYes(text) {
+    var t = String(text || '').trim().toLowerCase();
+    return ['ya', 'y', 'kirim', 'kirim ya', 'oke', 'ok', 'lanjut', 'setuju', 'gas'].includes(t);
+}
+
+function isConfirmNo(text) {
+    var t = String(text || '').trim().toLowerCase();
+    return ['tidak', 'gak', 'ga', 'nggak', 'batal', 'cancel', 'jangan'].includes(t);
+}
+
+function generateTicketId() {
+    return 'GS-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2,5).toUpperCase();
+}
 
 /* ══════════════════════════════════════════
    BUILD HTML
@@ -230,8 +258,28 @@ function sendWelcome() {
    SEND MESSAGE
 ══════════════════════════════════════════ */
 function sendUserMessage(text) {
-    if (!text || !text.trim() || isTyping) return;
+    if (!text || !text.trim() || isTyping || isSubmittingReport) return;
     text = text.trim();
+
+    // Jika ada laporan dari AI yang menunggu konfirmasi, interpretasikan input user.
+    if (pendingAIReport) {
+        if (isConfirmYes(text)) {
+            appendMsg('user', text, timeStr());
+            csHistory.push({ role: 'user', text: text });
+            confirmPendingAIReport();
+            return;
+        }
+        if (isConfirmNo(text)) {
+            appendMsg('user', text, timeStr());
+            csHistory.push({ role: 'user', text: text });
+            cancelPendingAIReport();
+            return;
+        }
+        // selain ya/tidak: anggap user ingin revisi, jangan kirim laporan lama
+        appendMsg('bot', 'Siap. Laporan **belum** saya kirim. Silakan jelaskan revisinya ya (misalnya game yang benar, detail bug, atau rating yang salah).', timeStr());
+        pendingAIReport = null;
+    }
+
     appendMsg('user', text, timeStr());
     csHistory.push({ role: 'user', text: text });
 
@@ -264,19 +312,10 @@ function sendUserMessage(text) {
         csHistory.push({ role: 'bot', text: reply });
         if (csHistory.length > MAX_HISTORY) csHistory = csHistory.slice(-MAX_HISTORY);
 
-        // Kalau ada tiket yang dibuat via chat bot
-        if (data.reportSubmitted && data.ticketUrl) {
-            var tUrl = data.ticketUrl.startsWith('http')
-                ? data.ticketUrl
-                : window.location.protocol + '//' + window.location.host + data.ticketUrl;
-            setTimeout(function() {
-                var num = data.reportPayload && data.reportPayload.ticketNum ? '#' + data.reportPayload.ticketNum : '';
-                appendMsg('bot',
-                    '🔒 *Link tiket kamu* ' + num + ' sudah dibuat!\n\n' +
-                    '<a href="' + tUrl + '" target="_blank" style="color:#00e5ff;font-weight:700;">📋 Pantau Status Tiket →</a>\n\nBookmark link ini ya!',
-                    timeStr()
-                );
-            }, 500);
+        // Jika model minta SUBMIT_REPORT, frontend WAJIB minta konfirmasi user dulu.
+        if (data.reportNeedsConfirmation && data.reportPayload) {
+            pendingAIReport = { payload: data.reportPayload, ticketId: generateTicketId() };
+            setTimeout(function(){ appendAIReportConfirmBubble(pendingAIReport.payload); }, 350);
         }
     })
     .catch(function(err) {
@@ -284,6 +323,116 @@ function sendUserMessage(text) {
         console.error('CS chat error:', err);
         appendMsg('bot', 'Koneksi bermasalah. Coba lagi sebentar ya! 🙏', timeStr());
     });
+}
+
+function bindAIReportConfirmDelegation() {
+    var container = $('cs-messages');
+    if (!container || container.dataset.aiConfirmBound) return;
+    container.dataset.aiConfirmBound = '1';
+    container.addEventListener('click', function(e) {
+        var btn = e.target && e.target.closest ? e.target.closest('button[data-report-action]') : null;
+        if (!btn) return;
+        var action = btn.getAttribute('data-report-action');
+        if (action === 'confirm') confirmPendingAIReport();
+        if (action === 'cancel')  cancelPendingAIReport();
+    });
+}
+
+function appendAIReportConfirmBubble(payload) {
+    if (!payload) return;
+    var container = $('cs-messages');
+    if (!container) return;
+
+    var type = String(payload.type || 'saran');
+    var typeLabel = type === 'bug' ? '🐛 Bug/Error' : '💡 Saran / Permintaan';
+    var game = escHtml(payload.game || '—');
+    var desc = escHtml(payload.desc || '').replace(/\\n/g, '<br>');
+    var email = escHtml(payload.email || '—');
+    var contact = escHtml(payload.contact || '—');
+
+    var div = document.createElement('div');
+    div.className = 'cs-msg bot';
+    div.innerHTML =
+        '<div class="cs-msg-bubble" style="border:1px solid rgba(245,158,11,.45);background:rgba(245,158,11,.08);">' +
+            '<div style="font-weight:800;margin-bottom:10px;">Konfirmasi pengiriman</div>' +
+            '<div style="font-size:0.82rem;line-height:1.6;opacity:.9;margin-bottom:10px;">' +
+                'Sebelum saya teruskan ke admin/tim developer, mohon konfirmasi dulu ya.' +
+            '</div>' +
+            '<div style="font-size:0.78rem;line-height:1.65;opacity:.9;background:rgba(0,0,0,.12);border:1px solid rgba(255,255,255,.06);padding:10px 12px;border-radius:10px;">' +
+                '<div><b>Jenis:</b> ' + typeLabel + '</div>' +
+                '<div><b>Game:</b> ' + game + '</div>' +
+                '<div style="margin-top:6px;"><b>Detail:</b><br>' + desc + '</div>' +
+                '<div style="margin-top:6px;"><b>Email:</b> ' + email + '</div>' +
+                '<div><b>Kontak:</b> ' + contact + '</div>' +
+            '</div>' +
+            '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">' +
+                '<button type="button" data-report-action="confirm" style="flex:1;min-width:150px;padding:10px 12px;border-radius:10px;border:1px solid rgba(124,77,255,.6);background:linear-gradient(135deg,#7c4dff,#5c35cc);color:#fff;font-weight:800;cursor:pointer;">✅ Ya, kirim</button>' +
+                '<button type="button" data-report-action="cancel" style="flex:1;min-width:130px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#fff;font-weight:800;cursor:pointer;">✏️ Batal / Edit</button>' +
+            '</div>' +
+            '<div style="font-size:0.7rem;opacity:.7;margin-top:10px;line-height:1.5;">Kamu juga bisa ketik: <b>ya</b> / <b>batal</b>.</div>' +
+        '</div>' +
+        '<div class="cs-msg-time">' + timeStr() + '</div>';
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
+}
+
+function confirmPendingAIReport() {
+    if (!pendingAIReport || !pendingAIReport.payload || isSubmittingReport) return;
+    isSubmittingReport = true;
+    var payload = pendingAIReport.payload;
+    var ticketId = pendingAIReport.ticketId || generateTicketId();
+    var type = String(payload.type || 'saran');
+
+    showTyping();
+    fetch(REPORT_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            type: type,
+            game: payload.game || '',
+            desc: payload.desc || '',
+            contact: payload.contact || '',
+            email: payload.email || '',
+            ticketId: ticketId
+        })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+        hideTyping();
+        isSubmittingReport = false;
+        pendingAIReport = null;
+
+        if (!data || !data.ok) {
+            appendMsg('bot', '⚠️ Maaf, laporan gagal terkirim. Coba lagi sebentar ya.', timeStr());
+            return;
+        }
+
+        var numLabel = data.ticketNum ? '#'+data.ticketNum : '#'+ticketId;
+        var relUrl = data.ticketUrl || '';
+        var fullUrl = relUrl
+            ? (relUrl.startsWith('http') ? relUrl : (window.location.protocol + '//' + window.location.host + (relUrl.startsWith('/') ? '' : '/') + relUrl))
+            : '';
+
+        appendMsg('bot',
+            '✅ Laporan kamu sudah saya teruskan ke admin/tim developer.\n\n' +
+            'Nomor tiket: *' + numLabel + '*\n' +
+            (fullUrl ? '<a href="' + fullUrl + '" target="_blank" style="color:#00e5ff;font-weight:700;">📋 Pantau Status Tiket →</a>\n' : '') +
+            '\nSimpan nomor/link ini ya.',
+            timeStr()
+        );
+    })
+    .catch(function(){
+        hideTyping();
+        isSubmittingReport = false;
+        pendingAIReport = null;
+        appendMsg('bot', '⚠️ Koneksi bermasalah saat mengirim laporan. Coba lagi sebentar ya.', timeStr());
+    });
+}
+
+function cancelPendingAIReport() {
+    if (!pendingAIReport) return;
+    pendingAIReport = null;
+    appendMsg('bot', 'Siap. Laporan **belum** saya kirim. Kalau mau koreksi detailnya, tulis ulang saja ya.', timeStr());
 }
 
 /* ══════════════════════════════════════════
@@ -325,6 +474,16 @@ function openReportModal(type) {
     var rSubmit  = $('r-submit');
     if (rSubmit) { rSubmit.disabled = false; rSubmit.textContent = '▶ KIRIM LAPORAN'; }
     safeStyle('report-ticket-box', 'display', 'none');
+    pendingModalPayload = null;
+
+    // Bersihkan elemen dinamis (link tiket / tombol konfirmasi) supaya tidak dobel
+    var resultEl = $('report-result');
+    if (resultEl) {
+        var link = resultEl.querySelector('.report-track-link');
+        if (link) link.remove();
+        var acts = resultEl.querySelector('.report-confirm-actions');
+        if (acts) acts.remove();
+    }
 
     setReportType(currentReportType);
     modal.classList.add('open');
@@ -403,6 +562,67 @@ function submitReport() {
         ticketId: ticketId
     };
 
+    // WAJIB: minta konfirmasi ulang sebelum kirim data apa pun ke admin/dev.
+    pendingModalPayload = payload;
+    showModalReportConfirm(payload);
+}
+
+function showModalReportConfirm(payload) {
+    if (!payload) return;
+    safeStyle('report-form', 'display', 'none');
+    safeClass('report-result', 'add', 'show');
+
+    safeText('r-result-icon', '❓');
+    safeText('r-result-title', 'KONFIRMASI');
+
+    var typeLabel = payload.type === 'bug' ? 'Bug/Error' : 'Saran';
+    var html =
+        'Sebelum dikirim ke admin/tim developer, mohon konfirmasi dulu ya.<br><br>' +
+        '<b>Jenis:</b> ' + escHtml(typeLabel) + '<br>' +
+        '<b>Game:</b> ' + escHtml(payload.game || '—') + '<br>' +
+        '<b>Detail:</b><br>' + escHtml(payload.desc || '').replace(/\\n/g,'<br>') + '<br><br>' +
+        '<b>Email:</b> ' + escHtml(payload.email || '—') + '<br>' +
+        '<b>Kontak:</b> ' + escHtml(payload.contact || '—');
+    safeHTML('r-result-msg', html);
+
+    var resultEl = $('report-result');
+    if (!resultEl) return;
+    var actions = document.createElement('div');
+    actions.className = 'report-confirm-actions';
+    actions.style.cssText = 'display:flex;gap:10px;justify-content:center;margin-top:14px;flex-wrap:wrap;';
+    actions.innerHTML =
+        '<button type="button" class="btn-report-submit" id="r-confirm-send" style="min-width:160px;">✅ YA, KIRIM</button>' +
+        '<button type="button" class="btn-report-submit" id="r-confirm-cancel" style="min-width:160px;background:transparent;border:1px solid rgba(255,255,255,.18);">✏️ BATAL / EDIT</button>';
+    resultEl.appendChild(actions);
+
+    var btnYes = $('r-confirm-send');
+    var btnNo  = $('r-confirm-cancel');
+    if (btnYes) btnYes.addEventListener('click', function(){ sendModalReportPayload(); });
+    if (btnNo) btnNo.addEventListener('click', function(){
+        pendingModalPayload = null;
+        safeStyle('report-form', 'display', 'block');
+        safeClass('report-result', 'remove', 'show');
+        actions.remove();
+        var btn = $('r-submit');
+        if (btn) { btn.disabled = false; btn.textContent = currentReportType === 'bug' ? '▶ KIRIM LAPORAN BUG' : '▶ KIRIM SARAN'; }
+    });
+}
+
+function sendModalReportPayload() {
+    if (!pendingModalPayload || isSubmittingReport) return;
+    isSubmittingReport = true;
+    var payload = pendingModalPayload;
+    var ticketId = payload.ticketId;
+    var type = String(payload.type || currentReportType || 'saran');
+    var game = payload.game || '';
+    var desc = payload.desc || '';
+    var contact = payload.contact || '';
+    var email = payload.email || '';
+
+    safeText('r-result-icon', '⏳');
+    safeText('r-result-title', 'MENGIRIM...');
+    safeText('r-result-msg', 'Sedang mengirim laporan. Tunggu sebentar ya.');
+
     fetch(REPORT_ENDPOINT, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -412,7 +632,7 @@ function submitReport() {
     .then(function(data) {
         saveReportLocal({
             id:      ticketId,
-            type:    currentReportType,
+            type:    type,
             game:    game || 'Tidak disebutkan',
             desc:    desc,
             contact: contact,
@@ -422,15 +642,12 @@ function submitReport() {
             done:    false
         });
 
-        safeStyle('report-form', 'display', 'none');
-        safeClass('report-result', 'add', 'show');
-
         if (data.ok) {
-            safeText('r-result-icon',  currentReportType === 'bug' ? '🐛✅' : '💡✅');
-            safeText('r-result-title', currentReportType === 'bug' ? 'BUG DILAPORKAN!' : 'SARAN TERKIRIM!');
+            safeText('r-result-icon',  type === 'bug' ? '🐛✅' : '💡✅');
+            safeText('r-result-title', type === 'bug' ? 'BUG DILAPORKAN!' : 'SARAN TERKIRIM!');
             var titleEl = $('r-result-title');
-            if (titleEl) titleEl.style.color = currentReportType === 'bug' ? '#00ff41' : '#ffe600';
-            safeText('r-result-msg', 'Laporan kamu sudah masuk! Admin sudah dapat notifikasi.');
+            if (titleEl) titleEl.style.color = type === 'bug' ? '#00ff41' : '#ffe600';
+            safeText('r-result-msg', '✅ Laporan kamu sudah diteruskan ke admin/tim developer. Terima kasih!');
 
             var rtb = $('report-ticket-box');
             if (rtb) {
@@ -445,6 +662,7 @@ function submitReport() {
                     ? data.ticketUrl
                     : window.location.protocol + '//' + window.location.host + data.ticketUrl;
                 var trackEl = document.createElement('a');
+                trackEl.className = 'report-track-link';
                 trackEl.href = tUrl;
                 trackEl.target = '_blank';
                 trackEl.style.cssText = 'display:block;margin-top:12px;text-align:center;color:#7c4dff;font-size:0.85rem;font-weight:700;text-decoration:none;';
@@ -452,6 +670,9 @@ function submitReport() {
                 var resultEl = $('report-result');
                 if (resultEl) resultEl.appendChild(trackEl);
             }
+
+            // Notifikasi juga di chat (biar konsisten dengan flow AI CS)
+            appendMsg('bot', '✅ Laporan kamu sudah diteruskan ke admin/tim developer. Terima kasih ya!', timeStr());
         } else {
             safeText('r-result-icon',  '⚠️');
             safeText('r-result-title', 'GAGAL MENGIRIM');
@@ -461,12 +682,16 @@ function submitReport() {
         }
 
         setTimeout(function(){ safeClass('report-modal', 'remove', 'open'); }, 3500);
+        pendingModalPayload = null;
+        isSubmittingReport = false;
     })
     .catch(function(err) {
+        isSubmittingReport = false;
+        pendingModalPayload = null;
         console.error('Report error:', err);
         saveReportLocal({
             id:      Date.now(),
-            type:    currentReportType,
+            type:    type,
             game:    game || 'Tidak disebutkan',
             desc:    desc,
             contact: contact,
@@ -529,6 +754,7 @@ function init() {
         buildQuickReplies();
         bindInput();
         bindReportModal();
+        bindAIReportConfirmDelegation();
     } catch(e) {
         console.error('CS Widget init error:', e);
     }

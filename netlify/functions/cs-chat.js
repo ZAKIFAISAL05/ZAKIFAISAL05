@@ -283,6 +283,11 @@ exports.handler = async function (event) {
   // Ekstrak tag SUBMIT_REPORT
   let reportSubmitted = false;
   let reportPayload   = null;
+  // Untuk memenuhi kebijakan "wajib konfirmasi ulang":
+  // Jika model mengeluarkan tag SUBMIT_REPORT, backend TIDAK langsung mengirim data ke admin/dev.
+  // Backend hanya mengembalikan `reportNeedsConfirmation` + payload, lalu frontend yang meminta
+  // konfirmasi user dan memanggil endpoint `/.netlify/functions/report` saat user setuju.
+  let reportNeedsConfirmation = false;
   const submitMatch   = reply.match(/\[SUBMIT_REPORT:(\{.*?\})\]/s);
   if (submitMatch) {
     try {
@@ -291,25 +296,7 @@ exports.handler = async function (event) {
         reportPayload.attachmentNames = attachments.map(a => a.name).join(', ');
         reportPayload.desc += '\n\n[Bukti: ' + reportPayload.attachmentNames + ']';
       }
-      reportSubmitted = true;
-
-      // Kirim WA notif ke admin
-      const fonnteToken = process.env.FONNTE_API_KEY;
-      const adminTarget = process.env.ADMIN_WA_NUMBER;
-      if (fonnteToken && adminTarget && reportPayload) {
-        const typeLabel = reportPayload.type === 'bug' ? '🐛 BUG REPORT' : '💡 SARAN';
-        const waMsg =
-`━━━━━━━━━━━━━━━━━━━━
-${typeLabel} — NUSABIT STUDIO (via CS Chat)
-━━━━━━━━━━━━━━━━━━━━
-🎮 *Game:* ${reportPayload.game || '—'}
-📝 *Isi:* ${reportPayload.desc}
-📧 *Email:* ${reportPayload.email || '—'}
-📱 *Kontak:* ${reportPayload.contact || '—'}
-⏰ *Waktu:* ${tanggal}
-━━━━━━━━━━━━━━━━━━━━`;
-        sendFonnte(fonnteToken, adminTarget, waMsg).catch(() => {});
-      }
+      reportNeedsConfirmation = true;
     } catch(e) { console.error('SUBMIT_REPORT parse error:', e.message); }
     reply = reply.replace(/\[SUBMIT_REPORT:.*?\]/s, '').trim();
   }
@@ -320,6 +307,14 @@ ${typeLabel} — NUSABIT STUDIO (via CS Chat)
   return {
     statusCode: 200,
     headers: CORS,
-    body: JSON.stringify({ ok: true, reply, from: BOT_NAME, reportSubmitted, reportPayload }),
+    body: JSON.stringify({
+      ok: true,
+      reply,
+      from: BOT_NAME,
+      // Backward compatibility: tetap kirim field lama, tapi tidak pernah "true" tanpa konfirmasi user.
+      reportSubmitted,
+      reportPayload,
+      reportNeedsConfirmation,
+    }),
   };
 };

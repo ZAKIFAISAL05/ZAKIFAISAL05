@@ -15,6 +15,8 @@ var REPORT_ENDPOINT = '/.netlify/functions/report';
 var currentType     = 'bug';
 var chatHistory     = [];
 var isWaiting       = false;
+// Saat user konfirmasi kirim laporan (dari AI / dari modal), kita lock input agar tidak dobel submit.
+var isSubmittingReport = false;
 var sessionId       = 'cs_' + Math.random().toString(36).slice(2, 9);
 var ttsEnabled      = true;
 var soundEnabled    = true;
@@ -23,6 +25,29 @@ var MAX_ATTACHMENTS = 5;
 var MAX_IMAGE_SIZE  = 3 * 1024 * 1024;
 var MAX_VIDEO_SIZE  = 15 * 1024 * 1024;
 var MAX_TOTAL_SIZE  = 20 * 1024 * 1024;
+
+// ────────────────────────────────────────────────
+//  AI Report Confirmation State
+//  (WAJIB: minta konfirmasi ulang sebelum kirim ke admin/dev)
+// ────────────────────────────────────────────────
+// Format: { payload: {type,game,desc,email,contact,...}, ticketId: 'GS-...' }
+var pendingAIReport = null;
+
+function escHtml(s) {
+    return String(s || '').replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+}
+
+function isConfirmYes(text) {
+    var t = String(text || '').trim().toLowerCase();
+    return ['ya', 'y', 'kirim', 'kirim ya', 'oke', 'ok', 'lanjut', 'setuju', 'gas'].includes(t);
+}
+
+function isConfirmNo(text) {
+    var t = String(text || '').trim().toLowerCase();
+    return ['tidak', 'gak', 'ga', 'nggak', 'batal', 'cancel', 'jangan'].includes(t);
+}
 
 var QUICK = [
     { label: '🎮 Info Game',        text: 'Ceritain dong game-game dari Nusabit Studio!' },
@@ -472,11 +497,31 @@ function initMobileViewportFix() {
 /* ── SEND MSG ── */
 function sendMsg(text, forcedFiles) {
     var files = forcedFiles || pendingFiles.slice();
-    if ((!text || !text.trim()) && !files.length) return;
-    if (isWaiting) return;
-    if (!validatePreparedFiles(files, 'upload-warning')) return;
-
     text = (text || '').trim();
+
+    // Jika sedang ada konfirmasi laporan dari AI, maka input user dipakai sebagai keputusan (ya/batal).
+    // Laporan TIDAK akan dikirim sebelum user konfirmasi.
+    if (pendingAIReport && !files.length && text) {
+        if (isConfirmYes(text)) {
+            addMsg('user', text, now());
+            confirmPendingAIReport();
+            return;
+        }
+        if (isConfirmNo(text)) {
+            addMsg('user', text, now());
+            cancelPendingAIReport();
+            return;
+        }
+
+        // User mengetik sesuatu yang bukan ya/tidak: anggap user ingin revisi.
+        addMsg('bot', 'Siap. Laporan **belum** saya kirim. Silakan jelaskan revisinya ya (misalnya game yang benar, detail bug, atau rating yang salah).', now());
+        pendingAIReport = null;
+        // lanjut proses kirim pesan ke AI (untuk revisi)
+    }
+
+    if ((!text || !text.trim()) && !files.length) return;
+    if (isWaiting || isSubmittingReport) return;
+    if (!validatePreparedFiles(files, 'upload-warning')) return;
 
     var mediaList = files.map(function(f) {
         return { type: f.type.startsWith('image/') ? 'image' : 'video', url: URL.createObjectURL(f), file: f };
@@ -536,32 +581,14 @@ function sendMsg(text, forcedFiles) {
         // Tampilkan quick reply kontekstual setelah bot balas
         showContextualQuick(reply);
 
-        // Jika bot kirim laporan via AI, tampilkan konfirmasi "sudah diteruskan"
-        if (data.reportSubmitted && data.reportPayload) {
-            setTimeout(function() {
-                var msgs = document.getElementById('messages');
-                var row  = document.createElement('div');
-                row.className = 'msg-row bot';
-                row.innerHTML =
-                    '<div class="msg-avatar"><img src="../assets/img/studio_logo.png" alt="CS"></div>' +
-                    '<div class="msg-content">' +
-                        '<div class="msg-name">Nusabit Bot</div>' +
-                        '<div class="msg-bubble" style="background:linear-gradient(135deg,rgba(39,174,96,.2),rgba(26,188,156,.15));border:1px solid rgba(39,174,96,.35);">' +
-                            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">' +
-                                '<span style="font-size:1.3em;">✅</span>' +
-                                '<strong style="font-size:0.92rem;">Laporan berhasil diteruskan ke developer!</strong>' +
-                            '</div>' +
-                            '<div style="font-size:0.82rem;line-height:1.5;opacity:.85;">' +
-                                'Tim Nusabit Studio sudah menerima laporanmu. ' +
-                                'Kamu bisa pantau progresnya via link tiket yang dikirim, atau tanyakan ke kami kapan saja. 🙏' +
-                            '</div>' +
-                        '</div>' +
-                        '<div class="msg-meta"><span class="msg-time">' + now() + '</span></div>' +
-                    '</div>';
-                msgs.appendChild(row);
-                msgs.scrollTop = msgs.scrollHeight;
-                playPing();
-            }, 800);
+        // Jika model mengeluarkan tag SUBMIT_REPORT, backend akan mengembalikan payload
+        // dan frontend WAJIB minta konfirmasi user sebelum memanggil endpoint /report.
+        if (data.reportNeedsConfirmation && data.reportPayload) {
+            pendingAIReport = {
+                payload: data.reportPayload,
+                ticketId: generateTicket()
+            };
+            setTimeout(function() { postAIReportConfirmBubble(pendingAIReport.payload); }, 450);
         }
     })
     .catch(function() {
@@ -597,9 +624,123 @@ function generateTicket() {
 }
 
 /* ══════════════════════════════════════════
+   AI REPORT CONFIRMATION (WAJIB)
+══════════════════════════════════════════ */
+function initAIReportConfirmDelegation() {
+    var msgs = document.getElementById('messages');
+    if (!msgs || msgs.dataset.aiConfirmBound) return;
+    msgs.dataset.aiConfirmBound = '1';
+    msgs.addEventListener('click', function(e) {
+        var btn = e.target && e.target.closest ? e.target.closest('button[data-report-action]') : null;
+        if (!btn) return;
+        var action = btn.getAttribute('data-report-action');
+        if (action === 'confirm') confirmPendingAIReport();
+        if (action === 'cancel')  cancelPendingAIReport();
+    });
+}
+
+function postAIReportConfirmBubble(payload) {
+    if (!payload) return;
+    var msgs = document.getElementById('messages');
+    if (!msgs) return;
+
+    var type = String(payload.type || 'saran');
+    var typeLabel = type === 'bug' ? '🐛 Bug/Error' : '💡 Saran / Permintaan';
+    var game = escHtml(payload.game || '—');
+    var desc = escHtml(payload.desc || '').replace(/\n/g, '<br>');
+    var email = escHtml(payload.email || '—');
+    var contact = escHtml(payload.contact || '—');
+
+    var row = document.createElement('div');
+    row.className = 'msg-row bot';
+    row.innerHTML =
+        '<div class="msg-avatar"><img src="../assets/img/studio_logo.png" alt="CS"></div>' +
+        '<div class="msg-content">' +
+            '<div class="msg-name">Nusabit Bot</div>' +
+            '<div class="msg-bubble" style="border:1px solid rgba(243,156,18,.45);background:rgba(243,156,18,.08);">' +
+                '<div style="font-weight:800;margin-bottom:10px;">Konfirmasi pengiriman</div>' +
+                '<div style="font-size:0.86rem;line-height:1.55;opacity:.9;margin-bottom:10px;">' +
+                    'Sebelum saya teruskan ke admin/tim developer, mohon konfirmasi dulu ya.' +
+                '</div>' +
+                '<div style="font-size:0.82rem;line-height:1.6;opacity:.9;background:rgba(0,0,0,.12);border:1px solid rgba(255,255,255,.06);padding:10px 12px;border-radius:10px;">' +
+                    '<div><strong>Jenis:</strong> ' + typeLabel + '</div>' +
+                    '<div><strong>Game:</strong> ' + game + '</div>' +
+                    '<div style="margin-top:6px;"><strong>Detail:</strong><br>' + desc + '</div>' +
+                    '<div style="margin-top:6px;"><strong>Email:</strong> ' + email + '</div>' +
+                    '<div><strong>Kontak:</strong> ' + contact + '</div>' +
+                '</div>' +
+                '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">' +
+                    '<button type="button" data-report-action="confirm" style="flex:1;min-width:160px;padding:10px 12px;border-radius:10px;border:1px solid rgba(124,77,255,.6);background:linear-gradient(135deg,#7c4dff,#5c35cc);color:#fff;font-weight:800;cursor:pointer;">✅ Ya, kirim</button>' +
+                    '<button type="button" data-report-action="cancel" style="flex:1;min-width:140px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.06);color:#fff;font-weight:800;cursor:pointer;">✏️ Batal / Edit</button>' +
+                '</div>' +
+                '<div style="font-size:0.72rem;opacity:.7;margin-top:10px;line-height:1.5;">' +
+                    'Kamu juga bisa ketik: <strong>ya</strong> untuk kirim, atau <strong>batal</strong> untuk batal.' +
+                '</div>' +
+            '</div>' +
+            '<div class="msg-meta"><span class="msg-time">' + now() + '</span></div>' +
+        '</div>';
+
+    msgs.appendChild(row);
+    msgs.scrollTop = msgs.scrollHeight;
+    playPing();
+}
+
+function confirmPendingAIReport() {
+    if (!pendingAIReport || !pendingAIReport.payload || isSubmittingReport) return;
+    isSubmittingReport = true;
+    hideQuickArea();
+
+    addMsg('bot', 'Oke, saya teruskan laporannya sekarang. Tunggu sebentar ya…', now());
+    showTyping();
+
+    var payload = pendingAIReport.payload;
+    var ticketId = pendingAIReport.ticketId || generateTicket();
+    var hasEmail = !!(payload.email && String(payload.email).includes('@'));
+    var typeOverride = payload.type || 'saran';
+
+    fetch(REPORT_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            type: typeOverride,
+            game: payload.game || '',
+            desc: payload.desc || '',
+            contact: payload.contact || '',
+            email: payload.email || '',
+            ticketId: ticketId
+        })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        hideTyping();
+        isSubmittingReport = false;
+        pendingAIReport = null;
+
+        var ok = !!(data && data.ok);
+        postTicketBubble(ok, !ok, ticketId, data && data.ticketNum, data && data.ticketUrl, hasEmail, typeOverride);
+        if (ok) {
+            addMsg('bot', '✅ Sip! Laporan kamu sudah saya teruskan ke admin/tim developer. Terima kasih ya.', now());
+        }
+    })
+    .catch(function() {
+        hideTyping();
+        isSubmittingReport = false;
+        pendingAIReport = null;
+        addMsg('bot', '⚠️ Maaf, pengiriman laporan gagal karena koneksi/server. Coba lagi sebentar ya.', now());
+    });
+}
+
+function cancelPendingAIReport() {
+    if (!pendingAIReport) return;
+    pendingAIReport = null;
+    addMsg('bot', 'Siap. Laporan **belum** saya kirim. Kalau mau koreksi detailnya, tulis ulang saja ya.', now());
+}
+
+/* ══════════════════════════════════════════
    REPORT MODAL — Form lengkap + kirim ke WA
 ══════════════════════════════════════════ */
 var modalFiles = [];
+var pendingModalReport = null;
 
 function openModal(type) {
     currentType = type || 'bug';
@@ -706,11 +847,87 @@ function submitReport() {
     if (!validatePreparedFiles(modalFiles, 'modal-upload-warning')) return;
 
     var ticketId = generateTicket();
-    btn.disabled    = true;
-    btn.textContent = 'Mengirim...';
+    pendingModalReport = {
+        type: currentType,
+        game: game,
+        desc: desc,
+        contact: contact,
+        email: email,
+        ticketId: ticketId,
+        files: modalFiles.slice(),
+    };
+    showModalConfirm(pendingModalReport);
+}
 
-    // Konversi file ke base64
-    var filePromises = modalFiles.map(function(f) {
+function showModalConfirm(r) {
+    if (!r) return;
+
+    // Tampilkan layar konfirmasi di modal (WAJIB sebelum kirim ke admin/dev)
+    document.getElementById('modal-form').style.display = 'none';
+    var s = document.getElementById('modal-success');
+    s.classList.add('show');
+
+    // Sembunyikan box tiket pada fase konfirmasi
+    var ticketBox = document.getElementById('ticket-box');
+    if (ticketBox) ticketBox.style.display = 'none';
+
+    var titleEl = document.getElementById('success-title');
+    var msgEl   = document.getElementById('success-msg');
+    if (titleEl) titleEl.textContent = 'Konfirmasi Pengiriman';
+    if (msgEl) {
+        msgEl.innerHTML =
+            'Sebelum dikirim ke admin/tim developer, mohon konfirmasi dulu ya.<br><br>' +
+            '<b>Jenis:</b> ' + escHtml(r.type === 'bug' ? 'Bug/Error' : 'Saran') + '<br>' +
+            '<b>Game:</b> ' + escHtml(r.game || '—') + '<br>' +
+            '<b>Detail:</b><br>' + escHtml(r.desc || '').replace(/\n/g, '<br>') + '<br><br>' +
+            '<b>Email:</b> ' + escHtml(r.email || '—') + '<br>' +
+            '<b>Kontak:</b> ' + escHtml(r.contact || '—');
+    }
+
+    // Render tombol konfirmasi (dibuat sekali saja)
+    var actions = document.getElementById('modal-confirm-actions');
+    if (!actions) {
+        actions = document.createElement('div');
+        actions.id = 'modal-confirm-actions';
+        actions.style.cssText = 'display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:14px;';
+        actions.innerHTML =
+            '<button type="button" id="modal-confirm-send" class="submit-btn" style="min-width:160px;">✅ Ya, kirim</button>' +
+            '<button type="button" id="modal-confirm-cancel" class="submit-btn" style="min-width:160px;background:transparent;border:1px solid rgba(255,255,255,.18);">✏️ Batal / Edit</button>';
+        s.appendChild(actions);
+
+        var btnYes = document.getElementById('modal-confirm-send');
+        var btnNo  = document.getElementById('modal-confirm-cancel');
+        if (btnYes) btnYes.addEventListener('click', sendConfirmedModalReport);
+        if (btnNo) btnNo.addEventListener('click', cancelModalConfirm);
+    }
+    // Pastikan muncul saat mode konfirmasi (bisa saja sebelumnya disembunyiin oleh layar sukses).
+    if (actions) actions.style.display = 'flex';
+}
+
+function cancelModalConfirm() {
+    pendingModalReport = null;
+    document.getElementById('modal-form').style.display = 'block';
+    document.getElementById('modal-success').classList.remove('show');
+    var btn = document.getElementById('r-submit');
+    if (btn) { btn.disabled = false; btn.textContent = currentType === 'bug' ? 'Kirim Laporan Bug' : 'Kirim Saran'; }
+}
+
+function sendConfirmedModalReport() {
+    if (!pendingModalReport || isSubmittingReport) return;
+    isSubmittingReport = true;
+
+    var r = pendingModalReport;
+    var ticketId = r.ticketId;
+    var files = Array.isArray(r.files) ? r.files.slice() : [];
+
+    // Indikator mengirim
+    var titleEl = document.getElementById('success-title');
+    var msgEl   = document.getElementById('success-msg');
+    if (titleEl) titleEl.textContent = 'Mengirim...';
+    if (msgEl) msgEl.textContent = 'Sedang mengirim laporan. Tunggu sebentar ya.';
+
+    // Konversi file ke base64 baru dilakukan setelah user konfirmasi (lebih efisien)
+    var filePromises = files.map(function(f) {
         return fileToBase64(f).then(function(b64) {
             return { name: f.name, type: f.type, base64: b64 };
         });
@@ -721,38 +938,44 @@ function submitReport() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                type:        currentType,
-                game:        game,
-                desc:        desc,
-                contact:     contact,
-                email:       email,
+                type:        r.type,
+                game:        r.game,
+                desc:        r.desc,
+                contact:     r.contact,
+                email:       r.email,
                 ticketId:    ticketId,
                 attachments: attachments
             })
         });
     })
-    .then(function(r) { return r.json(); })
+    .then(function(resp) { return resp.json(); })
     .then(function(data) {
         saveReportLocal({
-            id: ticketId, type: currentType,
-            game: game || '—', desc: desc,
-            contact: contact, email: email,
-            summary: data.summary || desc,
+            id: ticketId, type: r.type,
+            game: r.game || '—', desc: r.desc,
+            contact: r.contact, email: r.email,
+            summary: data.summary || r.desc,
             time: new Date().toLocaleString('id-ID'), done: false
         });
-        showSuccess(data.ok, false, ticketId, !!email, data.ticketNum, data.ticketUrl);
+
+        pendingModalReport = null;
         modalFiles = [];
+        isSubmittingReport = false;
+        showSuccess(!!data.ok, false, ticketId, !!r.email, data.ticketNum, data.ticketUrl);
     })
     .catch(function() {
         saveReportLocal({
-            id: ticketId, type: currentType,
-            game: game || '—', desc: desc,
-            contact: contact, email: email,
-            summary: desc,
+            id: ticketId, type: r.type,
+            game: r.game || '—', desc: r.desc,
+            contact: r.contact, email: r.email,
+            summary: r.desc,
             time: new Date().toLocaleString('id-ID'), done: false, offline: true
         });
-        showSuccess(false, true, ticketId, false, null, null);
+
+        pendingModalReport = null;
         modalFiles = [];
+        isSubmittingReport = false;
+        showSuccess(false, true, ticketId, false, null, null);
     });
 }
 
@@ -761,13 +984,17 @@ function showSuccess(ok, offline, ticketId, hasEmail, ticketNum, ticketUrl) {
     var s = document.getElementById('modal-success');
     s.classList.add('show');
 
+    // Pastikan tombol konfirmasi tidak tampil di layar sukses
+    var actions = document.getElementById('modal-confirm-actions');
+    if (actions) actions.style.display = 'none';
+
     var ticketBox  = document.getElementById('ticket-box');
     var ticketNum_ = document.getElementById('ticket-number');
     var ticketNote = document.getElementById('ticket-note');
 
     if (ok) {
         document.getElementById('success-title').textContent = currentType === 'bug' ? '🐛 Bug Dilaporkan!' : '💡 Saran Terkirim!';
-        document.getElementById('success-msg').textContent   = 'Terima kasih! Tim kami akan segera menangani laporanmu.';
+        document.getElementById('success-msg').textContent   = '✅ Laporan kamu sudah diteruskan ke admin/tim developer. Terima kasih!';
         if (ticketId) {
             ticketBox.style.display = 'flex';
             ticketNum_.textContent  = ticketNum ? 'Tiket #' + ticketNum : '#' + ticketId;
@@ -791,12 +1018,12 @@ function showSuccess(ok, offline, ticketId, hasEmail, ticketNum, ticketUrl) {
     var delay = ok ? 7500 : 3500;
     setTimeout(function() {
         closeModal();
-        postTicketBubble(ok, offline, ticketId, ticketNum, ticketUrl, hasEmail);
+        postTicketBubble(ok, offline, ticketId, ticketNum, ticketUrl, hasEmail, currentType);
     }, delay);
 }
 
 /* ── BUBBLE TIKET DI CHAT ── */
-function postTicketBubble(ok, offline, ticketId, ticketNum, ticketUrl, hasEmail) {
+function postTicketBubble(ok, offline, ticketId, ticketNum, ticketUrl, hasEmail, typeOverride) {
     var msgs = document.getElementById('messages');
     if (!msgs) return;
 
@@ -804,6 +1031,7 @@ function postTicketBubble(ok, offline, ticketId, ticketNum, ticketUrl, hasEmail)
     row.className = 'msg-row bot';
 
     var numLabel = ticketNum ? 'Tiket #' + ticketNum : (ticketId ? '#' + ticketId : '');
+    var typeForLabel = String(typeOverride || currentType || 'saran');
 
     // Pastikan URL selalu absolute
     var fullUrl = '';
@@ -818,7 +1046,7 @@ function postTicketBubble(ok, offline, ticketId, ticketNum, ticketUrl, hasEmail)
     var inner = '';
     if (ok && ticketId) {
         inner =
-            '<div style="font-weight:700;margin-bottom:10px;font-size:0.95rem;">' + (currentType === 'bug' ? '🐛 Laporan Bug Diterima!' : '💡 Saran Diterima!') + '</div>' +
+            '<div style="font-weight:700;margin-bottom:10px;font-size:0.95rem;">' + (typeForLabel === 'bug' ? '🐛 Laporan Bug Diterima!' : '💡 Laporan / Saran Diterima!') + '</div>' +
             '<div style="background:linear-gradient(135deg,rgba(124,77,255,.3),rgba(0,229,255,.15));' +
             'border:1px solid rgba(124,77,255,.5);border-radius:12px;padding:14px 16px;margin:6px 0;text-align:center;">' +
                 '<div style="font-size:0.65rem;opacity:.65;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;">Nomor Tiket Kamu</div>' +
@@ -872,6 +1100,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initFileInput();
     initModalFileInput();
     initMobileViewportFix();
+    initAIReportConfirmDelegation();
     sendWelcome();
 
     if (window.speechSynthesis) {
