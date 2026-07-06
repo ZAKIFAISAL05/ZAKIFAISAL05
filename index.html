@@ -1,674 +1,1313 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="id" data-theme="light">
-<head>
+  <head>
     <!-- ===== META DASAR ===== -->
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
     <script src="assets/js/index-head.js"></script>
     <!-- Cek maintenance dari server (Netlify Blobs) -->
     <script src="assets/js/site-guard.js"></script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Nusabit Studio (Zaki Faisal / Zakifaisal05) — Studio Game Indie Indonesia. Pengembang game mobile dan PC: Survival, RPG, Strategy, dan Roblox.">
-    <meta name="keywords" content="Nusabit Studio, Nusabit, Zaki Faisal, Zakifaisal05, zakifaisal, ZAKI, game indie Indonesia, game mobile, game PC, Roblox, RPG, survival game">
-    <meta name="author" content="Zaki Faisal (Nusabit Studio)">
-    <meta name="publisher" content="Nusabit Studio">
-    <meta name="robots" content="index, follow">
-    <meta name="theme-color" content="#9b59b6">
-    <link rel="icon" href="/favicon.ico">
-    <link rel="icon" type="image/png" sizes="16x16" href="/assets/img/favicon-16.png">
-    <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicon-32.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/assets/img/apple-touch-icon.png">
-    <link rel="manifest" href="/site.webmanifest">
-    <link rel="canonical" href="https://nusabit.netlify.app/">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Nusabit Studio (Zaki Faisal / Zakifaisal05) — Studio Game Indie Indonesia. Pengembang game mobile dan PC: Survival, RPG, Strategy, dan Roblox."
+    />
+    <meta
+      name="keywords"
+      content="Nusabit Studio, Nusabit, Zaki Faisal, Zakifaisal05, zakifaisal, ZAKI, game indie Indonesia, game mobile, game PC, Roblox, RPG, survival game"
+    />
+    <meta name="author" content="Zaki Faisal (Nusabit Studio)" />
+    <meta name="publisher" content="Nusabit Studio" />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#9b59b6" />
+    <link rel="icon" href="/favicon.ico" />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="16x16"
+      href="/assets/img/favicon-16.png"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      sizes="32x32"
+      href="/assets/img/favicon-32.png"
+    />
+    <link
+      rel="apple-touch-icon"
+      sizes="180x180"
+      href="/assets/img/apple-touch-icon.png"
+    />
+    <link rel="manifest" href="/site.webmanifest" />
+    <link rel="canonical" href="https://nusabit.netlify.app/" />
     <title>Nusabit Studio — Game Indie Indonesia</title>
 
     <!-- ===== OPEN GRAPH / TWITTER ===== -->
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://nusabit.netlify.app/">
-    <meta property="og:title" content="Nusabit Studio — Game Indie Indonesia">
-    <meta property="og:description" content="Nusabit Studio adalah studio game indie asal Indonesia. Pengembang game mobile dan PC: Survival, RPG, Strategy, dan Roblox.">
-    <meta property="og:image" content="https://nusabit.netlify.app/assets/img/studio_logo.png">
-    <meta property="og:image:width" content="512">
-    <meta property="og:image:height" content="512">
-    <meta property="og:image:alt" content="Logo Nusabit Studio">
-    <meta property="og:site_name" content="Nusabit Studio">
-    <meta property="og:locale" content="id_ID">
-    <meta name="twitter:card" content="summary">
-    <meta name="twitter:title" content="Nusabit Studio — Game Indie Indonesia">
-    <meta name="twitter:description" content="Studio game indie asal Indonesia. Pengembang game mobile dan PC.">
-    <meta name="twitter:image" content="https://nusabit.netlify.app/assets/img/studio_logo.png">
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://nusabit.netlify.app/" />
+    <meta property="og:title" content="Nusabit Studio — Game Indie Indonesia" />
+    <meta
+      property="og:description"
+      content="Nusabit Studio adalah studio game indie asal Indonesia. Pengembang game mobile dan PC: Survival, RPG, Strategy, dan Roblox."
+    />
+    <meta
+      property="og:image"
+      content="https://nusabit.netlify.app/assets/img/studio_logo.png"
+    />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:image:alt" content="Logo Nusabit Studio" />
+    <meta property="og:site_name" content="Nusabit Studio" />
+    <meta property="og:locale" content="id_ID" />
+    <meta name="twitter:card" content="summary" />
+    <meta
+      name="twitter:title"
+      content="Nusabit Studio — Game Indie Indonesia"
+    />
+    <meta
+      name="twitter:description"
+      content="Studio game indie asal Indonesia. Pengembang game mobile dan PC."
+    />
+    <meta
+      name="twitter:image"
+      content="https://nusabit.netlify.app/assets/img/studio_logo.png"
+    />
 
     <!-- ===== STRUCTURED DATA ===== -->
     <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Organization",
-      "name": "Nusabit Studio",
-      "alternateName": ["Nusabit", "Zaki Faisal", "Zakifaisal05", "ZAKI", "Zakifaisal"],
-      "url": "https://nusabit.netlify.app",
-      "logo": {
-        "@type": "ImageObject",
-        "url": "https://nusabit.netlify.app/assets/img/studio_logo.png",
-        "width": 512,
-        "height": 512
-      },
-      "description": "Nusabit Studio adalah studio game indie asal Indonesia. Pengembang game mobile dan PC: Survival, RPG, Strategy, dan Roblox.",
-      "sameAs": [
-        "https://www.instagram.com/zakifaisal05/",
-        "https://www.youtube.com/@ZAKI_FAISAL_05_OFFICIAL",
-        "https://whatsapp.com/channel/0029VaAxK4O2975D8utbc927",
-        "https://discord.gg/f8jW6B3X"
-      ],
-      "founder": {
+      {
+        "@context": "https://schema.org",
+        "@type": "Organization",
+        "name": "Nusabit Studio",
+        "alternateName": [
+          "Nusabit",
+          "Zaki Faisal",
+          "Zakifaisal05",
+          "ZAKI",
+          "Zakifaisal"
+        ],
+        "url": "https://nusabit.netlify.app",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://nusabit.netlify.app/assets/img/studio_logo.png",
+          "width": 512,
+          "height": 512
+        },
+        "description": "Nusabit Studio adalah studio game indie asal Indonesia. Pengembang game mobile dan PC: Survival, RPG, Strategy, dan Roblox.",
+        "sameAs": [
+          "https://www.instagram.com/zakifaisal05/",
+          "https://www.youtube.com/@ZAKI_FAISAL_05_OFFICIAL",
+          "https://whatsapp.com/channel/0029VaAxK4O2975D8utbc927",
+          "https://discord.gg/f8jW6B3X"
+        ],
+        "founder": {
+          "@type": "Person",
+          "name": "Zaki Faisal",
+          "alternateName": ["Zakifaisal05", "ZAKI", "Zakifaisal"],
+          "sameAs": [
+            "https://www.instagram.com/zakifaisal05/",
+            "https://www.youtube.com/@ZAKI_FAISAL_05_OFFICIAL"
+          ]
+        },
+        "potentialAction": [
+          {
+            "@type": "ViewAction",
+            "name": "Games",
+            "target": "https://nusabit.netlify.app/game/"
+          },
+          {
+            "@type": "ViewAction",
+            "name": "Tiket",
+            "target": "https://nusabit.netlify.app/tiket/"
+          }
+        ]
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
         "@type": "Person",
         "name": "Zaki Faisal",
         "alternateName": ["Zakifaisal05", "ZAKI", "Zakifaisal"],
-        "sameAs": [
-          "https://www.instagram.com/zakifaisal05/",
-          "https://www.youtube.com/@ZAKI_FAISAL_05_OFFICIAL"
-        ]
-      },
-      "potentialAction": [
-        {"@type": "ViewAction", "name": "Games", "target": "https://nusabit.netlify.app/game/"},
-        {"@type": "ViewAction", "name": "Tiket", "target": "https://nusabit.netlify.app/tiket/"}
-      ]
-    }
-    </script>
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "Person",
-      "name": "Zaki Faisal",
-      "alternateName": ["Zakifaisal05", "ZAKI", "Zakifaisal"],
-      "url": "https://nusabit.netlify.app",
-      "worksFor": { "@type": "Organization", "name": "Nusabit Studio" }
-    }
-    </script>
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "Nusabit Studio",
-      "url": "https://nusabit.netlify.app",
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": {"@type": "EntryPoint", "urlTemplate": "https://nusabit.netlify.app/?q={search_term_string}"},
-        "query-input": "required name=search_term_string"
+        "url": "https://nusabit.netlify.app",
+        "worksFor": { "@type": "Organization", "name": "Nusabit Studio" }
       }
-    }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "name": "Nusabit Studio",
+        "url": "https://nusabit.netlify.app",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://nusabit.netlify.app/?q={search_term_string}"
+          },
+          "query-input": "required name=search_term_string"
+        }
+      }
     </script>
 
     <!-- ===== ASSET CSS / ICON ===== -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
-          integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
-          crossorigin="anonymous" referrerpolicy="no-referrer">
-    <link rel="stylesheet" href="assets/css/style.css">
-    <link rel="stylesheet" href="/assets/css/animations.css">
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
+      integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA=="
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
+    <link rel="stylesheet" href="assets/css/style.css" />
+    <link rel="stylesheet" href="/assets/css/animations.css" />
     <script src="https://unpkg.com/feather-icons"></script>
-</head>
-<body>
+  </head>
+  <body>
+    <!-- ===== EFEK LATAR / UTILITAS ===== -->
+    <canvas id="pcanvas"></canvas>
+    <div id="toast"></div>
 
-<!-- ===== EFEK LATAR / UTILITAS ===== -->
-<canvas id="pcanvas"></canvas>
-<div id="toast"></div>
+    <!-- ===== EASTER EGG ===== -->
+    <div id="easter-egg">
+      <div class="ee-title">
+        <i data-feather="monitor"></i> CHEAT CODE ACTIVATED!
+        <i data-feather="monitor"></i><br />KAMU MENEMUKAN EASTER EGG!<br />NUSABIT
+        STUDIO SALUT PADAMU!
+      </div>
+      <div class="ee-sub">[ KLIK MANA SAJA UNTUK TUTUP ]</div>
+    </div>
 
-<!-- ===== EASTER EGG ===== -->
-<div id="easter-egg">
-    <div class="ee-title"><i data-feather="monitor"></i> CHEAT CODE ACTIVATED! <i data-feather="monitor"></i><br>KAMU MENEMUKAN EASTER EGG!<br>NUSABIT STUDIO SALUT PADAMU!</div>
-    <div class="ee-sub">[ KLIK MANA SAJA UNTUK TUTUP ]</div>
-</div>
-
-<!-- ===== NAVBAR ===== -->
-<nav>
-    <a href="#" class="nav-studio-name">
-        <img src="assets/img/studio_logo.png" alt="Nusabit Studio Logo" class="nav-logo-image">
+    <!-- ===== NAVBAR ===== -->
+    <nav>
+      <a href="#" class="nav-studio-name">
+        <img
+          src="assets/img/studio_logo.png"
+          alt="Nusabit Studio Logo"
+          class="nav-logo-image"
+        />
         Nusabit Studio
-    </a>
-    <div class="nav-right">
-        <button id="langToggle" aria-label="Toggle language" title="Switch language">
-            <span id="lang-label">🇮🇩 ID</span>
+      </a>
+      <div class="nav-right">
+        <button
+          id="langToggle"
+          aria-label="Toggle language"
+          title="Switch language"
+        >
+          <span id="lang-label">🇮🇩 ID</span>
         </button>
         <button id="menuButton" class="nav-menu-btn" aria-label="Open menu">
-            <i class="fas fa-bars"></i>
+          <i class="fas fa-bars"></i>
         </button>
-    </div>
-</nav>
+      </div>
+    </nav>
 
-<!-- ===== PENGUMUMAN WEBSITE (di-set dari Admin Panel) ===== -->
-<div id="site-announcement" class="site-announcement" style="display:none;" role="status" aria-live="polite">
-    <div class="sa-inner">
+    <!-- ===== PENGUMUMAN WEBSITE (di-set dari Admin Panel) ===== -->
+    <div
+      id="site-announcement"
+      class="site-announcement"
+      style="display: none"
+      role="status"
+      aria-live="polite"
+    >
+      <div class="sa-inner">
         <span class="sa-badge">INFO</span>
         <div class="sa-text" id="site-announcement-text"></div>
-        <button class="sa-close" id="site-announcement-close" type="button" aria-label="Tutup pengumuman">×</button>
+        <button
+          class="sa-close"
+          id="site-announcement-close"
+          type="button"
+          aria-label="Tutup pengumuman"
+        >
+          ×
+        </button>
+      </div>
     </div>
-</div>
 
-<!-- ===== MENU OVERLAY ===== -->
-<div id="menuOverlay" role="dialog" aria-modal="true" aria-label="Navigation menu">
-    <span class="menu-close-btn" role="button" tabindex="0" aria-label="Close menu">&times;</span>
-    <ul class="menu-links">
+    <!-- ===== MENU OVERLAY ===== -->
+    <div
+      id="menuOverlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Navigation menu"
+    >
+      <span
+        class="menu-close-btn"
+        role="button"
+        tabindex="0"
+        aria-label="Close menu"
+        >&times;</span
+      >
+      <ul class="menu-links">
         <li><a href="#hero" data-id="menu-home">HOME</a></li>
         <li><a href="#games" data-id="menu-games">GAMES</a></li>
         <li><a href="#stats-section" data-id="menu-stats">STATS</a></li>
         <li><a href="#about" data-id="menu-about">ABOUT</a></li>
         <li><a href="#contact" data-id="menu-contact">CONTACT</a></li>
-        <li><a href="FAQ.html"><i data-feather="help-circle"></i> FAQ</a></li>
-        <li><a href="cs/" data-id="menu-cs"><i data-feather="message-circle"></i> CUSTOMER SERVICE</a></li>
-        <li><a href="tiket/" data-id="nav-tiket"><i data-feather="tag"></i> TIKET</a></li>
-    </ul>
-</div>
+        <li>
+          <a href="FAQ.html"><i data-feather="help-circle"></i> FAQ</a>
+        </li>
+        <li>
+          <a href="cs/" data-id="menu-cs"
+            ><i data-feather="message-circle"></i> CUSTOMER SERVICE</a
+          >
+        </li>
+        <li>
+          <a href="tiket/" data-id="nav-tiket"
+            ><i data-feather="tag"></i> TIKET</a
+          >
+        </li>
+      </ul>
+    </div>
 
-<!-- ===== HERO SECTION ===== -->
-<section id="hero" class="hero" aria-label="Hero section">
-    <div class="hero-orb hero-orb-1"></div>
-    <div class="hero-orb hero-orb-2"></div>
-    <div class="hero-orb hero-orb-3"></div>
-    <div class="hero-corner hero-corner-tl"></div>
-    <div class="hero-corner hero-corner-tr"></div>
-    <div class="hero-corner hero-corner-bl"></div>
-    <div class="hero-corner hero-corner-br"></div>
-    <img src="assets/img/studio_logo.png" alt="Nusabit Studio Logo" class="hero-logo-img">
-    <div class="hero-badge" data-id="hero-badge"><span class="hero-badge-dot"></span><i data-feather="monitor"></i> Studio Game Indie Indonesia</div>
-    <h1 class="hero-title">Nusabit<br><span>Studio</span></h1>
-    <p class="tagline">
+    <!-- ===== HERO SECTION ===== -->
+    <section id="hero" class="hero" aria-label="Hero section">
+      <div class="hero-orb hero-orb-1"></div>
+      <div class="hero-orb hero-orb-2"></div>
+      <div class="hero-orb hero-orb-3"></div>
+      <div class="hero-corner hero-corner-tl"></div>
+      <div class="hero-corner hero-corner-tr"></div>
+      <div class="hero-corner hero-corner-bl"></div>
+      <div class="hero-corner hero-corner-br"></div>
+      <img
+        src="assets/img/studio_logo.png"
+        alt="Nusabit Studio Logo"
+        class="hero-logo-img"
+      />
+      <div class="hero-badge" data-id="hero-badge">
+        <span class="hero-badge-dot"></span
+        ><i data-feather="monitor"></i> Studio Game Indie Indonesia
+      </div>
+      <h1 class="hero-title">Nusabit<br /><span>Studio</span></h1>
+      <p class="tagline">
         <span id="typing-text"></span>
         <span class="cursor">█</span>
-    </p>
-    <div class="hero-btns">
-        <a href="#games" class="btn-primary-scroll" data-id="btn-see-games"><i data-feather="play"></i> <span data-id="txt-see-games">LIHAT SEMUA GAME</span></a>
-        <a href="FAQ.html" class="btn-cs-hero"><i data-feather="help-circle"></i> <span>FAQ</span></a>
-        <a href="cs/" class="btn-cs-hero" data-id="btn-cs"><i data-feather="message-circle"></i> <span data-id="txt-cs">CUSTOMER SERVICE</span></a>
-    </div>
-</section>
+      </p>
+      <div class="hero-btns">
+        <a href="#games" class="btn-primary-scroll" data-id="btn-see-games"
+          ><i data-feather="play"></i>
+          <span data-id="txt-see-games">LIHAT SEMUA GAME</span></a
+        >
+        <a href="FAQ.html" class="btn-cs-hero"
+          ><i data-feather="help-circle"></i> <span>FAQ</span></a
+        >
+        <a href="cs/" class="btn-cs-hero" data-id="btn-cs"
+          ><i data-feather="message-circle"></i>
+          <span data-id="txt-cs">CUSTOMER SERVICE</span></a
+        >
+      </div>
+    </section>
 
-<!-- ===== STATS SECTION ===== -->
-<div id="stats-section" aria-label="Studio statistics">
-    <div class="stat-card">
+    <!-- ===== STATS SECTION ===== -->
+    <div id="stats-section" aria-label="Studio statistics">
+      <div class="stat-card">
         <span class="stat-number" data-target="7" data-suffix="">0</span>
         <span class="stat-label" data-id="stat-released">GAME DIRILIS</span>
-    </div>
-    <div class="stat-card">
+      </div>
+      <div class="stat-card">
         <span class="stat-number" data-target="50" data-suffix="K+">0</span>
         <span class="stat-label" data-id="stat-players">TOTAL PEMAIN</span>
-    </div>
-    <div class="stat-card">
+      </div>
+      <div class="stat-card">
         <span class="stat-number" data-target="3" data-suffix="">0</span>
         <span class="stat-label" data-id="stat-platforms">PLATFORM</span>
-    </div>
-    <div class="stat-card">
+      </div>
+      <div class="stat-card">
         <span class="stat-number" data-target="2021" data-suffix="">0</span>
         <span class="stat-label" data-id="stat-founded">TAHUN BERDIRI</span>
+      </div>
     </div>
-</div>
 
-<!-- ===== DONATUR TERBARU (SAWERIA) =====
+    <!-- ===== DONATUR TERBARU (SAWERIA) =====
      Diletakkan di luar section "PROYEK GAME KAMI" (di atasnya).
      Diisi via JS: assets/js/donations.js (poll real-time) -->
 
-<!-- ===== TARGET DONASI (SAWERIA) =====
+    <!-- ===== TARGET DONASI (SAWERIA) =====
      Diisi via JS: assets/js/donations.js -->
-<div class="donation-card" id="donationCard" aria-label="Target donasi"
-     data-goal-name="Beli Google Play Console"
-     data-goal-text="Bantu Nusabit Studio beli akun Google Play Console supaya game bisa rilis resmi di Google Play.">
-    <div class="donation-head">
+    <div
+      class="donation-card"
+      id="donationCard"
+      aria-label="Target donasi"
+      data-goal-name="Beli Google Play Console"
+      data-goal-text="Bantu Nusabit Studio beli akun Google Play Console supaya game bisa rilis resmi di Google Play."
+    >
+      <div class="donation-head">
         <div class="donation-title">
-            <i data-feather="target"></i>
-            <span>Target donasi</span>
+          <i data-feather="target"></i>
+          <span>Target donasi</span>
         </div>
-        <a class="donation-cta" id="donationCta" href="#" target="_blank" rel="noopener">
-            Dukung via Saweria
+        <a
+          class="donation-cta"
+          id="donationCta"
+          href="#"
+          target="_blank"
+          rel="noopener"
+        >
+          Dukung via Saweria
         </a>
-    </div>
+      </div>
 
-    <div class="donation-body">
+      <div class="donation-body">
         <div class="donation-goal">
-            <div class="donation-goal-kicker">Tujuan</div>
-            <div class="donation-goal-name" id="donationGoalName">—</div>
-            <div class="donation-goal-text" id="donationGoalText">—</div>
-            <div class="donation-support" id="donationSupportText">Mau support Nusabit Studio? Klik tombol “Dukung via Saweria”.</div>
+          <div class="donation-goal-kicker">Tujuan</div>
+          <div class="donation-goal-name" id="donationGoalName">—</div>
+          <div class="donation-goal-text" id="donationGoalText">—</div>
+          <div class="donation-support" id="donationSupportText">
+            Mau support Nusabit Studio? Klik tombol “Dukung via Saweria”.
+          </div>
         </div>
 
         <div class="donation-bar" aria-hidden="true">
-            <div class="donation-bar-fill" id="donationBarFill" style="width:0%;"></div>
+          <div
+            class="donation-bar-fill"
+            id="donationBarFill"
+            style="width: 0%"
+          ></div>
         </div>
         <div class="donation-metrics" aria-live="polite">
-            <span class="donation-amount" id="donationCollected">Rp0</span>
-            <span class="donation-sep">/</span>
-            <span class="donation-amount muted" id="donationTarget">Rp0</span>
-            <span class="donation-percent" id="donationPercent">0%</span>
+          <span class="donation-amount" id="donationCollected">Rp0</span>
+          <span class="donation-sep">/</span>
+          <span class="donation-amount muted" id="donationTarget">Rp0</span>
+          <span class="donation-percent" id="donationPercent">0%</span>
         </div>
-        <div class="donation-sub" id="donationSub">Update berikutnya dalam <span id="donationCountdown">0</span> detik.</div>
+        <div class="donation-sub" id="donationSub">
+          Update berikutnya dalam <span id="donationCountdown">0</span> detik.
+        </div>
+      </div>
     </div>
-</div>
 
-<div class="donor-strip" id="donorStrip" aria-label="Donatur terbaru">
-    <div class="donor-strip-head">
+    <div class="donor-strip" id="donorStrip" aria-label="Donatur terbaru">
+      <div class="donor-strip-head">
         <div class="donor-strip-title">
-            <i data-feather="heart"></i>
-            <span>Donatur terbaru</span>
+          <i data-feather="heart"></i>
+          <span>Donatur terbaru</span>
         </div>
-        <a class="donor-strip-cta" id="donorCtaTop" href="#" target="_blank" rel="noopener">
-            Dukung di Saweria
+        <a
+          class="donor-strip-cta"
+          id="donorCtaTop"
+          href="#"
+          target="_blank"
+          rel="noopener"
+        >
+          Dukung di Saweria
         </a>
-    </div>
+      </div>
 
-    <div class="donor-strip-body">
-        <button class="donor-nav" id="donorPrev" type="button" aria-label="Geser ke kiri">
-            <i data-feather="chevron-left"></i>
+      <div class="donor-strip-body">
+        <button
+          class="donor-nav"
+          id="donorPrev"
+          type="button"
+          aria-label="Geser ke kiri"
+        >
+          <i data-feather="chevron-left"></i>
         </button>
-        <div class="donor-track" id="donorTrack" tabindex="0" aria-live="polite"></div>
-        <button class="donor-nav" id="donorNext" type="button" aria-label="Geser ke kanan">
-            <i data-feather="chevron-right"></i>
+        <div
+          class="donor-track"
+          id="donorTrack"
+          tabindex="0"
+          aria-live="polite"
+        ></div>
+        <button
+          class="donor-nav"
+          id="donorNext"
+          type="button"
+          aria-label="Geser ke kanan"
+        >
+          <i data-feather="chevron-right"></i>
         </button>
+      </div>
+
+      <div class="donor-strip-empty" id="donorEmpty" style="display: none">
+        Belum ada donatur yang tercatat. Kalau kamu mau, kamu bisa jadi yang
+        pertama dukung Nusabit Studio.
+      </div>
     </div>
 
-    <div class="donor-strip-empty" id="donorEmpty" style="display:none;">
-        Belum ada donatur yang tercatat. Kalau kamu mau, kamu bisa jadi yang pertama dukung Nusabit Studio.
-    </div>
-</div>
+    <!-- ===== GAMES SECTION ===== -->
+    <section id="games" class="section-padding" aria-label="Game catalog">
+      <h2 class="section-header-title" data-id="sec-games">PROYEK GAME KAMI</h2>
 
-<!-- ===== GAMES SECTION ===== -->
-<section id="games" class="section-padding" aria-label="Game catalog">
-    <h2 class="section-header-title" data-id="sec-games">PROYEK GAME KAMI</h2>
-
-    <div class="games-search-wrap">
-        <label class="games-search-label" for="game-search" data-id="games-search-label">Cari proyek / game</label>
+      <div class="games-search-wrap">
+        <label
+          class="games-search-label"
+          for="game-search"
+          data-id="games-search-label"
+          >Cari proyek / game</label
+        >
         <div class="games-search-box">
-            <i class="fas fa-search" aria-hidden="true"></i>
-            <input type="search" id="game-search" class="games-search-input" data-placeholder-id="games-search-placeholder" placeholder="Cari judul, genre, atau deskripsi game..." autocomplete="off" spellcheck="false">
-            <button type="button" id="game-search-clear" class="games-search-clear" aria-label="Hapus pencarian">×</button>
+          <i class="fas fa-search" aria-hidden="true"></i>
+          <input
+            type="search"
+            id="game-search"
+            class="games-search-input"
+            data-placeholder-id="games-search-placeholder"
+            placeholder="Cari judul, genre, atau deskripsi game..."
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button
+            type="button"
+            id="game-search-clear"
+            class="games-search-clear"
+            aria-label="Hapus pencarian"
+          >
+            ×
+          </button>
         </div>
-    </div>
-    <div class="filter-tabs" role="tablist">
-        <button class="filter-tab active" data-genre="all" data-id="filter-all">SEMUA</button>
-        <button class="filter-tab" data-genre="arcade" data-id="filter-arcade">ARCADE</button>
-        <button class="filter-tab" data-genre="action" data-id="filter-action">ACTION</button>
-        <button class="filter-tab" data-genre="simulation" data-id="filter-simulation">SIMULASI</button>
-        <button class="filter-tab" data-genre="platformer" data-id="filter-platformer">PLATFORMER</button>
-        <button class="filter-tab" data-genre="roblox" data-id="filter-roblox">ROBLOX</button>
-    </div>
-    <div class="games-grid">
-        <a class="game-card" href="/Minecraft-Parkun-2D" data-game-id="minecraft-parkour-2d" data-genre="arcade" tabindex="0" aria-label="Minecraft Parkun 2D">
-            <div class="game-image-wrapper"><img src="assets/img/mc_parkun_thumb.jpg" alt="Minecraft Parkun 2D" class="game-image" loading="lazy"></div>
-            <div class="game-info">
-                <h3 class="game-title">Minecraft Parkun 2D</h3>
-                <p class="game-description" data-id="game-desc-1">Parkour 2D terinspirasi Minecraft. (Mobile)</p>
-                <p class="game-dev">Dev: Nusabit Studio | Genre: Arcade</p>
-            </div>
+      </div>
+      <div class="filter-tabs" role="tablist">
+        <button class="filter-tab active" data-genre="all" data-id="filter-all">
+          SEMUA
+        </button>
+        <button class="filter-tab" data-genre="arcade" data-id="filter-arcade">
+          ARCADE
+        </button>
+        <button class="filter-tab" data-genre="action" data-id="filter-action">
+          ACTION
+        </button>
+        <button
+          class="filter-tab"
+          data-genre="simulation"
+          data-id="filter-simulation"
+        >
+          SIMULASI
+        </button>
+        <button
+          class="filter-tab"
+          data-genre="platformer"
+          data-id="filter-platformer"
+        >
+          PLATFORMER
+        </button>
+        <button class="filter-tab" data-genre="roblox" data-id="filter-roblox">
+          ROBLOX
+        </button>
+      </div>
+      <div class="games-grid">
+        <a
+          class="game-card"
+          href="/Minecraft-Parkun-2D"
+          data-game-id="minecraft-parkour-2d"
+          data-genre="arcade"
+          tabindex="0"
+          aria-label="Minecraft Parkun 2D"
+        >
+          <div class="game-image-wrapper">
+            <img
+              src="assets/img/mc_parkun_thumb.jpg"
+              alt="Minecraft Parkun 2D"
+              class="game-image"
+              loading="lazy"
+            />
+          </div>
+          <div class="game-info">
+            <h3 class="game-title">Minecraft Parkun 2D</h3>
+            <p class="game-description" data-id="game-desc-1">
+              Parkour 2D terinspirasi Minecraft. (Mobile)
+            </p>
+            <p class="game-dev">Dev: Nusabit Studio | Genre: Arcade</p>
+          </div>
         </a>
-        <a class="game-card" href="/The-One-For-Zombie" data-game-id="the-one-for-zombie" data-genre="action" tabindex="0" aria-label="THE ONE FOR ZOMBIE">
-            <div class="game-image-wrapper"><img src="assets/img/one_zombie_thumb.jpg" alt="THE ONE FOR ZOMBIE" class="game-image" loading="lazy"></div>
-            <div class="game-info">
-                <h3 class="game-title">THE ONE FOR ZOMBIE</h3>
-                <p class="game-description" data-id="game-desc-2">Aksi bertahan hidup melawan gerombolan zombie. (Mobile)</p>
-                <p class="game-dev">Dev: Nusabit Studio | Genre: Action</p>
-            </div>
+        <a
+          class="game-card"
+          href="/The-One-For-Zombie"
+          data-game-id="the-one-for-zombie"
+          data-genre="action"
+          tabindex="0"
+          aria-label="THE ONE FOR ZOMBIE"
+        >
+          <div class="game-image-wrapper">
+            <img
+              src="assets/img/one_zombie_thumb.jpg"
+              alt="THE ONE FOR ZOMBIE"
+              class="game-image"
+              loading="lazy"
+            />
+          </div>
+          <div class="game-info">
+            <h3 class="game-title">THE ONE FOR ZOMBIE</h3>
+            <p class="game-description" data-id="game-desc-2">
+              Aksi bertahan hidup melawan gerombolan zombie. (Mobile)
+            </p>
+            <p class="game-dev">Dev: Nusabit Studio | Genre: Action</p>
+          </div>
         </a>
-        <a class="game-card" href="/Desa-Karya-Investasi-Zombie" data-game-id="desa-karya-investasi-zombie" data-genre="simulation" tabindex="0" aria-label="Desa Investasi Zombie">
-            <div class="game-image-wrapper"><img src="assets/img/desa_invest_thumb.jpg" alt="Desa Investasi Zombie" class="game-image" loading="lazy"></div>
-            <div class="game-info">
-                <h3 class="game-title">Desa Investasi Zombie</h3>
-                <p class="game-description" data-id="game-desc-3">Manajemen desa dan investasi melawan zombie.</p>
-                <p class="game-dev">Dev: Nusabit Studio | Genre: Simulation</p>
-            </div>
+        <a
+          class="game-card"
+          href="/Desa-Karya-Investasi-Zombie"
+          data-game-id="desa-karya-investasi-zombie"
+          data-genre="simulation"
+          tabindex="0"
+          aria-label="Desa Investasi Zombie"
+        >
+          <div class="game-image-wrapper">
+            <img
+              src="assets/img/desa_invest_thumb.jpg"
+              alt="Desa Investasi Zombie"
+              class="game-image"
+              loading="lazy"
+            />
+          </div>
+          <div class="game-info">
+            <h3 class="game-title">Desa Investasi Zombie</h3>
+            <p class="game-description" data-id="game-desc-3">
+              Manajemen desa dan investasi melawan zombie.
+            </p>
+            <p class="game-dev">Dev: Nusabit Studio | Genre: Simulation</p>
+          </div>
         </a>
-        <a class="game-card" href="/Gerbang-Parkun-2D" data-game-id="gerbang-parkun-2d" data-genre="platformer" tabindex="0" aria-label="Gerbang Parkun 2D">
-            <div class="game-image-wrapper"><img src="assets/img/gerbang_parkun_thumb.jpg" alt="Gerbang Parkun 2D" class="game-image" loading="lazy"></div>
-            <div class="game-info">
-                <h3 class="game-title">Gerbang Parkun 2D</h3>
-                <p class="game-description" data-id="game-desc-4">Parkour 2D kompetitif — speedrun challenge. (Mobile & Windows)</p>
-                <p class="game-dev">Dev: Nusabit Studio | Genre: Platformer</p>
-            </div>
+        <a
+          class="game-card"
+          href="/Gerbang-Parkun-2D"
+          data-game-id="gerbang-parkun-2d"
+          data-genre="platformer"
+          tabindex="0"
+          aria-label="Gerbang Parkun 2D"
+        >
+          <div class="game-image-wrapper">
+            <img
+              src="assets/img/gerbang_parkun_thumb.jpg"
+              alt="Gerbang Parkun 2D"
+              class="game-image"
+              loading="lazy"
+            />
+          </div>
+          <div class="game-info">
+            <h3 class="game-title">Gerbang Parkun 2D</h3>
+            <p class="game-description" data-id="game-desc-4">
+              Parkour 2D kompetitif — speedrun challenge. (Mobile & Windows)
+            </p>
+            <p class="game-dev">Dev: Nusabit Studio | Genre: Platformer</p>
+          </div>
         </a>
-        <a class="game-card" href="/Desa-Cipta-Karya-Ch2" data-game-id="desa-cipta-karya-ch2" data-genre="simulation" tabindex="0" aria-label="Desa Cipta Karya Chapter 2">
-            <div class="game-image-wrapper"><img src="assets/img/cipta_karya2_thumb.jpg" alt="Desa Cipta Karya Chapter 2" class="game-image" loading="lazy"></div>
-            <div class="game-info">
-                <h3 class="game-title">Desa Cipta Karya Ch 2</h3>
-                <p class="game-description" data-id="game-desc-5">Kelanjutan simulasi pembangunan desa. (Mobile)</p>
-                <p class="game-dev">Dev: Nusabit Studio | Genre: Simulation</p>
-            </div>
+        <a
+          class="game-card"
+          href="/Desa-Cipta-Karya-Ch2"
+          data-game-id="desa-cipta-karya-ch2"
+          data-genre="simulation"
+          tabindex="0"
+          aria-label="Desa Cipta Karya Chapter 2"
+        >
+          <div class="game-image-wrapper">
+            <img
+              src="assets/img/cipta_karya2_thumb.jpg"
+              alt="Desa Cipta Karya Chapter 2"
+              class="game-image"
+              loading="lazy"
+            />
+          </div>
+          <div class="game-info">
+            <h3 class="game-title">Desa Cipta Karya Ch 2</h3>
+            <p class="game-description" data-id="game-desc-5">
+              Kelanjutan simulasi pembangunan desa. (Mobile)
+            </p>
+            <p class="game-dev">Dev: Nusabit Studio | Genre: Simulation</p>
+          </div>
         </a>
-        <a class="game-card" href="/The-Undeads-Roblox" data-game-id="the-undeads-roblox" data-genre="roblox action" tabindex="0" aria-label="The Undeads Roblox">
-            <div class="game-image-wrapper"><img src="assets/img/undeads_roblox_thumb.jpg" alt="The Undeads Roblox" class="game-image" loading="lazy"></div>
-            <div class="game-info">
-                <h3 class="game-title">The Undeads (Roblox)</h3>
-                <p class="game-description" data-id="game-desc-6">Game survival zombie populer di Roblox. (PC & Mobile)</p>
-                <p class="game-dev">Dev: Nusabit Studio | Genre: Survival, Action</p>
-            </div>
+        <a
+          class="game-card"
+          href="/The-Undeads-Roblox"
+          data-game-id="the-undeads-roblox"
+          data-genre="roblox action"
+          tabindex="0"
+          aria-label="The Undeads Roblox"
+        >
+          <div class="game-image-wrapper">
+            <img
+              src="assets/img/undeads_roblox_thumb.jpg"
+              alt="The Undeads Roblox"
+              class="game-image"
+              loading="lazy"
+            />
+          </div>
+          <div class="game-info">
+            <h3 class="game-title">The Undeads (Roblox)</h3>
+            <p class="game-description" data-id="game-desc-6">
+              Game survival zombie populer di Roblox. (PC & Mobile)
+            </p>
+            <p class="game-dev">
+              Dev: Nusabit Studio | Genre: Survival, Action
+            </p>
+          </div>
         </a>
-        <a class="game-card" href="/Frequency-Fury-Obby" data-game-id="frequency-fury-obby" data-genre="roblox arcade platformer" tabindex="0" aria-label="Frequency Fury Obby">
-            <div class="game-image-wrapper"><img src="assets/img/frequency_fury_thumb.jpg" alt="Frequency Fury Obby" class="game-image" loading="lazy"></div>
-            <div class="game-info">
-                <h3 class="game-title">Frequency Fury Obby (Roblox)</h3>
-                <p class="game-description" data-id="game-desc-7">Obby parkour menantang — uji ketepatan dan kecepatan.</p>
-                <p class="game-dev">Dev: Nusabit Studio | Genre: Arcade, Platformer</p>
-            </div>
+        <a
+          class="game-card"
+          href="/Frequency-Fury-Obby"
+          data-game-id="frequency-fury-obby"
+          data-genre="roblox arcade platformer"
+          tabindex="0"
+          aria-label="Frequency Fury Obby"
+        >
+          <div class="game-image-wrapper">
+            <img
+              src="assets/img/frequency_fury_thumb.jpg"
+              alt="Frequency Fury Obby"
+              class="game-image"
+              loading="lazy"
+            />
+          </div>
+          <div class="game-info">
+            <h3 class="game-title">Frequency Fury Obby (Roblox)</h3>
+            <p class="game-description" data-id="game-desc-7">
+              Obby parkour menantang — uji ketepatan dan kecepatan.
+            </p>
+            <p class="game-dev">
+              Dev: Nusabit Studio | Genre: Arcade, Platformer
+            </p>
+          </div>
         </a>
-    </div>
-    <div class="games-empty-state" id="games-empty-state" hidden>
+      </div>
+      <div class="games-empty-state" id="games-empty-state" hidden>
         <i class="fas fa-magnifying-glass"></i>
-        <span data-id="games-empty-text">Belum ada game yang cocok dengan pencarian atau filter kamu.</span>
-    </div>
-</section>
+        <span data-id="games-empty-text"
+          >Belum ada game yang cocok dengan pencarian atau filter kamu.</span
+        >
+      </div>
+    </section>
 
-<!-- ===== REVIEWS SECTION ===== -->
-<section id="reviews" class="reviews-section section-padding" aria-label="Ulasan pemain">
-    <h2 class="section-header-title" data-id="sec-reviews">ULASAN PEMAIN</h2>
-    <p class="section-subtitle" data-id="reviews-sub">Apa kata pemain tentang Nusabit Studio</p>
+    <!-- ===== REVIEWS SECTION ===== -->
+    <section
+      id="reviews"
+      class="reviews-section section-padding"
+      aria-label="Ulasan pemain"
+    >
+      <h2 class="section-header-title" data-id="sec-reviews">ULASAN PEMAIN</h2>
+      <p class="section-subtitle" data-id="reviews-sub">
+        Apa kata pemain tentang Nusabit Studio
+      </p>
 
-    <div class="review-slider" aria-roledescription="carousel">
-        <button class="review-nav prev" type="button" id="reviewPrev" aria-label="Ulasan sebelumnya">
-            <i class="fas fa-chevron-left"></i>
+      <div class="review-slider" aria-roledescription="carousel">
+        <button
+          class="review-nav prev"
+          type="button"
+          id="reviewPrev"
+          aria-label="Ulasan sebelumnya"
+        >
+          <i class="fas fa-chevron-left"></i>
         </button>
 
         <div class="review-viewport">
-            <div class="review-track" id="reviewTrack"></div>
+          <div class="review-track" id="reviewTrack"></div>
         </div>
 
-        <button class="review-nav next" type="button" id="reviewNext" aria-label="Ulasan berikutnya">
-            <i class="fas fa-chevron-right"></i>
+        <button
+          class="review-nav next"
+          type="button"
+          id="reviewNext"
+          aria-label="Ulasan berikutnya"
+        >
+          <i class="fas fa-chevron-right"></i>
         </button>
-    </div>
+      </div>
 
-    <div class="review-dots" id="reviewDots" aria-label="Navigasi ulasan"></div>
+      <div
+        class="review-dots"
+        id="reviewDots"
+        aria-label="Navigasi ulasan"
+      ></div>
 
-    <!-- Form ulasan publik (tanpa foto profil) -->
-    <div class="review-public-wrap" aria-label="Kirim ulasan">
+      <!-- Form ulasan publik (tanpa foto profil) -->
+      <div class="review-public-wrap" aria-label="Kirim ulasan">
         <div class="review-public-title">KIRIM ULASAN</div>
-        <form id="publicReviewForm" class="review-public-form" autocomplete="off">
-            <div class="review-public-stars-wrap pr-stars-center">
-                <div class="review-public-stars-label">Rating</div>
-                <div class="review-public-stars pr-stars-big" id="pr-stars" aria-label="Pilih rating bintang" role="radiogroup">
-                    <button type="button" class="pr-star" data-v="1" aria-label="1 bintang" aria-checked="false"><i class="fa-regular fa-star"></i></button>
-                    <button type="button" class="pr-star" data-v="2" aria-label="2 bintang" aria-checked="false"><i class="fa-regular fa-star"></i></button>
-                    <button type="button" class="pr-star" data-v="3" aria-label="3 bintang" aria-checked="false"><i class="fa-regular fa-star"></i></button>
-                    <button type="button" class="pr-star" data-v="4" aria-label="4 bintang" aria-checked="false"><i class="fa-regular fa-star"></i></button>
-                    <button type="button" class="pr-star" data-v="5" aria-label="5 bintang" aria-checked="false"><i class="fa-regular fa-star"></i></button>
-                </div>
-                <div class="review-public-stars-value" id="pr-stars-value" aria-hidden="true">
-                    <span id="pr-rating-text">—</span><span class="muted">/5</span>
-                </div>
-                <div class="review-public-stars-hint" id="pr-stars-hint">Pilih bintang dulu untuk menulis ulasan.</div>
-                <input type="hidden" id="pr-rating" value="">
-            </div>
-
-            <!-- Area ini baru muncul setelah rating dipilih -->
-            <div class="pr-details" id="pr-details" aria-hidden="true">
-                <input id="pr-name" class="review-public-input" type="text" placeholder="Nama kamu" maxlength="40" autocomplete="name" required>
-            </div>
-
-            <div class="pr-details" id="pr-details-2" aria-hidden="true">
-                <textarea id="pr-text" class="review-public-textarea" placeholder="Tulis ulasan kamu..." maxlength="300" required></textarea>
-                <div class="review-public-actions">
-                    <button id="pr-submit" class="review-public-btn" type="submit">Kirim</button>
-                    <button id="pr-cancel" class="review-public-btn ghost" type="button">Batal</button>
-                </div>
-                <div id="pr-msg" class="review-public-msg" role="status" aria-live="polite"></div>
-            </div>
-        </form>
-    </div>
-</section>
-
-<!-- ===== ABOUT SECTION ===== -->
-<section id="about" class="about-section" aria-label="About us">
-    <h2 class="section-header-title" data-id="sec-about">TENTANG NUSABIT STUDIO</h2>
-    <p data-id="about-desc">Kami adalah studio game indie yang bersemangat menciptakan pengalaman bermain yang unik dan menantang. Dari Indonesia, kami fokus pada genre Survival, RPG, dan Strategy — dengan sentuhan cerita yang dalam di setiap gameplay. Semoga game kami menghiburmu!</p>
-    <p class="about-tip">
-        <i data-feather="zap"></i> TIP: <span data-id="about-tip">Coba ketik</span> <span class="about-tip-highlight">↑↑↓↓←→←→BA</span> <span data-id="about-tip2">untuk easter egg!</span>
-    </p>
-    <div class="about-actions">
-        <button class="btn-bug" onclick="openReportModal('bug')" data-id="btn-bug"><i data-feather="alert-triangle"></i> LAPORKAN BUG</button>
-        <button class="btn-saran" onclick="openReportModal('saran')" data-id="btn-saran"><i data-feather="zap"></i> KIRIM SARAN</button>
-    </div>
-</section>
-
-<!-- ===== CEK TIKET SECTION ===== -->
-<section id="cek-tiket" class="cek-tiket-section" aria-label="Cek Status Tiket">
-    <div class="cek-tiket-inner">
-        <div class="cek-tiket-icon"><i data-feather="tag"></i></div>
-        <h2 class="cek-tiket-title" data-id="cek-tiket-title">CEK STATUS LAPORAN</h2>
-        <p class="cek-tiket-sub" data-id="cek-tiket-sub">Sudah pernah lapor bug atau kirim saran? Pantau statusnya di sini.</p>
-        <div class="cek-tiket-form">
-            <input
-                type="text"
-                id="tiket-input"
-                class="tiket-input"
-                data-placeholder-id="tiket-placeholder"
-                placeholder="Masukkan nomor tiket (contoh: GS-ABC123...)"
-                maxlength="80"
-                autocomplete="off"
-                spellcheck="false"
+        <form
+          id="publicReviewForm"
+          class="review-public-form"
+          autocomplete="off"
+        >
+          <div class="review-public-stars-wrap pr-stars-center">
+            <div class="review-public-stars-label">Rating</div>
+            <div
+              class="review-public-stars pr-stars-big"
+              id="pr-stars"
+              aria-label="Pilih rating bintang"
+              role="radiogroup"
             >
-            <button class="tiket-cek-btn" id="tiket-cek-btn" onclick="cekTiket()">
-                <span><i data-feather="search"></i></span> <span data-id="btn-cek-tiket">CEK TIKET</span>
-            </button>
-        </div>
-        <div class="tiket-result-wrap" id="tiket-result-wrap" style="display:none;"></div>
-        <p class="tiket-hint" data-id="tiket-hint">Token tiket dikirim via email saat kamu kirim laporan, atau lihat di bubble chat CS.</p>
-    </div>
-</section>
+              <button
+                type="button"
+                class="pr-star"
+                data-v="1"
+                aria-label="1 bintang"
+                aria-checked="false"
+              >
+                <i class="fa-regular fa-star"></i>
+              </button>
+              <button
+                type="button"
+                class="pr-star"
+                data-v="2"
+                aria-label="2 bintang"
+                aria-checked="false"
+              >
+                <i class="fa-regular fa-star"></i>
+              </button>
+              <button
+                type="button"
+                class="pr-star"
+                data-v="3"
+                aria-label="3 bintang"
+                aria-checked="false"
+              >
+                <i class="fa-regular fa-star"></i>
+              </button>
+              <button
+                type="button"
+                class="pr-star"
+                data-v="4"
+                aria-label="4 bintang"
+                aria-checked="false"
+              >
+                <i class="fa-regular fa-star"></i>
+              </button>
+              <button
+                type="button"
+                class="pr-star"
+                data-v="5"
+                aria-label="5 bintang"
+                aria-checked="false"
+              >
+                <i class="fa-regular fa-star"></i>
+              </button>
+            </div>
+            <div
+              class="review-public-stars-value"
+              id="pr-stars-value"
+              aria-hidden="true"
+            >
+              <span id="pr-rating-text">—</span><span class="muted">/5</span>
+            </div>
+            <div class="review-public-stars-hint" id="pr-stars-hint">
+              Pilih bintang dulu untuk menulis ulasan.
+            </div>
+            <input type="hidden" id="pr-rating" value="" />
+          </div>
 
-<!-- ===== FOOTER / CONTACT ===== -->
-<footer id="contact">
-    <div class="footer-content">
+          <!-- Area ini baru muncul setelah rating dipilih -->
+          <div class="pr-details" id="pr-details" aria-hidden="true">
+            <input
+              id="pr-name"
+              class="review-public-input"
+              type="text"
+              placeholder="Nama kamu"
+              maxlength="40"
+              autocomplete="name"
+              required
+            />
+          </div>
+
+          <div class="pr-details" id="pr-details-2" aria-hidden="true">
+            <textarea
+              id="pr-text"
+              class="review-public-textarea"
+              placeholder="Tulis ulasan kamu..."
+              maxlength="300"
+              required
+            ></textarea>
+            <div class="review-public-actions">
+              <button id="pr-submit" class="review-public-btn" type="submit">
+                Kirim
+              </button>
+              <button
+                id="pr-cancel"
+                class="review-public-btn ghost"
+                type="button"
+              >
+                Batal
+              </button>
+            </div>
+            <div
+              id="pr-msg"
+              class="review-public-msg"
+              role="status"
+              aria-live="polite"
+            ></div>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- ===== ABOUT SECTION ===== -->
+    <section id="about" class="about-section" aria-label="About us">
+      <h2 class="section-header-title" data-id="sec-about">
+        TENTANG NUSABIT STUDIO
+      </h2>
+      <p data-id="about-desc">
+        Kami adalah studio game indie yang bersemangat menciptakan pengalaman
+        bermain yang unik dan menantang. Dari Indonesia, kami fokus pada genre
+        Survival, RPG, dan Strategy — dengan sentuhan cerita yang dalam di
+        setiap gameplay. Semoga game kami menghiburmu!
+      </p>
+      <p class="about-tip">
+        <i data-feather="zap"></i> TIP:
+        <span data-id="about-tip">Coba ketik</span>
+        <span class="about-tip-highlight">↑↑↓↓←→←→BA</span>
+        <span data-id="about-tip2">untuk easter egg!</span>
+      </p>
+      <div class="about-actions">
+        <button
+          class="btn-bug"
+          onclick="openReportModal('bug')"
+          data-id="btn-bug"
+        >
+          <i data-feather="alert-triangle"></i> LAPORKAN BUG
+        </button>
+        <button
+          class="btn-saran"
+          onclick="openReportModal('saran')"
+          data-id="btn-saran"
+        >
+          <i data-feather="zap"></i> KIRIM SARAN
+        </button>
+      </div>
+    </section>
+
+    <!-- ===== CEK TIKET SECTION ===== -->
+    <section
+      id="cek-tiket"
+      class="cek-tiket-section"
+      aria-label="Cek Status Tiket"
+    >
+      <div class="cek-tiket-inner">
+        <div class="cek-tiket-icon"><i data-feather="tag"></i></div>
+        <h2 class="cek-tiket-title" data-id="cek-tiket-title">
+          CEK STATUS LAPORAN
+        </h2>
+        <p class="cek-tiket-sub" data-id="cek-tiket-sub">
+          Sudah pernah lapor bug atau kirim saran? Pantau statusnya di sini.
+        </p>
+        <div class="cek-tiket-form">
+          <input
+            type="text"
+            id="tiket-input"
+            class="tiket-input"
+            data-placeholder-id="tiket-placeholder"
+            placeholder="Masukkan nomor tiket (contoh: GS-ABC123...)"
+            maxlength="80"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button class="tiket-cek-btn" id="tiket-cek-btn" onclick="cekTiket()">
+            <span><i data-feather="search"></i></span>
+            <span data-id="btn-cek-tiket">CEK TIKET</span>
+          </button>
+        </div>
+        <div
+          class="tiket-result-wrap"
+          id="tiket-result-wrap"
+          style="display: none"
+        ></div>
+        <p class="tiket-hint" data-id="tiket-hint">
+          Token tiket dikirim via email saat kamu kirim laporan, atau lihat di
+          bubble chat CS.
+        </p>
+      </div>
+    </section>
+
+    <!-- ===== FOOTER / CONTACT ===== -->
+    <footer id="contact">
+      <div class="footer-content">
         <h3>▓ NUSABIT STUDIO ▓</h3>
-        <p data-id="footer-tagline">Menciptakan game digital yang layak untuk dimainkan.</p>
-        <p class="footer-contact-p" style="opacity:0.85;">
-            Founder: <span style="color:var(--text-bright);">Zaki Faisal</span> (<span style="color:var(--brand);">Zakifaisal05</span>)
+        <p data-id="footer-tagline">
+          Menciptakan game digital yang layak untuk dimainkan.
+        </p>
+        <p class="footer-contact-p" style="opacity: 0.85">
+          Founder:
+          <span style="color: var(--text-bright)">Zaki Faisal</span> (<span
+            style="color: var(--brand)"
+            >Zakifaisal05</span
+          >)
         </p>
         <p class="footer-contact-p">
-            Email: <a href="mailto:dzakifaisal11@gmail.com" class="footer-email">dzakifaisal11@gmail.com</a>
+          Email:
+          <a href="mailto:dzakifaisal11@gmail.com" class="footer-email"
+            >dzakifaisal11@gmail.com</a
+          >
         </p>
         <div class="social-icons">
-            <a href="https://whatsapp.com/channel/0029VaAxK4O2975D8utbc927" target="_blank" rel="noopener" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>
-            <a href="https://www.youtube.com/@ZAKI_FAISAL_05_OFFICIAL" target="_blank" rel="noopener" title="YouTube"><i class="fab fa-youtube"></i></a>
-            <a href="https://discord.gg/f8jW6B3X" target="_blank" rel="noopener" title="Discord"><i class="fab fa-discord"></i></a>
-            <a href="https://www.instagram.com/zakifaisal05/" target="_blank" rel="noopener" title="Instagram"><i class="fab fa-instagram"></i></a>
+          <a
+            href="https://whatsapp.com/channel/0029VaAxK4O2975D8utbc927"
+            target="_blank"
+            rel="noopener"
+            title="WhatsApp"
+            ><i class="fab fa-whatsapp"></i
+          ></a>
+          <a
+            href="https://www.youtube.com/@ZAKI_FAISAL_05_OFFICIAL"
+            target="_blank"
+            rel="noopener"
+            title="YouTube"
+            ><i class="fab fa-youtube"></i
+          ></a>
+          <a
+            href="https://discord.gg/f8jW6B3X"
+            target="_blank"
+            rel="noopener"
+            title="Discord"
+            ><i class="fab fa-discord"></i
+          ></a>
+          <a
+            href="https://www.instagram.com/zakifaisal05/"
+            target="_blank"
+            rel="noopener"
+            title="Instagram"
+            ><i class="fab fa-instagram"></i
+          ></a>
         </div>
-    </div>
-    <div class="footer-support">
-        <a href="cs/" class="footer-support-link" data-id="footer-cs"><i data-feather="message-circle"></i> Customer Service</a>
+      </div>
+      <div class="footer-support">
+        <a href="cs/" class="footer-support-link" data-id="footer-cs"
+          ><i data-feather="message-circle"></i> Customer Service</a
+        >
         <span class="footer-support-sep">·</span>
-        <a href="tiket/" class="footer-support-link" data-id="footer-ticket"><i data-feather="tag"></i> Cek Status Tiket</a>
-    </div>
-    <p class="footer-copy" data-id="footer-copy">&copy; 2025 Nusabit Studio. All Rights Reserved.</p>
-</footer>
+        <a href="tiket/" class="footer-support-link" data-id="footer-ticket"
+          ><i data-feather="tag"></i> Cek Status Tiket</a
+        >
+      </div>
+      <p class="footer-copy" data-id="footer-copy">
+        &copy; 2025 Nusabit Studio. All Rights Reserved.
+      </p>
+    </footer>
 
-<!-- ===== GAME MODAL ===== -->
-<div id="gameModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-    <div class="modal-content">
-        <span class="close-modal" id="closeModalBtn" role="button" tabindex="0" aria-label="Close">&times;</span>
+    <!-- ===== GAME MODAL ===== -->
+    <div
+      id="gameModal"
+      class="modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modal-title"
+    >
+      <div class="modal-content">
+        <span
+          class="close-modal"
+          id="closeModalBtn"
+          role="button"
+          tabindex="0"
+          aria-label="Close"
+          >&times;</span
+        >
 
         <!-- ===== MODAL HEADER ===== -->
         <div class="modal-header-area">
-            <img id="modal-logo" src="" alt="Game Logo" class="modal-logo">
-            <div class="modal-header-info">
-                <h2 id="modal-title" class="modal-title"></h2>
-                <span id="modal-genre-badge" class="modal-genre-badge"></span>
-            </div>
+          <img id="modal-logo" src="" alt="Game Logo" class="modal-logo" />
+          <div class="modal-header-info">
+            <h2 id="modal-title" class="modal-title"></h2>
+            <span id="modal-genre-badge" class="modal-genre-badge"></span>
+          </div>
         </div>
 
         <!-- ===== MODAL TAB NAVIGATION ===== -->
         <div class="modal-tabs" role="tablist">
-            <button class="modal-tab active" data-tab="info" role="tab" aria-selected="true"><i data-feather="clipboard"></i> INFO GAME</button>
-            <button class="modal-tab" data-tab="gallery" role="tab" aria-selected="false"><i data-feather="image"></i>️ GALERI</button>
-            <button class="modal-tab" data-tab="play" role="tab" aria-selected="false"><i data-feather="monitor"></i> MAIN SEKARANG</button>
+          <button
+            class="modal-tab active"
+            data-tab="info"
+            role="tab"
+            aria-selected="true"
+          >
+            <i data-feather="clipboard"></i> INFO GAME
+          </button>
+          <button
+            class="modal-tab"
+            data-tab="gallery"
+            role="tab"
+            aria-selected="false"
+          >
+            <i data-feather="image"></i>️ GALERI
+          </button>
+          <button
+            class="modal-tab"
+            data-tab="play"
+            role="tab"
+            aria-selected="false"
+          >
+            <i data-feather="monitor"></i> MAIN SEKARANG
+          </button>
         </div>
 
         <!-- ===== TAB: INFO GAME ===== -->
         <div class="modal-tab-content active" id="tab-info">
-            <div class="modal-info-box">
-                <h3 class="modal-info-label"><i data-feather="book-open"></i> Deskripsi</h3>
-                <p id="modal-description" class="modal-description"></p>
-            </div>
-            <div class="modal-info-box">
-                <h3 class="modal-info-label"><i data-feather="briefcase"></i> Developer</h3>
-                <p id="modal-developer" class="modal-dev-text">Nusabit Studio</p>
-            </div>
-            <div class="modal-info-box">
-                <h3 class="modal-info-label"><i data-feather="target"></i> Genre</h3>
-                <p id="modal-genre-text" class="modal-dev-text"></p>
-            </div>
-            <!-- ===== QUICK PLAY CTA ===== -->
-            <div class="modal-cta-area">
-                <p class="modal-cta-hint">Siap main? Klik tab <strong>MAIN SEKARANG</strong> ⬆️</p>
-                <button class="modal-goto-play-btn" onclick="document.querySelector('.modal-tab[data-tab=play]').click()">
-                    <i data-feather="monitor"></i> Ke Halaman Download / Main
-                </button>
-            </div>
+          <div class="modal-info-box">
+            <h3 class="modal-info-label">
+              <i data-feather="book-open"></i> Deskripsi
+            </h3>
+            <p id="modal-description" class="modal-description"></p>
+          </div>
+          <div class="modal-info-box">
+            <h3 class="modal-info-label">
+              <i data-feather="briefcase"></i> Developer
+            </h3>
+            <p id="modal-developer" class="modal-dev-text">Nusabit Studio</p>
+          </div>
+          <div class="modal-info-box">
+            <h3 class="modal-info-label">
+              <i data-feather="target"></i> Genre
+            </h3>
+            <p id="modal-genre-text" class="modal-dev-text"></p>
+          </div>
+          <!-- ===== QUICK PLAY CTA ===== -->
+          <div class="modal-cta-area">
+            <p class="modal-cta-hint">
+              Siap main? Klik tab <strong>MAIN SEKARANG</strong> ⬆️
+            </p>
+            <button
+              class="modal-goto-play-btn"
+              onclick="
+                document.querySelector('.modal-tab[data-tab=play]').click()
+              "
+            >
+              <i data-feather="monitor"></i> Ke Halaman Download / Main
+            </button>
+          </div>
         </div>
 
         <!-- ===== TAB: GALERI ===== -->
         <div class="modal-tab-content" id="tab-gallery">
-            <div class="gallery-container">
-                <div id="gallery-slides" class="gallery-slides"></div>
-                <button class="gallery-btn gallery-prev" id="prevSlide" aria-label="Previous">&#10094;</button>
-                <button class="gallery-btn gallery-next" id="nextSlide" aria-label="Next">&#10095;</button>
-            </div>
-            <div id="gallery-dots" class="gallery-dots"></div>
+          <div class="gallery-container">
+            <div id="gallery-slides" class="gallery-slides"></div>
+            <button
+              class="gallery-btn gallery-prev"
+              id="prevSlide"
+              aria-label="Previous"
+            >
+              &#10094;
+            </button>
+            <button
+              class="gallery-btn gallery-next"
+              id="nextSlide"
+              aria-label="Next"
+            >
+              &#10095;
+            </button>
+          </div>
+          <div id="gallery-dots" class="gallery-dots"></div>
         </div>
 
         <!-- ===== TAB: MAIN SEKARANG ===== -->
         <div class="modal-tab-content" id="tab-play">
-            <div class="modal-play-header">
-                <h3 class="modal-play-title"><i data-feather="monitor"></i> Pilih Platform</h3>
-                <p class="modal-play-sub">Klik tombol di bawah untuk download atau main langsung</p>
-            </div>
-            <div id="platform-buttons" class="platform-buttons platform-buttons-big"></div>
-            <div class="supported-platforms">
-                <span class="platform-icon"><i class="fas fa-desktop"></i></span>
-                <span class="platform-icon"><i class="fab fa-android"></i></span>
-                <span class="platform-icon"><i class="fab fa-apple"></i></span>
-                <p>Tersedia di PC, Android, dan iOS.</p>
-            </div>
+          <div class="modal-play-header">
+            <h3 class="modal-play-title">
+              <i data-feather="monitor"></i> Pilih Platform
+            </h3>
+            <p class="modal-play-sub">
+              Klik tombol di bawah untuk download atau main langsung
+            </p>
+          </div>
+          <div
+            id="platform-buttons"
+            class="platform-buttons platform-buttons-big"
+          ></div>
+          <div class="supported-platforms">
+            <span class="platform-icon"><i class="fas fa-desktop"></i></span>
+            <span class="platform-icon"><i class="fab fa-android"></i></span>
+            <span class="platform-icon"><i class="fab fa-apple"></i></span>
+            <p>Tersedia di PC, Android, dan iOS.</p>
+          </div>
         </div>
 
         <!-- ===== GAME LAINNYA ===== -->
         <div id="other-games-container">
-            <h3 class="section-title">Game Lain dari Nusabit Studio</h3>
-            <div id="other-games-grid" class="other-games-grid"></div>
+          <h3 class="section-title">Game Lain dari Nusabit Studio</h3>
+          <div id="other-games-grid" class="other-games-grid"></div>
         </div>
+      </div>
     </div>
-</div>
-<!-- ===== REPORT MODALS ===== -->
-<div class="report-modal-bg" id="modal-bug-bg">
-    <div class="report-modal-card">
+    <!-- ===== REPORT MODALS ===== -->
+    <div class="report-modal-bg" id="modal-bug-bg">
+      <div class="report-modal-card">
         <div class="rmodal-header">
-            <div class="rmodal-icon bug"><i data-feather="alert-triangle"></i></div>
-            <div>
-                <div class="rmodal-title">Laporan Bug / Error</div>
-                <div class="rmodal-sub">Bantu kami memperbaiki masalah di game</div>
-            </div>
-            <button class="rmodal-close" onclick="closeReportModal('bug')"><i data-feather="x"></i></button>
+          <div class="rmodal-icon bug">
+            <i data-feather="alert-triangle"></i>
+          </div>
+          <div>
+            <div class="rmodal-title">Laporan Bug / Error</div>
+            <div class="rmodal-sub">Bantu kami memperbaiki masalah di game</div>
+          </div>
+          <button class="rmodal-close" onclick="closeReportModal('bug')">
+            <i data-feather="x"></i>
+          </button>
         </div>
         <div class="rmodal-body" id="modal-bug-form">
-            <div class="rmodal-field">
-                <label>Game yang bermasalah *</label>
-                <select id="bug-game">
-                    <option value="">— Pilih game —</option>
-                    <option>Minecraft Parkun 2D</option>
-                    <option>THE ONE FOR ZOMBIE</option>
-                    <option>Desa Investasi Zombie</option>
-                    <option>Gerbang Parkun 2D</option>
-                    <option>Desa Cipta Karya Ch 2</option>
-                    <option>The Undeads (Roblox)</option>
-                    <option>Frequency Fury Obby (Roblox)</option>
-                    <option>Lainnya / Umum</option>
-                </select>
-            </div>
-            <div class="rmodal-field">
-                <label>Deskripsi bug / error *</label>
-                <textarea id="bug-desc" rows="4" placeholder="Ceritakan bug yang kamu temukan secara detail..." maxlength="1000"></textarea>
-            </div>
-            <div class="rmodal-field">
-                <label>Email kamu <span style="color:var(--text-muted);font-weight:400;">(untuk konfirmasi tiket)</span></label>
-                <input type="email" id="bug-email" placeholder="contoh@gmail.com">
-            </div>
-            <div class="rmodal-field">
-                <label>Kontak lain <span style="color:var(--text-muted);font-weight:400;">(WA / Discord — opsional)</span></label>
-                <input type="text" id="bug-contact" placeholder="WA / Discord...">
-            </div>
-            <button class="rmodal-submit" id="bug-submit" onclick="submitReport('bug')"><i data-feather="alert-triangle"></i> Kirim Laporan Bug</button>
+          <div class="rmodal-field">
+            <label>Game yang bermasalah *</label>
+            <select id="bug-game">
+              <option value="">— Pilih game —</option>
+              <option>Minecraft Parkun 2D</option>
+              <option>THE ONE FOR ZOMBIE</option>
+              <option>Desa Investasi Zombie</option>
+              <option>Gerbang Parkun 2D</option>
+              <option>Desa Cipta Karya Ch 2</option>
+              <option>The Undeads (Roblox)</option>
+              <option>Frequency Fury Obby (Roblox)</option>
+              <option>Lainnya / Umum</option>
+            </select>
+          </div>
+          <div class="rmodal-field">
+            <label>Deskripsi bug / error *</label>
+            <textarea
+              id="bug-desc"
+              rows="4"
+              placeholder="Ceritakan bug yang kamu temukan secara detail..."
+              maxlength="1000"
+            ></textarea>
+          </div>
+          <div class="rmodal-field">
+            <label
+              >Email kamu
+              <span style="color: var(--text-muted); font-weight: 400"
+                >(untuk konfirmasi tiket)</span
+              ></label
+            >
+            <input type="email" id="bug-email" placeholder="contoh@gmail.com" />
+          </div>
+          <div class="rmodal-field">
+            <label
+              >Kontak lain
+              <span style="color: var(--text-muted); font-weight: 400"
+                >(WA / Discord — opsional)</span
+              ></label
+            >
+            <input type="text" id="bug-contact" placeholder="WA / Discord..." />
+          </div>
+          <button
+            class="rmodal-submit"
+            id="bug-submit"
+            onclick="submitReport('bug')"
+          >
+            <i data-feather="alert-triangle"></i> Kirim Laporan Bug
+          </button>
         </div>
-        <div class="rmodal-success" id="modal-bug-success" style="display:none;">
-            <div class="rmodal-success-icon"><i data-feather="check-circle"></i></div>
-            <h3>Laporan Terkirim!</h3>
-            <p>Tim developer sudah menerima laporanmu dan akan segera menindaklanjuti.</p>
-            <div class="rmodal-ticket" id="bug-ticket-box" style="display:none;">
-                <span class="rmodal-ticket-label">Nomor Tiket</span>
-                <span class="rmodal-ticket-num" id="bug-ticket-num">—</span>
-                <span class="rmodal-ticket-hint">Konfirmasi dikirim ke email kamu</span>
-            </div>
+        <div
+          class="rmodal-success"
+          id="modal-bug-success"
+          style="display: none"
+        >
+          <div class="rmodal-success-icon">
+            <i data-feather="check-circle"></i>
+          </div>
+          <h3>Laporan Terkirim!</h3>
+          <p>
+            Tim developer sudah menerima laporanmu dan akan segera
+            menindaklanjuti.
+          </p>
+          <div class="rmodal-ticket" id="bug-ticket-box" style="display: none">
+            <span class="rmodal-ticket-label">Nomor Tiket</span>
+            <span class="rmodal-ticket-num" id="bug-ticket-num">—</span>
+            <span class="rmodal-ticket-hint"
+              >Konfirmasi dikirim ke email kamu</span
+            >
+          </div>
         </div>
+      </div>
     </div>
-</div>
 
-<div class="report-modal-bg" id="modal-saran-bg">
-    <div class="report-modal-card">
+    <div class="report-modal-bg" id="modal-saran-bg">
+      <div class="report-modal-card">
         <div class="rmodal-header">
-            <div class="rmodal-icon saran"><i data-feather="zap"></i></div>
-            <div>
-                <div class="rmodal-title">Kirim Saran / Ide</div>
-                <div class="rmodal-sub">Ide kamu bisa jadi fitur game berikutnya!</div>
+          <div class="rmodal-icon saran"><i data-feather="zap"></i></div>
+          <div>
+            <div class="rmodal-title">Kirim Saran / Ide</div>
+            <div class="rmodal-sub">
+              Ide kamu bisa jadi fitur game berikutnya!
             </div>
-            <button class="rmodal-close" onclick="closeReportModal('saran')"><i data-feather="x"></i></button>
+          </div>
+          <button class="rmodal-close" onclick="closeReportModal('saran')">
+            <i data-feather="x"></i>
+          </button>
         </div>
         <div class="rmodal-body" id="modal-saran-form">
-            <div class="rmodal-field">
-                <label>Game yang disarankan</label>
-                <select id="saran-game">
-                    <option value="">— Pilih game (opsional) —</option>
-                    <option>Minecraft Parkun 2D</option>
-                    <option>THE ONE FOR ZOMBIE</option>
-                    <option>Desa Investasi Zombie</option>
-                    <option>Gerbang Parkun 2D</option>
-                    <option>Desa Cipta Karya Ch 2</option>
-                    <option>The Undeads (Roblox)</option>
-                    <option>Frequency Fury Obby (Roblox)</option>
-                    <option>Untuk Game Baru</option>
-                    <option>Umum / Studio</option>
-                </select>
-            </div>
-            <div class="rmodal-field">
-                <label>Saran / Ide kamu *</label>
-                <textarea id="saran-desc" rows="4" placeholder="Ceritakan idemu secara detail..." maxlength="1000"></textarea>
-            </div>
-            <div class="rmodal-field">
-                <label>Email kamu <span style="color:var(--text-muted);font-weight:400;">(opsional)</span></label>
-                <input type="email" id="saran-email" placeholder="contoh@gmail.com">
-            </div>
-            <button class="rmodal-submit" id="saran-submit" onclick="submitReport('saran')"><i data-feather="zap"></i> Kirim Saran</button>
+          <div class="rmodal-field">
+            <label>Game yang disarankan</label>
+            <select id="saran-game">
+              <option value="">— Pilih game (opsional) —</option>
+              <option>Minecraft Parkun 2D</option>
+              <option>THE ONE FOR ZOMBIE</option>
+              <option>Desa Investasi Zombie</option>
+              <option>Gerbang Parkun 2D</option>
+              <option>Desa Cipta Karya Ch 2</option>
+              <option>The Undeads (Roblox)</option>
+              <option>Frequency Fury Obby (Roblox)</option>
+              <option>Untuk Game Baru</option>
+              <option>Umum / Studio</option>
+            </select>
+          </div>
+          <div class="rmodal-field">
+            <label>Saran / Ide kamu *</label>
+            <textarea
+              id="saran-desc"
+              rows="4"
+              placeholder="Ceritakan idemu secara detail..."
+              maxlength="1000"
+            ></textarea>
+          </div>
+          <div class="rmodal-field">
+            <label
+              >Email kamu
+              <span style="color: var(--text-muted); font-weight: 400"
+                >(opsional)</span
+              ></label
+            >
+            <input
+              type="email"
+              id="saran-email"
+              placeholder="contoh@gmail.com"
+            />
+          </div>
+          <button
+            class="rmodal-submit"
+            id="saran-submit"
+            onclick="submitReport('saran')"
+          >
+            <i data-feather="zap"></i> Kirim Saran
+          </button>
         </div>
-        <div class="rmodal-success" id="modal-saran-success" style="display:none;">
-            <div class="rmodal-success-icon"><i data-feather="star"></i></div>
-            <h3>Saran Terkirim!</h3>
-            <p>Terima kasih! Ide kamu akan dipertimbangkan oleh tim Nusabit Studio.</p>
+        <div
+          class="rmodal-success"
+          id="modal-saran-success"
+          style="display: none"
+        >
+          <div class="rmodal-success-icon"><i data-feather="star"></i></div>
+          <h3>Saran Terkirim!</h3>
+          <p>
+            Terima kasih! Ide kamu akan dipertimbangkan oleh tim Nusabit Studio.
+          </p>
         </div>
+      </div>
     </div>
-</div>
 
-<!-- ===== POPUP UI (untuk ulasan publik) ===== -->
-<div class="ui-popup" id="uiPopup" aria-hidden="true">
-    <div class="ui-popup-card" role="dialog" aria-modal="true" aria-labelledby="uiPopupTitle">
+    <!-- ===== POPUP UI (untuk ulasan publik) ===== -->
+    <div class="ui-popup" id="uiPopup" aria-hidden="true">
+      <div
+        class="ui-popup-card"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="uiPopupTitle"
+      >
         <div class="ui-popup-icon" id="uiPopupIcon" aria-hidden="true"></div>
         <div class="ui-popup-title" id="uiPopupTitle">Info</div>
         <div class="ui-popup-text" id="uiPopupText"></div>
         <div class="ui-popup-actions">
-            <button type="button" class="ui-popup-btn ghost" id="uiPopupCancel" hidden>Batal</button>
-            <button type="button" class="ui-popup-btn" id="uiPopupConfirm" hidden>Kirim</button>
-            <button type="button" class="ui-popup-btn" id="uiPopupOk">OK</button>
+          <button
+            type="button"
+            class="ui-popup-btn ghost"
+            id="uiPopupCancel"
+            hidden
+          >
+            Batal
+          </button>
+          <button type="button" class="ui-popup-btn" id="uiPopupConfirm" hidden>
+            Kirim
+          </button>
+          <button type="button" class="ui-popup-btn" id="uiPopupOk">OK</button>
         </div>
+      </div>
     </div>
-</div>
 
-<!-- ===== SCRIPT DATA GAME ===== -->
-<script src="assets/js/gameData.js"></script>
+    <!-- ===== SCRIPT DATA GAME ===== -->
+    <script src="assets/js/gameData.js"></script>
 
-<!-- ===== SCRIPT UTAMA HOMEPAGE ===== -->
-<script src="assets/js/main.js"></script>
-<script src="assets/js/extras.js"></script>
-<script src="assets/js/reviews.js"></script>
-<script src="assets/js/index-page.js"></script>
-<script src="assets/js/donations.js"></script>
-<script src="/assets/js/animations.js"></script>
-</body>
+    <!-- ===== SCRIPT UTAMA HOMEPAGE ===== -->
+    <script src="assets/js/main.js"></script>
+    <script src="assets/js/extras.js"></script>
+    <script src="assets/js/reviews.js"></script>
+    <script src="assets/js/index-page.js"></script>
+    <script src="assets/js/donations.js"></script>
+    <script src="/assets/js/animations.js"></script>
+  </body>
 </html>
