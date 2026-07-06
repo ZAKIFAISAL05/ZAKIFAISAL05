@@ -10,6 +10,7 @@
 // ============================================================
 
 const { getStore } = require('@netlify/blobs');
+const nodemailer = require('nodemailer');
 
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
@@ -157,26 +158,66 @@ function getSiteOrigin(event) {
   return `${proto}://${host}`;
 }
 
-// Kirim email via Resend (https://resend.com — gratis 3000 email/bulan)
-async function sendEmail(apiKey, to, subject, html) {
+// ────────────────────────────────────────────────
+//  EMAIL SYSTEM (Nodemailer + Gmail SMTP App Password)
+//  Keamanan:
+//  - Kredensial WAJIB dari environment variable (process.env)
+//  - Tidak boleh hardcode password
+//  Catatan: konten email (subject + HTML) TIDAK diubah.
+// ────────────────────────────────────────────────
+let cachedTransporter = null;
+function getGmailTransporter() {
+  if (cachedTransporter) return cachedTransporter;
+
+  // Nama env dibuat eksplisit agar jelas "App Password" yang dipakai.
+  // (support beberapa nama agar mudah migrasi di deploy)
+  const user =
+    process.env.GMAIL_SMTP_USER ||
+    process.env.GMAIL_USER ||
+    process.env.SMTP_USER ||
+    '';
+  const pass =
+    process.env.GMAIL_SMTP_APP_PASSWORD ||
+    process.env.GMAIL_APP_PASSWORD ||
+    process.env.SMTP_PASS ||
+    '';
+
+  if (!user || !pass) return null;
+
+  cachedTransporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user, pass },
+  });
+  return cachedTransporter;
+}
+
+async function sendEmail({ to, subject, html }) {
   try {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + apiKey,
-        'Content-Type':  'application/json',
-      },
-      body: JSON.stringify({
-        from:    'Nusabit Studio CS <onboarding@resend.dev>',
-        to:      [to],
-        subject: subject,
-        html:    html,
-      }),
+    const transporter = getGmailTransporter();
+    if (!transporter) return false;
+
+    const user =
+      process.env.GMAIL_SMTP_USER ||
+      process.env.GMAIL_USER ||
+      process.env.SMTP_USER ||
+      '';
+
+    // Email address otomatis mengikuti akun Gmail SMTP agar konsisten.
+    // Nama pengirim tetap "Nusabit Studio CS" seperti sebelumnya.
+    const from = `Nusabit Studio CS <${user}>`;
+
+    const info = await transporter.sendMail({
+      from,
+      to,
+      subject,
+      html,
     });
-    const data = await res.json();
-    if (!res.ok) console.error('Resend error:', JSON.stringify(data));
-    return res.ok;
-  } catch (e) { console.error('Email error:', e.message); return false; }
+
+    return !!info?.messageId;
+  } catch (e) {
+    console.error('Email error:', e.message);
+    return false;
+  }
 }
 
 function getNowWIBString() {
@@ -299,7 +340,6 @@ exports.handler = async function (event) {
 
   const fonnteToken  = process.env.FONNTE_API_KEY;
   const adminTarget  = process.env.ADMIN_WA_NUMBER;
-  const resendKey    = process.env.RESEND_API_KEY;
   const adminEmail   = process.env.ADMIN_EMAIL || 'dzakifaisal11@gmail.com';
   const waktuWIB     = getNowWIBString();
   const typeLabel    = type === 'bug' ? '🐛 BUG REPORT' : '💡 SARAN';
@@ -346,7 +386,7 @@ STATUS ${ticketId} seen|confirmed|done
   }
 
   // 4. Email ke user (kalau ada email)
-  if (resendKey && email && email.includes('@')) {
+  if (email && email.includes('@')) {
     const subjUser = `[Tiket #${ticketNum}] ${type === 'bug' ? 'Bug Dilaporkan' : 'Saran Diterima'} — Nusabit Studio`;
     const htmlUser = emailUserHtml(ticketId, type, gameLabel, desc.trim(), waktuWIB)
       .replace('</div>\n</body>', `
@@ -354,13 +394,17 @@ STATUS ${ticketId} seen|confirmed|done
     <a href="${ticketUrl}" style="display:block;text-align:center;background:#7c4dff;color:#fff;text-decoration:none;padding:12px 24px;border-radius:10px;font-weight:700;font-size:0.95rem;">🔍 Pantau Status Tiket Kamu</a>
   </div>
 </div>\n</body>`);
-    await sendEmail(resendKey, email, subjUser, htmlUser);
+    await sendEmail({ to: email, subject: subjUser, html: htmlUser });
   }
 
   // 5. Email notif ke admin
-  if (resendKey) {
+  if (adminEmail && adminEmail.includes('@')) {
     const subjAdmin = `[${typeLabel}] Tiket #${ticketNum} — ${gameLabel}`;
-    await sendEmail(resendKey, adminEmail, subjAdmin, emailAdminHtml(ticketId, type, gameLabel, desc.trim(), contact, email, summary, waktuWIB));
+    await sendEmail({
+      to: adminEmail,
+      subject: subjAdmin,
+      html: emailAdminHtml(ticketId, type, gameLabel, desc.trim(), contact, email, summary, waktuWIB),
+    });
   }
 
   return {
