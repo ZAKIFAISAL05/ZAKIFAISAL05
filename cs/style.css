@@ -1052,3 +1052,41 @@ body::after {
 }
 
 [data-theme="light"] .field select option { background: var(--surface); }
+
+/* ============================================================
+   Shortcut tombol laporan (Bug & Saran) — seperti di index
+   ============================================================ */
+.report-shortcuts{
+    display:flex;
+    gap:10px;
+    padding: 10px 12px 0;
+    flex-wrap: wrap;
+}
+.report-shortcut{
+    flex:1;
+    min-width: 150px;
+    padding: 10px 12px;
+    border-radius: 0;
+    border: 1px solid var(--border-vis);
+    background: var(--surface2);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 0.84rem;
+    cursor: pointer;
+    transition: transform .12s, background .12s, border-color .12s, color .12s;
+}
+.report-shortcut:hover{
+    transform: translateY(-1px);
+    border-color: rgba(124,77,255,.6);
+}
+.report-shortcut.bug:hover{
+    background: rgba(231,76,60,.10);
+    border-color: rgba(231,76,60,.35);
+    color: var(--c-red);
+}
+.report-shortcut.saran:hover{
+    background: rgba(243,156,18,.10);
+    border-color: rgba(243,156,18,.35);
+    color: var(--brand);
+}

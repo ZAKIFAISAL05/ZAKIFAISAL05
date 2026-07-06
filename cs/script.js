@@ -1034,13 +1034,18 @@ function showSuccess(ok, offline, ticketId, hasEmail, ticketNum, ticketUrl, emai
             ticketBox.style.display = 'flex';
             ticketNum_.textContent  = ticketNum ? 'Tiket #' + ticketNum : '#' + ticketId;
             var emailOk = hasEmail && emailSent !== false;
+            var spamGuide =
+                'Kalau belum ada pesan tiket di email dalam 1–5 menit, coba cek folder <strong>Spam/Promosi</strong>. ' +
+                'Kalau masih tidak ada, kembali ke CS dan sebutkan <strong>ID tiket</strong> ini (kadang tiket masuk Spam).';
             var noteText = hasEmail
-                ? (emailOk ? 'Konfirmasi + link tiket dikirim ke email kamu.' : 'Catatan: email konfirmasi belum terkirim (cek Spam / konfigurasi).')
-                : 'Simpan nomor tiket ini untuk follow-up.';
+                ? (emailOk
+                    ? ('Konfirmasi + link tiket dikirim ke email kamu. ' + spamGuide)
+                    : ('Catatan: email konfirmasi belum terkirim. ' + spamGuide))
+                : ('Simpan ID tiket ini untuk follow-up. ' + spamGuide);
             if (ticketUrl) {
                 ticketNote.innerHTML = noteText + ' <a href="' + ticketUrl + '" target="_blank" style="color:var(--accent);text-decoration:none;font-weight:600;">Pantau Status →</a>';
             } else {
-                ticketNote.textContent = noteText;
+                ticketNote.innerHTML = noteText;
             }
         }
     } else if (offline) {
@@ -1104,7 +1109,9 @@ function postTicketBubble(ok, offline, ticketId, ticketNum, ticketUrl, hasEmail,
                   '🔍 Pantau Status Tiket →</a>'
                 : '') +
             '<div style="font-size:0.72rem;opacity:.55;margin-top:10px;line-height:1.5;">' +
-            (hasEmail ? '📧 Link tiket juga dikirim ke emailmu.' : '🔒 Bookmark link ini — hanya kamu yang bisa akses tiket ini.') +
+            (hasEmail
+                ? '📧 Link tiket dikirim ke emailmu. Kalau belum masuk, cek folder <strong>Spam/Promosi</strong>. Kalau masih tidak ada, balik ke CS dan sebutkan <strong>ID tiket</strong>.'
+                : '🔒 Simpan ID tiket ini. Kalau butuh bantuan, balik ke CS dan sebutkan <strong>ID tiket</strong> (kadang tiket masuk Spam).') +
             '</div>';
     } else if (offline) {
         inner = '📦 Laporanmu tersimpan lokal. ' + (numLabel ? 'ID sementara: <strong>' + numLabel + '</strong>. ' : '') + 'Coba kirim ulang saat koneksi stabil ya.';

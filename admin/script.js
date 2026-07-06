@@ -1026,6 +1026,7 @@ async function fetchTickets() {
     // Init filter toolbar & update stats setelah render
     initTicketFilter();
     updateReportBadge(tickets.filter(t=>!t.done).length);
+    updateChatBadge(countUnreadChatTickets(tickets));
     updateReportStats(tickets);
   } catch (e) {
     if (panel) panel.innerHTML = `<div style="padding:24px;text-align:center;color:var(--c-red);">Error: ${escHtml(e.message)}</div>`;
@@ -1040,7 +1041,7 @@ function renderTicketPanel(tickets) {
   if (!tickets.length) {
     panel.innerHTML = `
       <div class="empty-state">
-        <div class="empty-state-icon">📭</div>
+        <div class="empty-state-icon"><i class="bi bi-inbox" aria-hidden="true"></i></div>
         <div class="empty-state-title">Belum ada laporan masuk</div>
         <div class="empty-state-sub">Laporan dari CS atau form akan muncul di sini</div>
       </div>`;
@@ -1071,25 +1072,31 @@ function renderTicketPanel(tickets) {
     const badgeLabel = STATUS_LABEL[t.status] || t.status;
 
     // Controls
+    const chatNew = t.chatUnread ? `<span class="mini-pill" title="Ada chat baru dari user">Baru</span>` : '';
     const controls = !isDone ? `
       <select class="status-select" id="sel-status-${tid}">
-        <option value="received"  ${t.status==='received' ?'selected':''}>📥 Diterima</option>
-        <option value="seen"      ${t.status==='seen'     ?'selected':''}>👀 Dilihat</option>
-        <option value="confirmed" ${t.status==='confirmed'?'selected':''}>🔧 Dikonfirmasi</option>
+        <option value="received"  ${t.status==='received' ?'selected':''}>Diterima</option>
+        <option value="seen"      ${t.status==='seen'     ?'selected':''}>Dilihat</option>
+        <option value="confirmed" ${t.status==='confirmed'?'selected':''}>Dikonfirmasi</option>
       </select>
       <input class="devnote-input" type="text" id="note-${tid}" placeholder="Catatan untuk user (opsional)..." value="${escHtml(t.devNote||'')}">
       <button class="btn-update-status" onclick="updateTicketStatus('${tid}')">Simpan</button>
-      <button class="btn-small" onclick="closeTicket('${tid}')">✓ Selesaikan</button>
+      <button class="btn-small" onclick="closeTicket('${tid}')"><i class="bi bi-check2-circle" aria-hidden="true"></i> Selesaikan</button>
+      <button class="btn-small" onclick="openTicketChat('${tid}')"><i class="bi bi-chat-dots" aria-hidden="true"></i> Chat ${chatNew}</button>
       <button class="btn-del-report" onclick="deleteReport('${tid}')">Hapus</button>
     ` : `
-      <span class="s-badge done">✅ Tiket Selesai &amp; Ditutup</span>
-      <button class="btn-del-report" onclick="deleteReport('${tid}')" style="margin-left:auto;">Hapus</button>
+      <span class="s-badge done"><i class="bi bi-check-circle-fill" aria-hidden="true"></i> Tiket selesai &amp; ditutup</span>
+      <button class="btn-small" onclick="openTicketChat('${tid}')" style="margin-left:auto;"><i class="bi bi-chat-dots" aria-hidden="true"></i> Chat ${chatNew}</button>
+      <button class="btn-del-report" onclick="deleteReport('${tid}')">Hapus</button>
     `;
 
     return `
 <div class="report-item${isDone ? ' report-done' : ''}" data-type="${escHtml(t.type||'')}" data-status="${escHtml(t.status||'received')}">
   <div class="report-item-head">
-    <span class="report-badge ${t.type==='bug'?'bug':'saran'}">${t.type==='bug'?'🐛 Bug Report':'💡 Saran'}</span>
+    <span class="report-badge ${t.type==='bug'?'bug':'saran'}">${t.type==='bug'
+      ? '<i class="bi bi-bug" aria-hidden="true"></i> Bug report'
+      : '<i class="bi bi-lightbulb" aria-hidden="true"></i> Saran'
+    }</span>
     <span class="s-badge ${badgeCls}">${badgeLabel}</span>
     <span class="report-ticket-id">#${t.num||'—'} · ${t.id}</span>
     <span class="report-time">${dateStr}</span>
@@ -1101,17 +1108,17 @@ function renderTicketPanel(tickets) {
 
   ${t.summary && t.summary !== t.desc ? `
   <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:14px;padding:10px 14px;background:rgba(6,182,212,0.05);border:1px solid rgba(6,182,212,0.15);border-radius:8px;font-size:0.83rem;color:var(--text-dim);">
-    <span style="color:var(--c-cyan);font-weight:700;flex-shrink:0;">🤖 AI:</span> ${escHtml(t.summary)}
+    <span style="color:var(--c-cyan);font-weight:700;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;"><i class="bi bi-cpu" aria-hidden="true"></i> AI:</span> ${escHtml(t.summary)}
   </div>` : ''}
 
   ${t.devNote ? `
   <div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:14px;padding:10px 14px;background:rgba(0,217,126,0.05);border:1px solid rgba(0,217,126,0.18);border-radius:8px;font-size:0.83rem;color:var(--text-dim);">
-    <span style="color:var(--c-green);font-weight:700;flex-shrink:0;">💬 Dev:</span> ${escHtml(t.devNote)}
+    <span style="color:var(--c-green);font-weight:700;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;"><i class="bi bi-chat-left-text" aria-hidden="true"></i> Dev:</span> ${escHtml(t.devNote)}
   </div>` : ''}
 
   <div class="report-contact-row">
-    ${t.email ? `<div class="report-contact-item">📧 <a href="mailto:${escHtml(t.email)}">${escHtml(t.email)}</a></div>` : ''}
-    ${t.contact ? `<div class="report-contact-item">📱 <span style="color:var(--text-dark)">${escHtml(t.contact)}</span></div>` : ''}
+    ${t.email ? `<div class="report-contact-item"><i class="bi bi-envelope" aria-hidden="true"></i> <a href="mailto:${escHtml(t.email)}">${escHtml(t.email)}</a></div>` : ''}
+    ${t.contact ? `<div class="report-contact-item"><i class="bi bi-telephone" aria-hidden="true"></i> <span style="color:var(--text-dark)">${escHtml(t.contact)}</span></div>` : ''}
   </div>
 
   <div class="report-stepper">${stepperHtml}</div>
@@ -1167,6 +1174,231 @@ async function closeTicket(id) {
   } catch (e) { addLog('Error close tiket: ' + e.message, 'err'); }
 }
 
+/* ── CHAT TIKET (admin ↔ user) ── */
+let _chatTicketId = '';
+let _chatTicketNum = '';
+let _chatFile = null;
+
+function chatEsc(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function chatFormatTime(iso) {
+  try {
+    return new Date(iso).toLocaleString('id-ID', { hour:'2-digit', minute:'2-digit', day:'2-digit', month:'short', year:'numeric', timeZone:'Asia/Jakarta' });
+  } catch { return '—'; }
+}
+
+function chatBuildImgDataUrl(att) {
+  if (!att || !att.base64 || !att.type) return '';
+  return `data:${att.type};base64,${att.base64}`;
+}
+
+function renderTicketChatMessages(messages) {
+  const wrap = document.getElementById('chatMessages');
+  if (!wrap) return;
+  const msgs = Array.isArray(messages) ? messages : [];
+  if (!msgs.length) {
+    wrap.innerHTML = `<div style="text-align:center;color:var(--text-dim);font-family:var(--font-mono);font-size:0.75rem;padding:14px;">Belum ada chat di tiket ini.</div>`;
+    return;
+  }
+  wrap.innerHTML = msgs.map(m => {
+    const from = m.from === 'admin' ? 'admin' : 'user';
+    const time = m.at ? chatFormatTime(m.at) : '—';
+    const text = String(m.text || '').trim();
+    const images = Array.isArray(m.attachments)
+      ? m.attachments
+          .filter(a => a && a.base64 && a.type && String(a.type).startsWith('image/'))
+          .map(a => `<a href="${chatBuildImgDataUrl(a)}" target="_blank" rel="noopener">
+              <img class="chat-img" src="${chatBuildImgDataUrl(a)}" alt="${chatEsc(a.name || 'foto')}">
+            </a>`)
+          .join('')
+      : '';
+    return `
+      <div class="chat-row ${from}">
+        <div class="chat-bubble">
+          ${text ? `<div class="chat-text">${chatEsc(text).replace(/\n/g,'<br>')}</div>` : ''}
+          ${images ? `<div class="chat-images">${images}</div>` : ''}
+          <div class="chat-meta">${from === 'admin' ? 'Admin' : 'User'} · ${time}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+function showChatWarn(msg) {
+  const w = document.getElementById('chatWarn');
+  if (!w) return;
+  if (!msg) { w.style.display = 'none'; w.textContent = ''; return; }
+  w.style.display = 'block';
+  w.textContent = msg;
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result || '').split(',')[1] || '');
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
+
+async function openTicketChat(id) {
+  const adminToken = getAdminToken();
+  if (!adminToken) { showToast('Session admin tidak valid. Login ulang.', 'err'); return; }
+
+  showChatWarn('');
+  _chatTicketId = id;
+  _chatFile = null;
+
+  const overlay = document.getElementById('chatOverlay');
+  const metaEl = document.getElementById('chatTicketMeta');
+  const msgWrap = document.getElementById('chatMessages');
+  const textEl = document.getElementById('chatTextInput');
+  const fileEl = document.getElementById('chatFileInput');
+  const noteEl = document.getElementById('chatFileNote');
+  if (!overlay || !msgWrap) return;
+
+  overlay.classList.add('show');
+  overlay.setAttribute('aria-hidden', 'false');
+  if (msgWrap) msgWrap.innerHTML = '<div style="text-align:center;color:var(--text-dim);font-family:var(--font-mono);font-size:0.75rem;padding:14px;">Memuat chat...</div>';
+  if (textEl) textEl.value = '';
+  if (fileEl) fileEl.value = '';
+  if (noteEl) { noteEl.style.display = 'none'; noteEl.textContent = ''; }
+
+  // Bind file input (reset listener dulu biar tidak dobel)
+  if (fileEl) {
+    fileEl.onchange = () => {
+      showChatWarn('');
+      const f = fileEl.files && fileEl.files[0] ? fileEl.files[0] : null;
+      if (!f) return;
+      if (f.size > 5 * 1024 * 1024) {
+        _chatFile = null;
+        fileEl.value = '';
+        if (noteEl) { noteEl.style.display = 'none'; noteEl.textContent = ''; }
+        showChatWarn('Ukuran foto maksimal 5MB per file.');
+        return;
+      }
+      _chatFile = f;
+      if (noteEl) {
+        noteEl.style.display = 'block';
+        noteEl.textContent = `Terpilih: ${f.name} (${Math.ceil(f.size / 1024)} KB)`;
+      }
+    };
+  }
+
+  // Load ticket detail (includes messages)
+  try {
+    const res = await fetch(`${TICKET_API}?admin=1&id=${encodeURIComponent(id)}&adminToken=${encodeURIComponent(adminToken)}`, { cache: 'no-store' });
+    const data = await res.json();
+    if (!data || !data.ok) throw new Error(data?.error || 'Gagal memuat tiket');
+    const t = data.ticket || {};
+    _chatTicketNum = t.num ? String(t.num) : '';
+    if (metaEl) metaEl.textContent = `${t.id || id}${_chatTicketNum ? (' · #' + _chatTicketNum) : ''}`;
+    renderTicketChatMessages(t.messages || []);
+
+    // Tandai chat sudah dilihat admin (supaya badge "Chat n" berkurang)
+    markTicketChatSeen(id);
+  } catch (e) {
+    showChatWarn(e.message || 'Gagal memuat chat.');
+  }
+}
+
+async function markTicketChatSeen(id) {
+  const adminToken = getAdminToken();
+  if (!adminToken || !id) return;
+  try {
+    const res = await fetch(TICKET_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'admin_seen', id, adminToken }),
+    });
+    const data = await res.json();
+    if (!data || !data.ok) return;
+
+    // Update cache supaya UI tidak perlu full refresh
+    const seenAt = data.seenAt || new Date().toISOString();
+    const t = Array.isArray(_ticketCache) ? _ticketCache.find(x => x && x.id === id) : null;
+    if (t) {
+      t.adminSeenAt = seenAt;
+      t.chatUnread = false;
+    }
+    updateChatBadge(countUnreadChatTickets(_ticketCache));
+  } catch {
+    // silent
+  }
+}
+
+function closeTicketChat() {
+  const overlay = document.getElementById('chatOverlay');
+  if (!overlay) return;
+  overlay.classList.remove('show');
+  overlay.setAttribute('aria-hidden', 'true');
+  _chatTicketId = '';
+  _chatTicketNum = '';
+  _chatFile = null;
+  showChatWarn('');
+  const noteEl = document.getElementById('chatFileNote');
+  if (noteEl) { noteEl.style.display = 'none'; noteEl.textContent = ''; }
+}
+
+async function sendTicketChat() {
+  if (!_chatTicketId) return;
+  const adminToken = getAdminToken();
+  const textEl = document.getElementById('chatTextInput');
+  const btn = document.getElementById('chatSendBtn');
+  const fileEl = document.getElementById('chatFileInput');
+  const noteEl = document.getElementById('chatFileNote');
+  showChatWarn('');
+
+  const text = (textEl ? textEl.value : '').trim();
+  if (!text && !_chatFile) { showChatWarn('Tulis pesan dulu atau pilih foto.'); return; }
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Mengirim...'; }
+
+  try {
+    const atts = [];
+    if (_chatFile) {
+      const b64 = await fileToBase64(_chatFile);
+      atts.push({ name: _chatFile.name, type: _chatFile.type, base64: b64 });
+    }
+    const res = await fetch(TICKET_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'add_message',
+        id: _chatTicketId,
+        adminToken,
+        text,
+        attachments: atts,
+      }),
+    });
+    const data = await res.json();
+    if (!data || !data.ok) throw new Error(data?.error || 'Gagal kirim pesan');
+
+    // reset compose
+    if (textEl) textEl.value = '';
+    _chatFile = null;
+    if (fileEl) fileEl.value = '';
+    if (noteEl) { noteEl.style.display = 'none'; noteEl.textContent = ''; }
+
+    // reload chat
+    await openTicketChat(_chatTicketId);
+    // refresh ticket list supaya updatedAt ikut bergerak
+    fetchTickets();
+  } catch (e) {
+    showChatWarn(e.message || 'Gagal kirim pesan.');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Kirim'; }
+  }
+}
+
+// Expose ke HTML onclick
+window.openTicketChat = openTicketChat;
+window.closeTicketChat = closeTicketChat;
+window.sendTicketChat = sendTicketChat;
+
 function renderReports() { fetchTickets(); }
 function clearDoneReports() {
   addLog('Hapus tiket selesai tidak tersedia — tiket disimpan permanen di server.', 'warn');
@@ -1217,6 +1449,26 @@ function updateReportBadge(count) {
 }
 
 /* ════════════════════════════════════════
+   CHAT BADGE (jumlah tiket dengan chat baru)
+   ════════════════════════════════════════ */
+function countUnreadChatTickets(tickets) {
+  const arr = Array.isArray(tickets) ? tickets : [];
+  return arr.reduce((n, t) => n + (t && t.chatUnread ? 1 : 0), 0);
+}
+
+function updateChatBadge(count) {
+  const badge = document.getElementById('chatBadge');
+  if (!badge) return;
+  if (count > 0) {
+    const num = count > 99 ? '99+' : String(count);
+    badge.textContent = `Chat ${num}`;
+    badge.style.display = 'inline-flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+/* ════════════════════════════════════════
    SEARCH & FILTER GAME TABLE
    ════════════════════════════════════════ */
 let _searchQuery = '';
@@ -1236,7 +1488,7 @@ function initGameSearch() {
   const searchInput = document.createElement('input');
   searchInput.id = 'game-search-input';
   searchInput.type = 'text';
-  searchInput.placeholder = '🔍 Cari game...';
+  searchInput.placeholder = 'Cari game...';
   searchInput.style.cssText = "background:var(--bg-input);border:1.5px solid var(--border-vis);border-radius:4px;padding:5px 10px;font-family:'Share Tech Mono',monospace;font-size:0.75rem;color:var(--text-primary);outline:none;width:160px;";
   searchInput.addEventListener('input', e => { _searchQuery = e.target.value.toLowerCase(); filterGameTable(); });
   searchInput.addEventListener('focus', e => { e.target.style.borderColor='var(--brand)'; });
@@ -1407,13 +1659,13 @@ function initTicketFilter() {
   toolbar.innerHTML = `
     <select id="tf-type" style="background:var(--bg-deep);color:var(--text-main);border:1px solid var(--border-dim);border-radius:4px;padding:6px 10px;font-family:var(--font-body);font-size:0.82em;">
       <option value="">Semua Tipe</option>
-      <option value="bug">🐛 Bug</option>
-      <option value="saran">💡 Saran</option>
+      <option value="bug">Bug</option>
+      <option value="saran">Saran</option>
     </select>
     <select id="tf-status" style="background:var(--bg-deep);color:var(--text-main);border:1px solid var(--border-dim);border-radius:4px;padding:6px 10px;font-family:var(--font-body);font-size:0.82em;">
       <option value="">Semua Status</option>
-      <option value="aktif">🔴 Aktif</option>
-      <option value="selesai">✅ Selesai</option>
+      <option value="aktif">Aktif</option>
+      <option value="selesai">Selesai</option>
     </select>`;
   panel.parentNode.insertBefore(toolbar, panel);
 

@@ -14,6 +14,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" crossorigin="anonymous">
     <link rel="stylesheet" href="/admin/style.css">
     <link rel="stylesheet" href="/assets/css/animations.css">
     <script src="https://unpkg.com/feather-icons"></script>
@@ -115,7 +116,10 @@
                 <button class="sidebar-link" data-section="reports" onclick="navTo('reports')">
                     <i class="fas fa-flag"></i>
                     <span>Laporan &amp; Tiket</span>
-                    <span class="sidebar-badge" id="reportBadge" style="display:none;">0</span>
+                    <span class="sidebar-badges">
+                        <span class="sidebar-badge sidebar-badge-chat" id="chatBadge" style="display:none;">Chat 0</span>
+                        <span class="sidebar-badge" id="reportBadge" style="display:none;">0</span>
+                    </span>
                     <span class="kbd-hint">Alt+4</span>
                 </button>
                 <button class="sidebar-link" data-section="logs" onclick="navTo('logs')">
@@ -725,6 +729,36 @@
                     <span>Batal</span>
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- CHAT TIKET (admin ↔ user) -->
+    <div class="chat-overlay" id="chatOverlay" aria-hidden="true">
+        <div class="chat-modal" role="dialog" aria-modal="true" aria-label="Chat tiket">
+            <div class="chat-modal-head">
+                <div>
+                    <div class="chat-title">Chat Tiket</div>
+                    <div class="chat-sub" id="chatTicketMeta">—</div>
+                </div>
+                <button class="chat-close" type="button" onclick="closeTicketChat()" aria-label="Tutup chat">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
+            </div>
+
+            <div class="chat-modal-body">
+                <div class="chat-messages" id="chatMessages"></div>
+            </div>
+
+            <div class="chat-modal-compose">
+                <label class="chat-attach-btn" for="chatFileInput" title="Kirim foto bukti (maks 5MB)" aria-label="Lampirkan foto">
+                    <i class="bi bi-paperclip" aria-hidden="true"></i>
+                </label>
+                <input id="chatFileInput" type="file" accept="image/*" style="display:none">
+                <textarea id="chatTextInput" class="chat-textarea" rows="1" placeholder="Tulis balasan admin..."></textarea>
+                <button class="btn-chat-send" id="chatSendBtn" type="button" onclick="sendTicketChat()">Kirim</button>
+            </div>
+            <div class="chat-note" id="chatFileNote" style="display:none;"></div>
+            <div class="chat-warn" id="chatWarn" style="display:none;"></div>
         </div>
     </div>
 

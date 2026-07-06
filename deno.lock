@@ -11,7 +11,8 @@
   "workspace": {
     "packageJson": {
       "dependencies": [
-        "npm:@netlify/blobs@^8.1.0"
+        "npm:@netlify/blobs@^8.1.0",
+        "npm:nodemailer@^6.10.1"
       ]
     }
   }

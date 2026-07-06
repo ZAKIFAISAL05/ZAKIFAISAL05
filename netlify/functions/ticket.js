@@ -39,6 +39,76 @@ const COUNTER_KEY = 'ticket-counter';
 const TICKETS_KEY = 'ticket-list';   // index: [{id, num, token, status, createdAt, done}]
 const DONE_RETENTION_MS = 2 * 24 * 60 * 60 * 1000;
 
+// ────────────────────────────────────────────────
+// Chat helpers (user ↔ admin) disimpan di record tiket
+// - Untuk list admin, chat di-strip supaya payload ringan
+// - Untuk view detail ticket (admin=1&id / token / id), chat ikut dikirim
+// ────────────────────────────────────────────────
+const MAX_CHAT_MESSAGES = 200;
+const MAX_CHAT_ATTACHMENTS = 3;
+const MAX_CHAT_ATTACHMENT_BYTES = 5 * 1024 * 1024; // 5MB
+
+function toUpperSafe(s) { return String(s || '').trim().toUpperCase(); }
+
+function normalizeMessages(ticket) {
+  const msgs = Array.isArray(ticket?.messages) ? ticket.messages : [];
+  // Batasi supaya tidak membengkak
+  return msgs.slice(-MAX_CHAT_MESSAGES);
+}
+
+function stripChatForAdminList(ticket) {
+  if (!ticket) return ticket;
+  const msgs = Array.isArray(ticket.messages) ? ticket.messages : [];
+  const lastMsg = msgs.length ? (msgs[msgs.length - 1] || null) : null;
+  const lastAt = lastMsg && lastMsg.at ? String(lastMsg.at) : null;
+  const lastFrom = lastMsg && lastMsg.from ? String(lastMsg.from) : null;
+
+  let lastUserAt = null;
+  for (let i = msgs.length - 1; i >= 0; i--) {
+    const m = msgs[i];
+    if (!m) continue;
+    if (m.from !== 'admin' && m.at) { lastUserAt = String(m.at); break; }
+  }
+
+  const adminSeenAt = ticket.adminSeenAt ? String(ticket.adminSeenAt) : null;
+  const lastUserTs = lastUserAt ? Date.parse(lastUserAt) : NaN;
+  const seenTs = adminSeenAt ? Date.parse(adminSeenAt) : NaN;
+  const chatUnread = !!lastUserAt && (Number.isNaN(seenTs) || (!Number.isNaN(lastUserTs) && lastUserTs > seenTs));
+
+  const out = {
+    ...ticket,
+    chatCount: msgs.length,
+    chatLastAt: lastAt,
+    chatLastFrom: lastFrom,
+    chatLastUserAt: lastUserAt,
+    adminSeenAt,
+    chatUnread,
+  };
+  delete out.messages;
+  return out;
+}
+
+function sanitizeMessage(m) {
+  const from = (m && m.from === 'admin') ? 'admin' : 'user';
+  const at = m && m.at ? String(m.at) : '';
+  const text = m && m.text ? String(m.text) : '';
+  const attachments = Array.isArray(m && m.attachments)
+    ? m.attachments
+        .filter(a => a && a.base64 && a.type && String(a.type).startsWith('image/'))
+        .map(a => ({ name: String(a.name || 'foto'), type: String(a.type), base64: String(a.base64) }))
+    : [];
+  return { from, at, text, attachments };
+}
+
+function base64SizeBytes(base64) {
+  // Rough estimate: base64 length * 3/4 - padding
+  const s = String(base64 || '');
+  let padding = 0;
+  if (s.endsWith('==')) padding = 2;
+  else if (s.endsWith('=')) padding = 1;
+  return Math.floor((s.length * 3) / 4) - padding;
+}
+
 async function getCounter(store) {
   try { const raw = await store.get(COUNTER_KEY); return raw ? parseInt(raw) : 0; } catch { return 0; }
 }
@@ -141,7 +211,7 @@ exports.handler = async (event) => {
       // Ambil detail tiket untuk setiap index entry
       const tickets = await Promise.all(idx.map(async (entry) => {
         const t = await getTicket(store, entry.id);
-        return t || entry;
+        return t ? stripChatForAdminList({ ...t, messages: normalizeMessages(t) }) : entry;
       }));
       return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, tickets }) };
     }
@@ -151,6 +221,7 @@ exports.handler = async (event) => {
       if (!(await verifyAdmin(q.adminToken))) return { statusCode: 403, headers: CORS, body: JSON.stringify({ error: 'Akses ditolak' }) };
       const ticket = await getTicket(store, q.id);
       if (!ticket) return { statusCode: 404, headers: CORS, body: JSON.stringify({ error: 'Tiket tidak ditemukan' }) };
+      ticket.messages = normalizeMessages(ticket);
       return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, ticket }) };
     }
 
@@ -177,6 +248,7 @@ exports.handler = async (event) => {
           updatedAt: ticket.updatedAt,
           done: ticket.done,
           devNote: ticket.devNote || '',
+          messages: normalizeMessages(ticket).map(sanitizeMessage),
         };
 
         return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, ticket: safeById }) };
@@ -191,7 +263,8 @@ exports.handler = async (event) => {
       const safe = { id: ticket.id, num: ticket.num, type: ticket.type, game: ticket.game,
         desc: ticket.desc, status: ticket.status, statusLabel: STATUS[ticket.status]?.label || ticket.status,
         statusStep: STATUS[ticket.status]?.step ?? 0, createdAt: ticket.createdAt,
-        updatedAt: ticket.updatedAt, done: ticket.done, devNote: ticket.devNote || '' };
+        updatedAt: ticket.updatedAt, done: ticket.done, devNote: ticket.devNote || '',
+        messages: normalizeMessages(ticket).map(sanitizeMessage) };
       return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, ticket: safe }) };
     }
 
@@ -217,6 +290,7 @@ exports.handler = async (event) => {
         updatedAt: ticket.updatedAt,
         done: ticket.done,
         devNote: ticket.devNote || '',
+        messages: normalizeMessages(ticket).map(sanitizeMessage),
       };
       return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, ticket: safe }) };
     }
@@ -253,7 +327,9 @@ exports.handler = async (event) => {
       const ticket = {
         id, num, token, type, game: game || '—', desc, email: email || '', contact: contact || '',
         summary: summary || desc, status: 'received', statusLabel: 'Diterima',
-        createdAt: now, updatedAt: now, done: false, devNote: ''
+        createdAt: now, updatedAt: now, done: false, devNote: '',
+        adminSeenAt: null,
+        messages: [],
       };
 
       await saveTicket(store, ticket);
@@ -266,6 +342,91 @@ exports.handler = async (event) => {
       return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, num, token, ticketUrl: '/tiket/?token=' + token }) };
     }
 
+    // Tambah pesan chat (user ↔ admin) + optional foto (max 5MB per file)
+    if (action === 'add_message') {
+      const { id, text, token, adminToken, attachments } = body || {};
+      if (!id) return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'ID tiket wajib diisi' }) };
+
+      const ticket = await getTicket(store, id);
+      if (!ticket) return { statusCode: 404, headers: CORS, body: JSON.stringify({ error: 'Tiket tidak ditemukan' }) };
+
+      const isAdmin = await verifyAdmin(adminToken);
+      const isOwnerByToken = token ? (toUpperSafe(ticket.token) === toUpperSafe(token)) : false;
+
+      // Mode tanpa token: izinkan jika user hanya punya ID (tiket biasanya dibagikan manual)
+      const allowed = isAdmin || isOwnerByToken || (!token && !adminToken);
+      if (!allowed) return { statusCode: 403, headers: CORS, body: JSON.stringify({ error: 'Akses ditolak' }) };
+
+      const cleanText = String(text || '').trim();
+      const rawAtt = Array.isArray(attachments) ? attachments.slice(0, MAX_CHAT_ATTACHMENTS) : [];
+
+      const cleanAtt = [];
+      for (const a of rawAtt) {
+        if (!a || !a.base64 || !a.type) continue;
+        const type = String(a.type || '');
+        if (!type.startsWith('image/')) continue;
+        const base64 = String(a.base64 || '');
+        const sizeBytes = base64SizeBytes(base64);
+        if (sizeBytes > MAX_CHAT_ATTACHMENT_BYTES) {
+          return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Ukuran foto maksimal 5MB per file' }) };
+        }
+        cleanAtt.push({
+          name: String(a.name || 'foto'),
+          type,
+          base64,
+        });
+      }
+
+      if (!cleanText && !cleanAtt.length) {
+        return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Pesan kosong' }) };
+      }
+
+      const msg = {
+        from: isAdmin ? 'admin' : 'user',
+        text: cleanText,
+        at: new Date().toISOString(),
+        attachments: cleanAtt,
+      };
+
+      ticket.messages = normalizeMessages(ticket);
+      ticket.messages.push(msg);
+      ticket.updatedAt = new Date().toISOString();
+
+      // Jika admin yang kirim pesan, anggap admin sudah "membaca" chat hingga titik ini
+      if (isAdmin) {
+        ticket.adminSeenAt = msg.at;
+      }
+
+      await saveTicket(store, ticket);
+
+      // Update index entry
+      const idx = await getIndex(store);
+      const ei  = idx.findIndex(e => e.id === id);
+      if (ei !== -1) {
+        idx[ei].updatedAt = ticket.updatedAt;
+        await saveIndex(store, idx);
+      }
+
+      return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, message: sanitizeMessage(msg) }) };
+    }
+
+    // Tandai chat sudah dilihat admin (untuk badge "ada chat baru")
+    if (action === 'admin_seen') {
+      const { id, adminToken } = body || {};
+      if (!(await verifyAdmin(adminToken))) return { statusCode: 403, headers: CORS, body: JSON.stringify({ error: 'Akses ditolak' }) };
+      if (!id) return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'ID tiket wajib diisi' }) };
+
+      const ticket = await getTicket(store, id);
+      if (!ticket) return { statusCode: 404, headers: CORS, body: JSON.stringify({ error: 'Tiket tidak ditemukan' }) };
+
+      // Jangan ubah updatedAt supaya tidak mengganggu sorting "terakhir diupdate"
+      ticket.messages = normalizeMessages(ticket);
+      ticket.adminSeenAt = new Date().toISOString();
+      await saveTicket(store, ticket);
+
+      return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, seenAt: ticket.adminSeenAt }) };
+    }
+
     // Update status tiket (hanya admin / WA bot)
     if (action === 'update_status') {
       const { id, status, adminToken, devNote } = body;
@@ -274,6 +435,9 @@ exports.handler = async (event) => {
 
       const ticket = await getTicket(store, id);
       if (!ticket) return { statusCode: 404, headers: CORS, body: JSON.stringify({ error: 'Tiket tidak ditemukan' }) };
+
+      // Pastikan field chat tidak hilang
+      ticket.messages = normalizeMessages(ticket);
 
       ticket.status      = status;
       ticket.statusLabel = STATUS[status].label;
@@ -300,6 +464,8 @@ exports.handler = async (event) => {
 
       const ticket = await getTicket(store, id);
       if (!ticket) return { statusCode: 404, headers: CORS, body: JSON.stringify({ error: 'Tiket tidak ditemukan' }) };
+
+      ticket.messages = normalizeMessages(ticket);
 
       ticket.status      = 'done';
       ticket.statusLabel = 'Selesai';

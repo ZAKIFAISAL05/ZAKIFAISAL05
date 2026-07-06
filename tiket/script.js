@@ -74,6 +74,172 @@ function esc(str) {
 }
 
 /* ══════════════════════════════════════
+   CHAT (USER ↔ ADMIN)
+══════════════════════════════════════ */
+let _currentTicket = null;
+let _chatFile = null;
+
+function buildImgDataUrl(att) {
+  if (!att || !att.base64 || !att.type) return '';
+  return `data:${att.type};base64,${att.base64}`;
+}
+
+function renderChatMessages(messages) {
+  const msgs = Array.isArray(messages) ? messages : [];
+  if (!msgs.length) {
+    return `<div class="chat-empty">Belum ada chat. Kamu bisa mulai tanya admin lewat sini.</div>`;
+  }
+
+  return msgs.map(m => {
+    const from = m.from === 'admin' ? 'admin' : 'user';
+    const time = m.at ? formatDate(m.at) : '—';
+    const text = (m.text || '').trim();
+    const images = Array.isArray(m.attachments)
+      ? m.attachments
+          .filter(a => a && a.base64 && a.type && String(a.type).startsWith('image/'))
+          .map(a => `<a class="chat-img-link" href="${buildImgDataUrl(a)}" target="_blank" rel="noopener">
+              <img class="chat-img" src="${buildImgDataUrl(a)}" alt="${esc(a.name || 'foto')}">
+            </a>`)
+          .join('')
+      : '';
+
+    return `
+      <div class="chat-row ${from}">
+        <div class="chat-bubble">
+          ${text ? `<div class="chat-text">${esc(text).replace(/\n/g, '<br>')}</div>` : ''}
+          ${images ? `<div class="chat-images">${images}</div>` : ''}
+          <div class="chat-meta">${from === 'admin' ? 'Admin' : 'Kamu'} · ${time}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function buildChatSection(ticket) {
+  return `
+    <div class="chat-section" aria-label="Chat tiket">
+      <div class="section-label">Chat dengan Admin</div>
+      <div class="chat-hint">Kamu bisa kirim pesan atau foto bukti (maks 5MB).</div>
+
+      <div class="chat-box" id="ticket-chat-box">
+        ${renderChatMessages(ticket && ticket.messages)}
+      </div>
+
+      <div class="chat-compose">
+        <label class="chat-attach" for="chat-file" title="Kirim foto bukti (maks 5MB)">📎</label>
+        <input id="chat-file" type="file" accept="image/*" style="display:none">
+        <textarea id="chat-input" class="chat-input" rows="1" placeholder="Tulis pesan untuk admin..."></textarea>
+        <button class="chat-send" id="chat-send" type="button">Kirim</button>
+      </div>
+      <div class="chat-file-note" id="chat-file-note" style="display:none;"></div>
+      <div class="chat-warn" id="chat-warn" style="display:none;"></div>
+    </div>
+  `;
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader();
+    r.onload = () => resolve(String(r.result || '').split(',')[1] || '');
+    r.onerror = reject;
+    r.readAsDataURL(file);
+  });
+}
+
+function showChatWarn(msg) {
+  const w = document.getElementById('chat-warn');
+  if (!w) return;
+  if (!msg) { w.style.display = 'none'; w.textContent = ''; return; }
+  w.style.display = 'block';
+  w.textContent = msg;
+}
+
+function bindChat(ticket) {
+  const fileEl = document.getElementById('chat-file');
+  const inputEl = document.getElementById('chat-input');
+  const sendBtn = document.getElementById('chat-send');
+  const noteEl = document.getElementById('chat-file-note');
+
+  if (!fileEl || !inputEl || !sendBtn) return;
+
+  fileEl.addEventListener('change', () => {
+    showChatWarn('');
+    const f = fileEl.files && fileEl.files[0] ? fileEl.files[0] : null;
+    if (!f) return;
+    if (f.size > 5 * 1024 * 1024) {
+      _chatFile = null;
+      fileEl.value = '';
+      if (noteEl) { noteEl.style.display = 'none'; noteEl.textContent = ''; }
+      showChatWarn('Ukuran foto maksimal 5MB. Tolong kompres / kirim ulang versi lebih kecil.');
+      return;
+    }
+    _chatFile = f;
+    if (noteEl) {
+      noteEl.style.display = 'block';
+      noteEl.textContent = `Terpilih: ${f.name} (${Math.ceil(f.size / 1024)} KB)`;
+    }
+  });
+
+  inputEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendBtn.click();
+    }
+  });
+
+  sendBtn.addEventListener('click', async () => {
+    if (!ticket || !ticket.id) return;
+    showChatWarn('');
+
+    const text = (inputEl.value || '').trim();
+    if (!text && !_chatFile) {
+      showChatWarn('Tulis pesan dulu atau pilih foto.');
+      return;
+    }
+
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Mengirim...';
+
+    try {
+      const token = getTokenFromURL();
+      const atts = [];
+      if (_chatFile) {
+        const b64 = await fileToBase64(_chatFile);
+        atts.push({ name: _chatFile.name, type: _chatFile.type, base64: b64 });
+      }
+
+      const res = await fetch(TICKET_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add_message',
+          id: ticket.id,
+          token: token || '',
+          text,
+          attachments: atts,
+        }),
+      });
+      const data = await res.json();
+      if (!data || !data.ok) throw new Error(data?.error || 'Gagal kirim pesan');
+
+      // Reset compose
+      inputEl.value = '';
+      _chatFile = null;
+      fileEl.value = '';
+      if (noteEl) { noteEl.style.display = 'none'; noteEl.textContent = ''; }
+
+      // Refresh tiket untuk ambil chat terbaru
+      await loadTicket();
+    } catch (e) {
+      showChatWarn(e.message || 'Gagal mengirim pesan.');
+    } finally {
+      sendBtn.disabled = false;
+      sendBtn.textContent = 'Kirim';
+    }
+  });
+}
+
+/* ══════════════════════════════════════
    RENDER: LOADING
 ══════════════════════════════════════ */
 function renderLoading() {
@@ -142,6 +308,8 @@ function renderTicket(ticket) {
        </div>`
     : '';
 
+  const chatHtml = buildChatSection(ticket);
+
   card.innerHTML = `
     <!-- HEADER -->
     <div class="ticket-header">
@@ -194,6 +362,8 @@ function renderTicket(ticket) {
       </div>
     </div>
 
+    ${chatHtml}
+
     <!-- FOOTER ACTIONS -->
     <div class="card-footer">
       <a href="../cs/" class="btn btn-ghost">← Kembali ke CS</a>
@@ -203,6 +373,8 @@ function renderTicket(ticket) {
 
   // Tunjukkan/sembunyikan refresh hint
   document.getElementById('refresh-hint').style.display = isDone ? 'none' : 'block';
+
+  bindChat(ticket);
 }
 
 /* ══════════════════════════════════════
