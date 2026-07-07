@@ -5,6 +5,193 @@
     'use strict';
 
     // ────────────────────────────────────────────────
+    // HOMEPAGE GAME CATALOG (DYNAMIC RENDER)
+    // Sumber data:
+    // - `window.NUSABIT_GAMES` (format baru: downloadLinks, image, icon, tags, dll)
+    // - fallback: `window.gameData` / `gameData` (format lama: platforms, thumb, logo, dll)
+    // ────────────────────────────────────────────────
+    function _cleanUrl(url) {
+        // Kadang data disimpan pakai backtick (`...`) seperti contoh user
+        return String(url || '').trim().replace(/^`|`$/g, '');
+    }
+
+    function _guessPlatformCls(url, key) {
+        const u = String(url || '').toLowerCase();
+        const k = String(key || '').toLowerCase();
+        if (u.includes('roblox.com')) return 'btn-roblox';
+        if (u.includes('amazon.')) return 'btn-amazon';
+        if (u.includes('itch.io')) return 'btn-itchio';
+        if (u.includes('taptap')) return 'btn-taptap';
+        if (u.includes('play.google.com') || k === 'android') return 'btn-taptap';
+        return 'btn-platform-generic';
+    }
+
+    function _platformLabelFromKey(key) {
+        const k = String(key || '').toLowerCase();
+        if (k === 'android') return 'Google Play (Android)';
+        if (k === 'ios') return 'App Store (iOS)';
+        if (k === 'windows') return 'Windows';
+        if (k === 'roblox') return 'Play on Roblox';
+        return key || 'Download';
+    }
+
+    function _buildPlatformsFromDownloadLinks(downloadLinks) {
+        const links = downloadLinks && typeof downloadLinks === 'object' ? downloadLinks : {};
+        const out = [];
+        Object.keys(links).forEach(function (key) {
+            const url = _cleanUrl(links[key]);
+            if (!url || url === '#' || url === 'null' || url === 'undefined') return;
+            out.push({
+                name: _platformLabelFromKey(key),
+                url: url,
+                cls: _guessPlatformCls(url, key)
+            });
+        });
+        return out;
+    }
+
+    function _toCardDesc(text) {
+        const t = String(text || '').trim();
+        if (!t) return '';
+        if (t.length <= 110) return t;
+        return t.slice(0, 107).trim() + '...';
+    }
+
+    function _guessCategoryFromGenre(genreText) {
+        const g = String(genreText || '').toLowerCase();
+        const known = ['arcade', 'action', 'simulation', 'platformer', 'roblox'];
+        for (let i = 0; i < known.length; i++) {
+            if (g.includes(known[i])) return known[i];
+        }
+        return '';
+    }
+
+    function _normalizeGame(raw) {
+        if (!raw) return null;
+
+        // Format baru (NUSABIT_GAMES)
+        const hasNewShape = raw.downloadLinks || raw.image || raw.icon || raw.tags || raw.descriptionId;
+        if (hasNewShape) {
+            const id = raw.id || '';
+            const title = raw.title || id;
+            const genreText = raw.genre || raw.category || 'Other';
+            const platforms = _buildPlatformsFromDownloadLinks(raw.downloadLinks);
+            const thumb = raw.image || raw.thumb || raw.logo || 'assets/img/studio_logo.png';
+            const logo = raw.icon || raw.logo || thumb;
+            const desc = raw.description || raw.desc || '';
+            const tags = raw.tags || '';
+
+            const isRoblox = (raw.category && String(raw.category).toLowerCase().includes('roblox'))
+                || (String(raw.genre || '').toLowerCase().includes('roblox'))
+                || platforms.some(p => String(p.cls).includes('roblox'));
+
+            return {
+                id,
+                title,
+                logo,
+                thumb,
+                desc,
+                genre: genreText,
+                developer: raw.developer || 'Nusabit Studio',
+                gallery: Array.isArray(raw.gallery) && raw.gallery.length ? raw.gallery : [thumb],
+                platforms: platforms,
+                // untuk filter homepage
+                _filterGenre: (isRoblox ? 'roblox ' : '') + String(genreText || ''),
+                _filterCategory: raw.category || '',
+                _filterTags: String(tags || '')
+            };
+        }
+
+        // Format lama (gameData.js existing)
+        const id = raw.id || '';
+        const title = raw.title || id;
+        const genreText = raw.genre || 'Other';
+        const platforms = Array.isArray(raw.platforms) ? raw.platforms : [];
+        const isRoblox = platforms.some(p => String(p.cls || '').includes('roblox')) || String(id).includes('roblox');
+        const cat = _guessCategoryFromGenre(genreText) || (isRoblox ? 'roblox' : '');
+
+        return {
+            id,
+            title,
+            logo: raw.logo || raw.icon || 'assets/img/studio_logo.png',
+            thumb: raw.thumb || raw.image || raw.logo || 'assets/img/studio_logo.png',
+            desc: raw.desc || raw.description || '',
+            genre: genreText,
+            developer: raw.developer || 'Nusabit Studio',
+            gallery: Array.isArray(raw.gallery) && raw.gallery.length ? raw.gallery : [raw.thumb || raw.logo || 'assets/img/studio_logo.png'],
+            platforms: platforms,
+            _filterGenre: (isRoblox ? 'roblox ' : '') + String(genreText || ''),
+            _filterCategory: cat,
+            _filterTags: (title + ' ' + genreText + ' ' + (isRoblox ? 'roblox' : '')).trim()
+        };
+    }
+
+    const __RAW_CATALOG__ = (window.NUSABIT_GAMES && Array.isArray(window.NUSABIT_GAMES))
+        ? window.NUSABIT_GAMES
+        : (window.gameData && Array.isArray(window.gameData))
+            ? window.gameData
+            : (typeof gameData !== 'undefined' && Array.isArray(gameData))
+                ? gameData
+                : [];
+
+    const CATALOG = __RAW_CATALOG__.map(_normalizeGame).filter(Boolean);
+
+    // Map ID → URL SEO-friendly (fallback ke /game/?id=...)
+    const HOME_ID_TO_URL = {
+        'minecraft-parkour-2d':        '/Minecraft-Parkun-2D',
+        'the-one-for-zombie':          '/The-One-For-Zombie',
+        'desa-karya-investasi-zombie': '/Desa-Karya-Investasi-Zombie',
+        'gerbang-parkun-2d':           '/Gerbang-Parkun-2D',
+        'desa-cipta-karya-ch2':        '/Desa-Cipta-Karya-Ch2',
+        'the-undeads-roblox':          '/The-Undeads-Roblox',
+        'frequency-fury-obby':         '/Frequency-Fury-Obby'
+    };
+
+    function _getGameUrl(id) {
+        return HOME_ID_TO_URL[id] || ('/game/?id=' + encodeURIComponent(id));
+    }
+
+    function renderHomepageGames() {
+        const grid = document.getElementById('games-grid') || document.querySelector('.games-grid');
+        if (!grid) return;
+
+        grid.innerHTML = '';
+
+        CATALOG.forEach(function (g) {
+            const card = document.createElement('a');
+            card.className = 'game-card';
+            card.href = _getGameUrl(g.id);
+            card.setAttribute('data-game-id', g.id);
+            card.setAttribute('data-genre', String(g._filterGenre || g.genre || '').toLowerCase());
+            if (g._filterCategory) card.setAttribute('data-category', String(g._filterCategory).toLowerCase());
+            if (g._filterTags) card.setAttribute('data-tags', String(g._filterTags).toLowerCase());
+            card.setAttribute('tabindex', '0');
+            card.setAttribute('aria-label', g.title);
+
+            card.innerHTML = `
+                <div class="game-image-wrapper">
+                    <img
+                        src="${g.thumb}"
+                        alt="${g.title}"
+                        class="game-image"
+                        loading="lazy"
+                    />
+                </div>
+                <div class="game-info">
+                    <h3 class="game-title">${g.title}</h3>
+                    <p class="game-description">${_toCardDesc(g.desc) || ''}</p>
+                    <p class="game-dev">Dev: ${g.developer || 'Nusabit Studio'} | Genre: ${g.genre || '-'}</p>
+                </div>
+            `;
+
+            grid.appendChild(card);
+        });
+    }
+
+    // Render dulu agar script lain (filter, animasi, observer) bekerja pada DOM final
+    renderHomepageGames();
+
+    // ────────────────────────────────────────────────
     // ELEMENTS
     // ────────────────────────────────────────────────
     const heroSection      = document.getElementById('hero');
@@ -20,7 +207,6 @@
     const cursorEl         = document.querySelector('.cursor');
     const heroTitle        = document.querySelector('.hero-title');
     const primaryBtn       = document.querySelector('.btn-primary-scroll');
-    const gameCards        = document.querySelectorAll('.game-card');
 
     let currentSlide = 0;
 
@@ -153,7 +339,7 @@
     const renderOtherGames = (currentId) => {
         const grid      = document.getElementById('other-games-grid');
         const container = document.getElementById('other-games-container');
-        const others    = gameData.filter(g => g.id !== currentId);
+        const others    = CATALOG.filter(g => g.id !== currentId);
 
         grid.innerHTML = '';
         container.style.display = others.length ? 'block' : 'none';
@@ -200,8 +386,8 @@
     // ────────────────────────────────────────────────
     // SHOW GAME MODAL
     // ────────────────────────────────────────────────
-    const showGameDetails = (gameId) => {
-        const game = gameData.find(g => g.id === gameId);
+    function showGameDetails(gameId) {
+        const game = CATALOG.find(g => g.id === gameId);
         if (!game) return;
 
         currentSlide = 0;
@@ -227,7 +413,35 @@
         modal.classList.add('active');
         lockScroll();
         modal.scrollTo(0, 0);
-    };
+    }
+
+    // ────────────────────────────────────────────────
+    // HOMEPAGE CARD ACTIONS
+    // Klik card → buka modal (kalau modal ada). Tetap ada href sebagai fallback.
+    // ────────────────────────────────────────────────
+    function bindHomepageCardActions() {
+        if (!modal) return;
+        document.querySelectorAll('.game-card').forEach(function (card) {
+            if (card.dataset.boundClick) return;
+            card.dataset.boundClick = '1';
+            card.addEventListener('click', function (e) {
+                const id = card.getAttribute('data-game-id');
+                if (!id) return;
+                e.preventDefault();
+                showGameDetails(id);
+            });
+            card.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    const id = card.getAttribute('data-game-id');
+                    if (!id) return;
+                    e.preventDefault();
+                    showGameDetails(id);
+                }
+            });
+        });
+    }
+
+    bindHomepageCardActions();
 
     // ────────────────────────────────────────────────
     // LEGACY LOCALSTORAGE GUARD
