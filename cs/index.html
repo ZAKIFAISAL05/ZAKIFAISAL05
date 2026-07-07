@@ -4,7 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Customer Service — Nusabit Studio</title>
-    <script>document.documentElement.setAttribute('data-theme', localStorage.getItem('gs-theme') || 'light');</script>
+    <script>
+      try {
+        document.documentElement.setAttribute('data-theme', localStorage.getItem('gs-theme') || 'light');
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+      }
+    </script>
     <link rel="icon" href="/favicon.ico">
     <link rel="icon" type="image/png" sizes="16x16" href="/assets/img/favicon-16.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicon-32.png">
@@ -186,9 +192,9 @@
     </div>
 </div>
 
-<script src="/cs/script.js?v=dc5cf12622" defer></script>
+<script src="/cs/script.js?v=7f629f2263" defer></script>
 <script src="/assets/js/animations.js?v=a6d15293cc" defer></script>
 
-    <script src="/assets/js/lang-auto.js?v=73c86fc385"></script>
+    <script src="/assets/js/lang-auto.js?v=aa9bb15e9d"></script>
 </body>
 </html>

@@ -71,7 +71,10 @@ function initSiteAnnouncement() {
 
 // ── CEK TIKET WIDGET ─────────────────────────────────────────
 function cekTiket() {
-  var raw = (document.getElementById('tiket-input').value || '').trim();
+  var inputEl = document.getElementById('tiket-input');
+  if (!inputEl) return;
+
+  var raw = (inputEl.value || '').trim();
   if (!raw) {
     shakeInput();
     return;
@@ -173,7 +176,17 @@ async function submitReport(type) {
       body: JSON.stringify({ type, game: game || 'Tidak disebutkan', desc, email, contact })
     });
 
-    var data = await res.json();
+    var data = null;
+    try {
+      data = await res.json();
+    } catch (parseErr) {
+      throw new Error('Respons server tidak valid.');
+    }
+
+    if (!res.ok || !data || !data.ok) {
+      throw new Error((data && data.error) || 'Gagal mengirim laporan.');
+    }
+
     var form = document.getElementById('modal-' + type + '-form');
     var succ = document.getElementById('modal-' + type + '-success');
 
@@ -196,7 +209,7 @@ async function submitReport(type) {
         : '<i data-feather="zap"></i> Kirim Saran';
     }
     rerenderFeather();
-    alert('Gagal mengirim. Coba lagi.');
+    alert(err && err.message ? err.message : 'Gagal mengirim. Coba lagi.');
   }
 }
 

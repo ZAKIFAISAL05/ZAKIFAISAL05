@@ -13,13 +13,32 @@
 (function () {
   var LANG_KEY = 'gs_lang';
   var DEFAULT_LANG = 'id';
+  var MAX_TRANSLATE_RETRIES = 20;
+  var translateRetryCount = 0;
+
+  function safeGetStorage(key, fallbackValue) {
+    try {
+      var value = localStorage.getItem(key);
+      return value || fallbackValue;
+    } catch (err) {
+      return fallbackValue;
+    }
+  }
+
+  function safeSetStorage(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch (err) {
+      // ignore storage errors (private mode / blocked storage)
+    }
+  }
 
   function getSavedLang() {
-    return localStorage.getItem(LANG_KEY) || DEFAULT_LANG;
+    return safeGetStorage(LANG_KEY, DEFAULT_LANG);
   }
 
   function setSavedLang(lang) {
-    localStorage.setItem(LANG_KEY, lang);
+    safeSetStorage(LANG_KEY, lang);
   }
 
   function setLangLabel(lang) {
@@ -39,9 +58,12 @@
   function doTranslateTo(targetLang) {
     var select = document.querySelector('select.goog-te-combo');
     if (!select) {
+      if (translateRetryCount >= MAX_TRANSLATE_RETRIES) return;
+      translateRetryCount += 1;
       setTimeout(function () { doTranslateTo(targetLang); }, 150);
       return;
     }
+    translateRetryCount = 0;
     select.value = targetLang;
     select.dispatchEvent(new Event('change'));
     document.documentElement.lang = targetLang;
@@ -93,4 +115,3 @@
     }
   });
 })();
-

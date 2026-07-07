@@ -6,8 +6,12 @@
 
 // ── SYNC THEME FROM MAIN SITE ──
 (function () {
-    var t = localStorage.getItem('gs-theme') || 'light';
-    document.documentElement.setAttribute('data-theme', t);
+    try {
+        var t = localStorage.getItem('gs-theme') || 'light';
+        document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light');
+    }
 })();
 
 var CS_ENDPOINT     = '/.netlify/functions/cs-chat';
@@ -1160,9 +1164,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Modal backdrop close
-    document.getElementById('modal-bg').addEventListener('click', function(e) {
-        if (e.target === this) closeModal();
-    });
+    var modalBg = document.getElementById('modal-bg');
+    if (modalBg) {
+        modalBg.addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+    }
 
     // Tombol Bug di topbar
     var btnReportTop = document.getElementById('btn-report-top');

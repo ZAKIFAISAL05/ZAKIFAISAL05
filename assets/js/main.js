@@ -251,11 +251,12 @@
     // HAMBURGER MENU
     // ────────────────────────────────────────────────
     const closeMenu = () => {
+        if (!menuOverlay) return;
         menuOverlay.classList.remove('open');
         unlockScroll();
     };
 
-    if (menuButton) menuButton.addEventListener('click', () => {
+    if (menuButton && menuOverlay) menuButton.addEventListener('click', () => {
         menuOverlay.classList.add('open');
         lockScroll();
     });
@@ -280,18 +281,20 @@
     // GALLERY SLIDER
     // ────────────────────────────────────────────────
     const showSlide = (index) => {
+        const slidesWrap = document.getElementById('gallery-slides');
         const slides = document.querySelectorAll('#gallery-slides .gallery-slide');
         const dots   = document.querySelectorAll('#gallery-dots .gallery-dot');
-        if (!slides.length) return;
+        if (!slides.length || !slidesWrap) return;
 
         currentSlide = (index + slides.length) % slides.length;
-        document.getElementById('gallery-slides').style.transform = `translateX(${-currentSlide * 100}%)`;
+        slidesWrap.style.transform = `translateX(${-currentSlide * 100}%)`;
         dots.forEach((d, i) => d.classList.toggle('active', i === currentSlide));
     };
 
     const renderGallery = (game, screenshots) => {
         const slidesEl = document.getElementById('gallery-slides');
         const dotsEl   = document.getElementById('gallery-dots');
+        if (!slidesEl || !dotsEl) return;
         slidesEl.innerHTML = '';
         dotsEl.innerHTML   = '';
 
@@ -318,6 +321,7 @@
     // ────────────────────────────────────────────────
     const renderPlatformButtons = (platforms) => {
         const container = document.getElementById('platform-buttons');
+        if (!container) return;
         container.innerHTML = '';
 
         platforms.forEach(p => {
@@ -339,6 +343,7 @@
     const renderOtherGames = (currentId) => {
         const grid      = document.getElementById('other-games-grid');
         const container = document.getElementById('other-games-container');
+        if (!grid || !container) return;
         const others    = CATALOG.filter(g => g.id !== currentId);
 
         grid.innerHTML = '';
@@ -388,12 +393,17 @@
     // ────────────────────────────────────────────────
     function showGameDetails(gameId) {
         const game = CATALOG.find(g => g.id === gameId);
-        if (!game) return;
+        if (!game || !modal) return;
+
+        const modalLogo = document.getElementById('modal-logo');
+        const modalTitle = document.getElementById('modal-title');
+        const modalDescription = document.getElementById('modal-description');
+        if (!modalLogo || !modalTitle || !modalDescription) return;
 
         currentSlide = 0;
-        document.getElementById('modal-logo').src          = game.logo;
-        document.getElementById('modal-title').textContent  = game.title;
-        document.getElementById('modal-description').textContent = game.desc;
+        modalLogo.src = game.logo;
+        modalTitle.textContent = game.title;
+        modalDescription.textContent = game.desc;
 
         const genreBadge = document.getElementById('modal-genre-badge');
         const genreText  = document.getElementById('modal-genre-text');
@@ -471,7 +481,7 @@
         }
     });
     document.addEventListener('keydown', e => {
-        if (e.key === 'Escape' && modal.classList.contains('active')) {
+        if (modal && e.key === 'Escape' && modal.classList.contains('active')) {
             modal.classList.remove('active');
             unlockScroll();
         }

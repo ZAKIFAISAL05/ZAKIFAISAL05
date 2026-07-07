@@ -1,13 +1,13 @@
-functionsDirectory = "/workspace/ZAKIFAISAL05-main-cache-fix-full/netlify/functions"
+functionsDirectory = "/data/user/work/zakifaisal05_project/ZAKIFAISAL05-main/netlify/functions"
 functionsDirectoryOrigin = "config-v1"
 headersOrigin = "config"
 redirectsOrigin = "config"
 plugins = []
 
 [build]
-publish = "/workspace/ZAKIFAISAL05-main-cache-fix-full"
+publish = "/data/user/work/zakifaisal05_project/ZAKIFAISAL05-main"
 publishOrigin = "config"
-functions = "/workspace/ZAKIFAISAL05-main-cache-fix-full/netlify/functions"
+functions = "/data/user/work/zakifaisal05_project/ZAKIFAISAL05-main/netlify/functions"
 
 [build.environment]
 
