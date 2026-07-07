@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "npx netlify dev",
     "start": "npx netlify dev",
-    "build": "npx netlify build --offline",
+    "cache:bust": "node cache-buster.js",
+    "build": "node cache-buster.js && npx netlify build --offline",
     "deploy:preview": "npx netlify deploy",
     "deploy:prod": "npx netlify deploy --prod"
   },
