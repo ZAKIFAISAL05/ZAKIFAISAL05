@@ -138,7 +138,7 @@ function closeReportModal(type) {
   }
 }
 
-// ── LOGIKA FILTER, PENCARIAN, DAN KLIK KE HALAMAN SLUG GAME ──
+// ── LOGIKA FILTER, PENCARIAN, DAN REDIRECT URL GAME ──────────
 function initGamesFilter() {
   var searchInput = document.getElementById('game-search');
   var clearBtn = document.getElementById('game-search-clear');
@@ -193,22 +193,19 @@ function initGamesFilter() {
     }
   }
 
-  // 🛠️ PERBAIKAN LOGIKA KLIK: LANGSUNG MASUK KE HALAMAN internal `/id-game`
+  // 🛠️ PERBAIKAN LOGIKA KLIK: DIPAKSA RE-DIRECT LANGSUNG KE URL UTAMA
   gamesGrid.addEventListener('click', function (e) {
     var card = e.target.closest('.game-card');
     if (!card) return;
 
-    // Memotong / mematikan fungsi buka modal pop-up dari main.js
-    e.preventDefault();
-    e.stopPropagation();
-
     var gameId = card.getAttribute('data-id');
 
     if (gameId) {
-      // Mengarahkan halaman aktif ke url internal nusabit, contoh: /Desa-Cipta-Karya-Ch2 atau /minecraft-parkour-2d
-      window.location.href = '/' + gameId;
+      gameId = gameId.trim();
+      // Mengarahkan window aktif langsung ke domain + slug folder target
+      window.location.href = window.location.origin + '/' + gameId;
     }
-  }, true); // Menggunakan true (capturing phase) agar eksekusi ini diprioritaskan utama
+  });
 
   if (searchInput) {
     searchInput.addEventListener('input', function () {
@@ -265,3 +262,4 @@ document.addEventListener('DOMContentLoaded', function () {
   initGamesFilter(); 
   if (typeof window.initReviewsSlider === 'function') window.initReviewsSlider();
 });
+    
