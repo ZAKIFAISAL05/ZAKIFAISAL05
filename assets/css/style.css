@@ -2655,3 +2655,32 @@ a.game-card {
     color: inherit;
 }
 a.game-card:visited { color: inherit; }
+
+/* ============================================================
+   LANGUAGE TOGGLE (AUTO TRANSLATE)
+   - Sembunyikan widget Google Translate
+   - Jaga layout agar tidak rusak saat teks memanjang
+============================================================ */
+
+.gtranslate-hidden {
+    position: fixed;
+    left: -9999px;
+    top: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+}
+
+nav { flex-wrap: wrap; }
+
+.nav-studio-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#langToggle,
+#lang-label {
+    white-space: nowrap;
+}
