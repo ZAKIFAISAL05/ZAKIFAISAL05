@@ -5,9 +5,6 @@
 //  Logic khusus homepage / landing page Nusabit Studio
 // ============================================================
 
-// ── LANGUAGE TOGGLE ──────────────────────────────────────────
-// Language toggle otomatis ditangani oleh `assets/js/lang-auto.js` (global).
-
 // ── PENGUMUMAN WEBSITE (dari Admin Panel) ────────────────────
 function initSiteAnnouncement() {
   var box = document.getElementById('site-announcement');
@@ -15,7 +12,6 @@ function initSiteAnnouncement() {
   var closeBtn = document.getElementById('site-announcement-close');
   if (!box || !textEl) return;
 
-  // Render dari settings → kalau belum ada, banner tetap disembunyikan
   function renderFromSettings(settings) {
     var ann = settings && settings.announcement;
     if (!ann || !ann.enabled || !ann.message) {
@@ -23,7 +19,6 @@ function initSiteAnnouncement() {
       return;
     }
 
-    // Kalau server kasih expiresAt, pakai untuk auto-hide global
     var exp = ann.expiresAt ? Date.parse(ann.expiresAt) : NaN;
     if (!Number.isNaN(exp)) {
       var remainingMs = exp - Date.now();
@@ -32,7 +27,6 @@ function initSiteAnnouncement() {
         return;
       }
 
-      // Auto-hide saat waktu habis (kalau user masih di halaman)
       setTimeout(function () {
         box.style.display = 'none';
       }, remainingMs);
@@ -42,7 +36,6 @@ function initSiteAnnouncement() {
     box.style.display = '';
   }
 
-  // Tombol close (hanya untuk user ini, tidak mematikan global)
   if (closeBtn && !closeBtn.dataset.bound) {
     closeBtn.dataset.bound = '1';
     closeBtn.addEventListener('click', function () {
@@ -50,13 +43,11 @@ function initSiteAnnouncement() {
     });
   }
 
-  // Ambil settings: prioritas pakai hasil dari site-guard.js (jika sudah ada)
   if (window.__SITE_SETTINGS__) {
     renderFromSettings(window.__SITE_SETTINGS__);
     return;
   }
 
-  // Fallback: fetch sendiri (kalau site-guard gagal / belum keburu)
   fetch('/.netlify/functions/site-settings', { method: 'GET', cache: 'no-store' })
     .then(function (r) { return r.json(); })
     .then(function (data) {
@@ -80,10 +71,6 @@ function cekTiket() {
     return;
   }
 
-  // Bisa input:
-  // - Link tiket (…/tiket/?token=XXXX) atau (…/tiket/?id=GS-XXXX)
-  // - Token saja
-  // - ID tiket saja (GS-XXXX) → biar tidak "tiket tidak ditemukan"
   var token = '';
   var id = '';
 
@@ -100,7 +87,6 @@ function cekTiket() {
   }
 
   if (!token && !id) {
-    // kalau user input "GS-..." anggap sebagai id
     if (/^GS-[A-Z0-9]+/i.test(raw)) id = raw.toUpperCase();
     else token = raw;
   }
@@ -152,75 +138,16 @@ function closeReportModal(type) {
   }
 }
 
-async function submitReport(type) {
-  var game = (document.getElementById(type + '-game')?.value || '').trim();
-  var desc = (document.getElementById(type + '-desc')?.value || '').trim();
-  var email = (document.getElementById(type + '-email')?.value || '').trim();
-  var contact = (document.getElementById(type + '-contact')?.value || '').trim();
-  var btn = document.getElementById(type + '-submit');
-
-  if (!desc) {
-    alert('Deskripsi tidak boleh kosong.');
-    return;
-  }
-
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = 'Mengirim...';
-  }
-
-  try {
-    var res = await fetch('/.netlify/functions/report', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type, game: game || 'Tidak disebutkan', desc, email, contact })
-    });
-
-    var data = null;
-    try {
-      data = await res.json();
-    } catch (parseErr) {
-      throw new Error('Respons server tidak valid.');
-    }
-
-    if (!res.ok || !data || !data.ok) {
-      throw new Error((data && data.error) || 'Gagal mengirim laporan.');
-    }
-
-    var form = document.getElementById('modal-' + type + '-form');
-    var succ = document.getElementById('modal-' + type + '-success');
-
-    if (form) form.style.display = 'none';
-    if (succ) succ.style.display = '';
-
-    if (data.ticketId && type === 'bug') {
-      var ticketBox = document.getElementById('bug-ticket-box');
-      var ticketNum = document.getElementById('bug-ticket-num');
-      if (ticketBox) ticketBox.style.display = '';
-      if (ticketNum) ticketNum.textContent = data.ticketNum ? ('Tiket #' + data.ticketNum) : ('#' + data.ticketId);
-    }
-
-    rerenderFeather();
-  } catch (err) {
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = type === 'bug'
-        ? '<i data-feather="alert-triangle"></i> Kirim Laporan Bug'
-        : '<i data-feather="zap"></i> Kirim Saran';
-    }
-    rerenderFeather();
-    alert(err && err.message ? err.message : 'Gagal mengirim. Coba lagi.');
-  }
-}
-
-// ── LOGIKA FILTER DAN PENCERIAN GAME (FIXED INITIAL PREVENT) ──
+// ── LOGIKA FILTER, PENCARIAN, DAN KLIK KE HALAMAN SLUG GAME ──
 function initGamesFilter() {
   var searchInput = document.getElementById('game-search');
   var clearBtn = document.getElementById('game-search-clear');
   var tabs = document.querySelectorAll('.filter-tab, .games-tab-btn');
   var emptyState = document.getElementById('games-empty-state');
+  var gamesGrid = document.getElementById('games-grid');
 
-  // Sembunyikan empty state sejak awal inisialisasi agar tidak mengintip keluar
+  if (!gamesGrid) return;
+
   if (emptyState) {
     emptyState.setAttribute('hidden', '');
     emptyState.style.display = 'none';
@@ -235,7 +162,7 @@ function initGamesFilter() {
     }
     
     var q = searchInput ? searchInput.value.toLowerCase().trim() : '';
-    var cards = document.querySelectorAll('.game-card');
+    var cards = gamesGrid.querySelectorAll('.game-card');
     var gamesFoundCount = 0;
 
     cards.forEach(function (card) {
@@ -255,9 +182,8 @@ function initGamesFilter() {
       }
     });
 
-    // Jalankan logika empty state hanya jika ini BUKAN load pertama kali website dibuka
-    if (emptyState && !isInitialLoad) {
-      if (gamesFoundCount === 0) {
+    if (emptyState) {
+      if (!isInitialLoad && gamesFoundCount === 0) {
         emptyState.removeAttribute('hidden');
         emptyState.style.display = 'block';
       } else {
@@ -267,12 +193,29 @@ function initGamesFilter() {
     }
   }
 
+  // 🛠️ PERBAIKAN LOGIKA KLIK: LANGSUNG MASUK KE HALAMAN internal `/id-game`
+  gamesGrid.addEventListener('click', function (e) {
+    var card = e.target.closest('.game-card');
+    if (!card) return;
+
+    // Memotong / mematikan fungsi buka modal pop-up dari main.js
+    e.preventDefault();
+    e.stopPropagation();
+
+    var gameId = card.getAttribute('data-id');
+
+    if (gameId) {
+      // Mengarahkan halaman aktif ke url internal nusabit, contoh: /Desa-Cipta-Karya-Ch2 atau /minecraft-parkour-2d
+      window.location.href = '/' + gameId;
+    }
+  }, true); // Menggunakan true (capturing phase) agar eksekusi ini diprioritaskan utama
+
   if (searchInput) {
     searchInput.addEventListener('input', function () {
       if (clearBtn) {
         clearBtn.style.display = searchInput.value ? 'block' : 'none';
       }
-      filterGames(false); // false berarti user sedang mengetik (bukan load awal)
+      filterGames(false);
     });
   }
 
@@ -293,7 +236,6 @@ function initGamesFilter() {
     });
   });
 
-  // Jalankan filter pertama kali dengan status 'true' (Initial Load) supaya aman tersembunyi
   filterGames(true);
 }
 
@@ -302,7 +244,9 @@ document.addEventListener('DOMContentLoaded', function () {
   var ticketInput = document.getElementById('tiket-input');
   if (ticketInput) {
     ticketInput.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter') cekTiket();
+      if (e.key === 'Enter') {
+        if (typeof window.cekTiket === 'function') window.cekTiket();
+      }
     });
   }
 
@@ -310,7 +254,10 @@ document.addEventListener('DOMContentLoaded', function () {
     var el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('click', function(e) {
-      if (e.target === el) closeReportModal(el.id.replace('modal-', '').replace('-bg', ''));
+      if (e.target === el) {
+        var modalType = el.id.replace('modal-', '').replace('-bg', '');
+        if (typeof window.closeReportModal === 'function') window.closeReportModal(modalType);
+      }
     });
   });
 
