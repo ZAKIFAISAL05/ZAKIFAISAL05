@@ -332,17 +332,22 @@ async function submitReport(type) {
   }
 }
 
-// ── LOGIKA FILTER DAN PENCERIAN GAME (AUTO-DETEKSI TARGET) ──
+// ── LOGIKA FILTER DAN PENCERIAN GAME (FIXED INITIAL PREVENT) ──
 function initGamesFilter() {
   var searchInput = document.getElementById('game-search');
   var clearBtn = document.getElementById('game-search-clear');
-  // Mendukung kelas .filter-tab atau .games-tab-btn
   var tabs = document.querySelectorAll('.filter-tab, .games-tab-btn');
+  var emptyState = document.getElementById('games-empty-state');
 
-  function filterGames() {
+  // Sembunyikan empty state sejak awal inisialisasi agar tidak mengintip keluar
+  if (emptyState) {
+    emptyState.setAttribute('hidden', '');
+    emptyState.style.display = 'none';
+  }
+
+  function filterGames(isInitialLoad) {
     var activeTab = document.querySelector('.filter-tab.active, .games-tab-btn.active');
     
-    // Ambil attribute filter game secara fleksibel
     var category = 'all';
     if (activeTab) {
       category = (activeTab.getAttribute('data-genre') || activeTab.getAttribute('data-filter') || 'all').toLowerCase();
@@ -353,7 +358,6 @@ function initGamesFilter() {
     var gamesFoundCount = 0;
 
     cards.forEach(function (card) {
-      // Baca multi-attribute (data-genre atau data-category)
       var cardGenre = (card.getAttribute('data-genre') || card.getAttribute('data-category') || '').toLowerCase();
       var title = card.querySelector('.game-title') ? card.querySelector('.game-title').textContent.toLowerCase() : '';
       var desc = card.querySelector('.game-description') ? card.querySelector('.game-description').textContent.toLowerCase() : '';
@@ -370,8 +374,8 @@ function initGamesFilter() {
       }
     });
 
-    var emptyState = document.getElementById('games-empty-state');
-    if (emptyState) {
+    // Jalankan logika empty state hanya jika ini BUKAN load pertama kali website dibuka
+    if (emptyState && !isInitialLoad) {
       if (gamesFoundCount === 0) {
         emptyState.removeAttribute('hidden');
         emptyState.style.display = 'block';
@@ -387,7 +391,7 @@ function initGamesFilter() {
       if (clearBtn) {
         clearBtn.style.display = searchInput.value ? 'block' : 'none';
       }
-      filterGames();
+      filterGames(false); // false berarti user sedang mengetik (bukan load awal)
     });
   }
 
@@ -396,7 +400,7 @@ function initGamesFilter() {
       searchInput.value = '';
       clearBtn.style.display = 'none';
       searchInput.focus();
-      filterGames();
+      filterGames(false);
     });
   }
 
@@ -404,9 +408,12 @@ function initGamesFilter() {
     tab.addEventListener('click', function () {
       tabs.forEach(function (t) { t.classList.remove('active'); });
       tab.classList.add('active');
-      filterGames();
+      filterGames(false);
     });
   });
+
+  // Jalankan filter pertama kali dengan status 'true' (Initial Load) supaya aman tersembunyi
+  filterGames(true);
 }
 
 // ── INIT HOMEPAGE ────────────────────────────────────────────
@@ -437,6 +444,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   applyLang(LANG);
   initSiteAnnouncement();
-  initGamesFilter(); // Jalankan filter dengan penyesuaian selektor baru
+  initGamesFilter(); 
   if (typeof window.initReviewsSlider === 'function') window.initReviewsSlider();
 });
