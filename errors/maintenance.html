@@ -5,279 +5,103 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="robots" content="noindex" />
     <title>Maintenance — Nusabit Studio</title>
+    
+    <!-- Favicon & Manifest -->
     <link rel="icon" href="/favicon.ico" />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="16x16"
-      href="/assets/img/favicon-16.png"
-    />
-    <link
-      rel="icon"
-      type="image/png"
-      sizes="32x32"
-      href="/assets/img/favicon-32.png"
-    />
-    <link
-      rel="apple-touch-icon"
-      sizes="180x180"
-      href="/assets/img/apple-touch-icon.png"
-    />
+    <link rel="icon" type="image/png" sizes="16x16" href="/assets/img/favicon-16.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicon-32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/assets/img/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
-    <!-- CSS error page harus pakai path absolut karena file ini sudah berada di folder `errors` -->
+
+    <!-- Modular CSS -->
     <link rel="stylesheet" href="/errors/style.css?v=309473ef2e" />
-    <link rel="stylesheet" href="/assets/css/animations.css?v=60738d81af" />
-    <style>
-      body {
-        overflow-y: auto !important; /* Mengizinkan scroll vertikal jika konten luber */
-        height: auto !important; /* Mengubah tinggi kaku vh menjadi mengikuti konten */
-        min-height: 100vh; /* Tetap menjaga background penuh se-layar */
-        padding: 20px 0; /* Memberi jarak atas/bawah di layar HP */
-      }
-
-      .error-code-big {
-        color: #00e5ff;
-        text-shadow: 0 0 40px rgba(0, 229, 255, 0.4);
-        font-size: clamp(1.5rem, 6vw, 3rem);
-        margin-bottom: 4px;
-      }
-      .orb-1 {
-        background: radial-gradient(circle, #7c4dff, transparent);
-      }
-      .orb-2 {
-        background: radial-gradient(circle, #00e5ff, transparent);
-      }
-      .btn-primary-err {
-        background: linear-gradient(135deg, #7c4dff, #00e5ff);
-      }
-
-      .progress-bar {
-        width: 100%;
-        height: 8px;
-        background: rgba(255, 255, 255, 0.07);
-        border-radius: 4px;
-        overflow: hidden;
-        margin-bottom: 8px;
-      }
-      .progress-fill {
-        height: 100%;
-        background: linear-gradient(90deg, #7c4dff, #00e5ff);
-        border-radius: 4px;
-        width: 100%;
-        background-size: 200% 100%;
-        animation:
-          progressMove 1.2s linear infinite,
-          progressPulse 2s ease-in-out infinite;
-      }
-      @keyframes progressMove {
-        0% {
-          background-position: 0% 50%;
-        }
-        100% {
-          background-position: 200% 50%;
-        }
-      }
-      @keyframes progressPulse {
-        0%,
-        100% {
-          opacity: 1;
-        }
-        50% {
-          opacity: 0.6;
-        }
-      }
-      .status-badge-maint {
-        background: rgba(0, 229, 255, 0.1);
-        border: 1px solid rgba(0, 229, 255, 0.25);
-        color: #00e5ff;
-      }
-      .status-dot-maint {
-        background: #00e5ff;
-        animation: dotBlink 1.5s ease-in-out infinite;
-      }
-      @keyframes dotBlink {
-        0%,
-        100% {
-          opacity: 1;
-          transform: scale(1);
-        }
-        50% {
-          opacity: 0.4;
-          transform: scale(0.7);
-        }
-      }
-    </style>
+    <link rel="stylesheet" href="/assets/css/animations.css?v=8f9f15b05f" />
+    <!-- Global UI: Loading Screen + Offline Detector -->
+    <link rel="stylesheet" href="/assets/css/global-ui.css?v=988a95f205" />
+    <script src="/assets/js/global-ui.js?v=4848e2ca9f"></script>
+    <link rel="stylesheet" href="maintenance.css?v=683d9ac459" />
+    <!-- Feather Icons -->
     <script src="https://unpkg.com/feather-icons"></script>
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        try {
-          feather.replace();
-        } catch (e) {}
-
-        // Auto kembali normal jika maintenance sudah OFF (supaya tidak nyangkut)
-        const SETTINGS_API = "/.netlify/functions/site-settings";
-        function check() {
-          fetch(SETTINGS_API, { method: "GET", cache: "no-store" })
-            .then((r) => r.json())
-            .then((data) => {
-              const enabled = !!(
-                data &&
-                data.ok &&
-                data.settings &&
-                data.settings.maintenance &&
-                data.settings.maintenance.enabled
-              );
-              if (!enabled) window.location.replace("/");
-            })
-            .catch(() => {});
-        }
-        check();
-        setInterval(check, 10_000);
-      });
-    </script>
   </head>
   <body>
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
+    <!-- Background Glow Orbs -->
+    <div class="maint-glow-orb orb-purple"></div>
+    <div class="maint-glow-orb orb-cyan"></div>
 
-    <div class="error-container">
-      <!-- Spinning gear -->
-      <div class="maint-icon" aria-hidden="true">
-        <svg
-          viewBox="0 0 80 80"
-          xmlns="http://www.w3.org/2000/svg"
-          width="80"
-          height="80"
-        >
-          <circle
-            cx="40"
-            cy="40"
-            r="14"
-            fill="none"
-            stroke="#7c4dff"
-            stroke-width="4"
-          />
-          <!-- Gear teeth -->
-          <rect x="37" y="8" width="6" height="12" rx="3" fill="#7c4dff" />
-          <rect x="37" y="60" width="6" height="12" rx="3" fill="#7c4dff" />
-          <rect x="8" y="37" width="12" height="6" rx="3" fill="#7c4dff" />
-          <rect x="60" y="37" width="12" height="6" rx="3" fill="#7c4dff" />
-          <rect
-            x="17"
-            y="17"
-            width="12"
-            height="6"
-            rx="3"
-            fill="#00e5ff"
-            transform="rotate(45 23 20)"
-          />
-          <rect
-            x="51"
-            y="17"
-            width="12"
-            height="6"
-            rx="3"
-            fill="#00e5ff"
-            transform="rotate(-45 57 20)"
-          />
-          <rect
-            x="17"
-            y="57"
-            width="12"
-            height="6"
-            rx="3"
-            fill="#00e5ff"
-            transform="rotate(-45 23 60)"
-          />
-          <rect
-            x="51"
-            y="57"
-            width="12"
-            height="6"
-            rx="3"
-            fill="#00e5ff"
-            transform="rotate(45 57 60)"
-          />
-        </svg>
+    <!-- Main Wrapper (Digunakan untuk efek fade-out total) -->
+    <div id="maintenance-wrapper" class="maint-container">
+      
+      <!-- Animated Premium Gear Box -->
+      <div class="maint-gear-wrapper" aria-hidden="true">
+        <div class="gear-core">
+          <i data-feather="settings"></i>
+        </div>
+        <div class="gear-orbit">
+          <i data-feather="tool" class="floating-tool"></i>
+        </div>
       </div>
 
-      <div class="error-code-big">MAINTENANCE</div>
-      <div class="error-flavor">[ SISTEM SEDANG DIPERBARUI ]</div>
+      <h1 class="maint-code-big">MAINTENANCE</h1>
+      <div class="maint-flavor">[ SISTEM SEDANG DIPERBARUI ]</div>
 
-      <!-- CARD -->
-      <div class="error-card">
-        <div
-          class="status-badge status-badge-maint"
-          style="margin-bottom: 18px"
-        >
-          <span class="status-dot status-dot-maint"></span>
-          Sedang Berlangsung
+      <!-- Main Info Card -->
+      <div class="maint-card">
+        <div class="maint-badge">
+          <span class="maint-dot"></span>
+          Upgrade Sedang Berlangsung
         </div>
 
-        <div class="error-title">
-          Kami sedang upgrade sistem! <i data-feather="tool"></i>
-        </div>
-        <div class="error-desc">
-          Nusabit Studio sedang melakukan pemeliharaan rutin untuk memberikan
-          pengalaman yang lebih baik. Website akan kembali normal dalam waktu
-          dekat.
-        </div>
-
-        <!-- Progress visual -->
-        <div class="progress-bar">
-          <div class="progress-fill" aria-hidden="true"></div>
-        </div>
-        <p
-          style="
-            font-size: 0.75rem;
-            color: var(--muted);
-            text-align: center;
-            margin-bottom: 20px;
-          "
-        >
-          Estimasi selesai: ~65% — Mohon tunggu sebentar
+        <h2 class="maint-title">
+          Kami sedang meracik sesuatu yang hebat!
+        </h2>
+        <p class="maint-desc">
+          Nusabit Studio sedang melakukan pemeliharaan rutin untuk meningkatkan performa server, stabilitas game, dan keamanan sistem demi kenyamanan Anda.
         </p>
 
-        <div class="tips-box">
-          <span class="tips-label"
-            ><i data-feather="clipboard"></i> Yang sedang kami kerjakan</span
-          >
-          <ul class="tips-list">
-            <li>Pembaruan database dan sistem backend</li>
-            <li>Perbaikan performa dan keamanan</li>
-            <li>Fitur baru yang akan segera hadir!</li>
+        <!-- Progress Visual Bar -->
+        <div class="maint-progress-box">
+          <div class="maint-progress-bar">
+            <div class="maint-progress-fill"></div>
+          </div>
+          <p class="maint-progress-text">Estimasi selesai: ~65% — Mohon tunggu sebentar</p>
+        </div>
+
+        <!-- Task List Box -->
+        <div class="maint-tasks-box">
+          <span class="maint-tasks-label">
+            <i data-feather="git-branch"></i> Fokus Pembaruan:
+          </span>
+          <ul class="maint-tasks-list">
+            <li><i data-feather="check-circle"></i> Optimasi Database & Backend Cache</li>
+            <li><i data-feather="check-circle"></i> Integrasi Sistem Pengarah URL Game Otomatis</li>
+            <li><i data-feather="refresh-cw"></i> Peningkatan Keamanan & Performa UI</li>
           </ul>
         </div>
 
-        <div class="error-actions">
-          <a
-            href="https://www.instagram.com/zakifaisal05/"
-            target="_blank"
-            rel="noopener"
-            class="btn-err btn-primary-err"
-            ><i data-feather="instagram"></i> Instagram</a
-          >
-          <a
-            href="https://whatsapp.com/channel/0029VaAxK4O2975D8utbc927"
-            target="_blank"
-            rel="noopener"
-            class="btn-err btn-ghost-err"
-            ><i data-feather="message-circle"></i> Komunitas WA</a
-          >
-          <button class="btn-err btn-ghost-err" onclick="location.reload()">
-            ↺ Cek Lagi
+        <!-- Interactive Actions Button -->
+        <div class="maint-actions">
+          <a href="https://www.instagram.com/zakifaisal05/" target="_blank" rel="noopener" class="btn-maint btn-primary">
+            <i data-feather="instagram"></i> <span>Instagram</span>
+          </a>
+          <a href="https://whatsapp.com/channel/0029VaAxK4O2975D8utbc927" target="_blank" rel="noopener" class="btn-maint btn-secondary">
+            <i data-feather="message-circle"></i> <span>Komunitas WA</span>
+          </a>
+          <button class="btn-maint btn-ghost" id="btn-refresh">
+            <i data-feather="refresh-cw"></i> <span>Cek Lagi</span>
           </button>
         </div>
       </div>
 
-      <div class="error-brand">
+      <!-- Footer Brand -->
+      <div class="maint-brand">
         <img src="/assets/img/studio_logo.png" alt="Nusabit Studio" />
         <span>Nusabit Studio</span>
       </div>
     </div>
 
+    <!-- Modular JavaScript Core Logic -->
+    <script src="maintenance.js?v=f31af3c85e"></script>
     <script src="/assets/js/animations.js?v=a6d15293cc"></script>
-
-    <script src="/assets/js/lang-auto.js?v=aa9bb15e9d"></script>
+    <script src="/assets/js/lang-auto.js?v=185fa2fa0f"></script>
   </body>
 </html>

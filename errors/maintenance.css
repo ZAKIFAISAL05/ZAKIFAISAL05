@@ -1,0 +1,342 @@
+/* ============================================================
+   maintenance.css
+   Style Premium & Modern khusus Halaman Maintenance Nusabit
+   ============================================================ */
+
+body {
+  overflow-y: auto !important;
+  height: auto !important;
+  min-height: 100vh;
+  padding: 40px 20px;
+  background-color: #0b0c10;
+  font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ── BACKGROUND ORBS ───────────────────────────────────────── */
+.maint-glow-orb {
+  position: fixed;
+  width: 450px;
+  height: 450px;
+  border-radius: 50%;
+  filter: blur(140px);
+  z-index: -1;
+  opacity: 0.35;
+  pointer-events: none;
+  animation: orbFloat 8s ease-in-out infinite alternate;
+}
+.orb-purple {
+  top: -10%;
+  left: -10%;
+  background: radial-gradient(circle, #7c4dff, transparent);
+}
+.orb-cyan {
+  bottom: -10%;
+  right: -10%;
+  background: radial-gradient(circle, #00e5ff, transparent);
+  animation-delay: -4s;
+}
+
+/* ── LAYOUT CONTAINER ──────────────────────────────────────── */
+.maint-container {
+  width: 100%;
+  max-width: 580px;
+  text-align: center;
+  transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0;
+  transform: scale(0.98);
+}
+
+/* Efek Fade-In (Dipicu via JS saat halaman siap) */
+.maint-container.is-ready {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Efek Fade-Out Kelas Aktif (Dipicu via JS) */
+.maint-container.fade-out {
+  opacity: 0;
+  transform: scale(0.95);
+  pointer-events: none;
+}
+
+/* ── PREMIUM GEAR ANIMATION ────────────────────────────────── */
+.maint-gear-wrapper {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  margin: 0 auto 24px;
+}
+.gear-core {
+  font-size: 50px;
+  color: #7c4dff;
+  animation: spinClockwise 6s linear infinite;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+.gear-core svg {
+  width: 55px;
+  height: 55px;
+  filter: drop-shadow(0 0 15px rgba(124, 77, 255, 0.6));
+}
+.gear-orbit {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  border: 2px dashed rgba(0, 229, 255, 0.2);
+  border-radius: 50%;
+  animation: spinCounterClockwise 8s linear infinite;
+}
+.floating-tool {
+  position: absolute;
+  top: -10px;
+  left: 40px;
+  color: #00e5ff;
+  width: 18px;
+  height: 18px;
+  filter: drop-shadow(0 0 8px #00e5ff);
+}
+
+/* ── TYPOGRAPHY ────────────────────────────────────────────── */
+.maint-code-big {
+  color: #00e5ff;
+  text-shadow: 0 0 30px rgba(0, 229, 255, 0.35);
+  font-size: clamp(2rem, 8vw, 3.2rem);
+  font-weight: 900;
+  letter-spacing: 3px;
+  margin: 0;
+}
+.maint-flavor {
+  color: #a3a8b4;
+  font-size: 0.85rem;
+  letter-spacing: 4px;
+  margin-top: 6px;
+  margin-bottom: 28px;
+  font-weight: 600;
+}
+
+/* ── ERROR/MAINTENANCE CARD ────────────────────────────────── */
+.maint-card {
+  background: rgba(22, 24, 33, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: 20px;
+  padding: 35px 30px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+.maint-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 229, 255, 0.08);
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  color: #00e5ff;
+  padding: 6px 14px;
+  border-radius: 30px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+.maint-dot {
+  width: 8px;
+  height: 8px;
+  background: #00e5ff;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #00e5ff;
+  animation: dotBlink 1.6s ease-in-out infinite;
+}
+.maint-title {
+  color: #ffffff;
+  font-size: clamp(1.2rem, 4vw, 1.5rem);
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.maint-desc {
+  color: #949aab;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: 25px;
+}
+
+/* ── PROGRESS BAR ──────────────────────────────────────────── */
+.maint-progress-box {
+  margin-bottom: 25px;
+}
+.maint-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.maint-progress-fill {
+  height: 100%;
+  width: 65%; /* Sesuai estimasi persen */
+  background: linear-gradient(90deg, #7c4dff, #00e5ff);
+  border-radius: 10px;
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.4);
+}
+.maint-progress-text {
+  font-size: 0.78rem;
+  color: #6c7283;
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+/* ── TASKS BOX LIST ────────────────────────────────────────── */
+.maint-tasks-box {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  padding: 18px 20px;
+  text-align: left;
+  margin-bottom: 30px;
+}
+.maint-tasks-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #ffffff;
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.maint-tasks-label svg {
+  width: 16px; height: 16px; color: #7c4dff;
+}
+.maint-tasks-list {
+  list-style: none;
+  padding: 0; margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.maint-tasks-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #949aab;
+  font-size: 0.85rem;
+}
+.maint-tasks-list li svg {
+  width: 15px; height: 15px; color: #00e5ff;
+  flex-shrink: 0;
+}
+
+/* ── PREMIUM INTERACTIVE BUTTONS ───────────────────────────── */
+.maint-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}
+.btn-maint {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 22px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: 10px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border: 1px solid transparent;
+  outline: none;
+  position: relative;
+  overflow: hidden;
+}
+.btn-maint svg {
+  width: 18px; height: 18px;
+}
+
+/* Button Primary (Instagram Style Neon) */
+.btn-maint.btn-primary {
+  background: linear-gradient(135deg, #7c4dff, #00e5ff);
+  color: #ffffff;
+  box-shadow: 0 4px 15px rgba(124, 77, 255, 0.3);
+}
+.btn-maint.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 229, 255, 0.5);
+}
+
+/* Button Secondary (WA Community) */
+.btn-maint.btn-secondary {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+.btn-maint.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(0, 229, 255, 0.4);
+  color: #00e5ff;
+  transform: translateY(-2px);
+}
+
+/* Button Ghost (Cek Lagi) */
+.btn-maint.btn-ghost {
+  background: transparent;
+  border-color: rgba(124, 77, 255, 0.3);
+  color: #b5baff;
+}
+.btn-maint.btn-ghost:hover {
+  background: rgba(124, 77, 255, 0.1);
+  border-color: #7c4dff;
+  color: #ffffff;
+  transform: translateY(-2px);
+}
+
+/* Efek Klik Aktif Ripple Ringan */
+.btn-maint:active {
+  transform: translateY(1px) scale(0.98);
+}
+
+/* ── BRAND FOOTER ──────────────────────────────────────────── */
+.maint-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 35px;
+  opacity: 0.5;
+  transition: opacity 0.3s;
+}
+.maint-brand:hover {
+  opacity: 0.8;
+}
+.maint-brand img {
+  width: 24px; height: 24px; object-fit: contain;
+}
+.maint-brand span {
+  color: #ffffff; font-size: 0.9rem; font-weight: 500; letter-spacing: 1px;
+}
+
+/* ── KEYFRAMES ANIMATIONS ──────────────────────────────────── */
+@keyframes orbFloat {
+  0% { transform: translateY(0) scale(1); }
+  100% { transform: translateY(30px) scale(1.1); }
+}
+@keyframes spinClockwise {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes spinCounterClockwise {
+  0% { transform: rotate(360deg); }
+  100% { transform: rotate(0deg); }
+}
+@keyframes dotBlink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.8); }
+}
+
+/* Responsive Mobile */
+@media(max-width: 480px) {
+  .maint-card { padding: 25px 20px; }
+  .maint-actions { flex-direction: column; }
+  .btn-maint { width: 100%; }
+}

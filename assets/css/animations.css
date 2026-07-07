@@ -25,6 +25,14 @@
     to { opacity: 1; }
   }
 
+  /* Page exit (dipakai saat redirect maintenance) */
+  html.gs-fade-out,
+  body.gs-fade-out {
+    animation: none !important;
+    opacity: 0 !important;
+    transition: opacity 0.26s ease !important;
+  }
+
   /* Subtle hover lift (buat card & tombol) */
   a, button {
     transition: transform 0.15s ease, filter 0.15s ease, box-shadow 0.15s ease;

@@ -26,6 +26,22 @@
     Cache-Control = "public, max-age=0, must-revalidate"
 
 [[headers]]
+  # HTML jangan disimpan (biar Chrome tidak nyangkut versi lama)
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "no-store, no-cache, must-revalidate, proxy-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"
+
+[[headers]]
+  # Root (/) juga index.html
+  for = "/"
+  [headers.values]
+    Cache-Control = "no-store, no-cache, must-revalidate, proxy-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"
+
+[[headers]]
   for = "/admin/*"
   [headers.values]
     X-Robots-Tag = "noindex, nofollow"
@@ -109,6 +125,18 @@
   force  = true
 
 [[redirects]]
+  from   = "/matnece"
+  to     = "/maintenance"
+  status = 301
+  force  = true
+
+[[redirects]]
+  from   = "/matnece/"
+  to     = "/maintenance"
+  status = 301
+  force  = true
+
+[[redirects]]
   from   = "/maintance"
   to     = "/maintenance"
   status = 301
@@ -126,7 +154,17 @@
   status = 200
 
 [[redirects]]
+  from   = "/403/"
+  to     = "/errors/403.html"
+  status = 200
+
+[[redirects]]
   from   = "/500"
+  to     = "/errors/500.html"
+  status = 200
+
+[[redirects]]
+  from   = "/500/"
   to     = "/errors/500.html"
   status = 200
 

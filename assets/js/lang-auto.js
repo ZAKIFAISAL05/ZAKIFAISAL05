@@ -74,6 +74,17 @@
     var next = current === 'id' ? 'en' : 'id';
     setSavedLang(next);
     setLangLabel(next);
+    // Broadcast supaya file lain (contoh: homepage tagline) bisa ikut update
+    try {
+      document.dispatchEvent(new CustomEvent('gs:lang-changed', { detail: { lang: next } }));
+    } catch (e) {
+      // Fallback untuk browser lama
+      try {
+        var evt = document.createEvent('CustomEvent');
+        evt.initCustomEvent('gs:lang-changed', false, false, { lang: next });
+        document.dispatchEvent(evt);
+      } catch (e2) {}
+    }
     doTranslateTo(next);
   }
 
@@ -103,7 +114,7 @@
     document.head.appendChild(s);
   }
 
-  document.addEventListener('DOMContentLoaded', function () {
+  function initLangAuto() {
     ensureHiddenTranslateContainer();
     loadGoogleTranslateScriptOnce();
     setLangLabel(getSavedLang());
@@ -113,5 +124,12 @@
       btn.dataset.langBound = '1';
       btn.addEventListener('click', toggleLanguage);
     }
-  });
+  }
+
+  // Inisialisasi aman walau script dimuat setelah DOMContentLoaded (misalnya pakai defer/late injection)
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initLangAuto);
+  } else {
+    initLangAuto();
+  }
 })();

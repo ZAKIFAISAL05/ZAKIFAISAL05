@@ -11,6 +11,8 @@
   const SETTINGS_API = '/.netlify/functions/site-settings';
   // Pakai URL yang rapi (lihat netlify.toml: /maintenance → /errors/maintenance.html)
   const MAINTENANCE_URL = '/maintenance';
+  // Interval cek berkala supaya halaman yang sudah kebuka ikut "ngeh" saat maintenance dinyalakan
+  const CHECK_INTERVAL_MS = 15000; // 15 detik (aman, tidak terlalu agresif)
 
   // Jangan ganggu halaman error & admin panel
   const path = window.location.pathname || '/';
@@ -19,32 +21,49 @@
   if (path.startsWith('/errors/')) return;
   if (path === '/404.html') return;
 
-  // Ambil settings dari server
-  fetch(SETTINGS_API, { method: 'GET', cache: 'no-store' })
-    .then((r) => r.json())
-    .then((data) => {
-      if (!data || !data.ok) return;
+  function softRedirect(toUrl) {
+    try {
+      // Efek fade-out halus sebelum pindah halaman (kalau CSS global tersedia)
+      document.documentElement.classList.add('gs-fade-out');
+      document.body && document.body.classList.add('gs-fade-out');
+    } catch (e) {}
 
-      window.__SITE_SETTINGS__ = data.settings || {};
+    // Delay pendek agar transisi terlihat (tanpa bikin terasa lambat)
+    setTimeout(function () {
+      window.location.replace(toUrl);
+    }, 260);
+  }
 
-      // Redirect kalau maintenance aktif
-      const isMaintenance = !!(data.settings && data.settings.maintenance && data.settings.maintenance.enabled);
-      const onMaintenancePage =
-        path === MAINTENANCE_URL ||
-        path === (MAINTENANCE_URL + '/') ||
-        path === '/errors/maintenance.html';
+  function applySettings(data) {
+    if (!data || !data.ok) return;
 
-      if (isMaintenance && !onMaintenancePage) {
-        window.location.replace(MAINTENANCE_URL);
-        return;
-      }
+    window.__SITE_SETTINGS__ = data.settings || {};
 
-      // Kalau maintenance sudah OFF, pastikan halaman maintenance balik normal otomatis
-      if (!isMaintenance && onMaintenancePage) {
-        window.location.replace('/');
-      }
-    })
-    .catch(function () {
-      // Kalau fetch gagal, jangan blok user
-    });
+    const isMaintenance = !!(data.settings && data.settings.maintenance && data.settings.maintenance.enabled);
+    const currentPath = window.location.pathname || '/';
+    const onMaintenancePage =
+      currentPath === MAINTENANCE_URL ||
+      currentPath === (MAINTENANCE_URL + '/') ||
+      currentPath === '/errors/maintenance.html';
+
+    // Redirect kalau maintenance aktif
+    if (isMaintenance && !onMaintenancePage) {
+      softRedirect(MAINTENANCE_URL);
+      return;
+    }
+  }
+
+  function checkOnce() {
+    return fetch(SETTINGS_API, { method: 'GET', cache: 'no-store' })
+      .then((r) => r.json())
+      .then(applySettings)
+      .catch(function () {
+        // Kalau fetch gagal, jangan blok user
+      });
+  }
+
+  // Cek pertama kali
+  checkOnce();
+  // Cek berkala (supaya halaman lama ikut ter-redirect saat maintenance ON)
+  setInterval(checkOnce, CHECK_INTERVAL_MS);
 })();
