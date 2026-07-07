@@ -332,6 +332,76 @@ async function submitReport(type) {
   }
 }
 
+// ── LOGIKA FILTER DAN PENCERIAN GAME (BARU & AUTOMATED) ──────
+function initGamesFilter() {
+  var searchInput = document.getElementById('game-search');
+  var clearBtn = document.getElementById('game-search-clear');
+  var tabs = document.querySelectorAll('.filter-tab');
+
+  function filterGames() {
+    var activeTab = document.querySelector('.filter-tab.active');
+    var category = activeTab ? activeTab.getAttribute('data-genre').toLowerCase() : 'all';
+    var q = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
+    var cards = document.querySelectorAll('.game-card');
+    var gamesFoundCount = 0;
+
+    cards.forEach(function (card) {
+      var cardGenre = card.getAttribute('data-genre') ? card.getAttribute('data-genre').toLowerCase() : '';
+      var title = card.querySelector('.game-title') ? card.querySelector('.game-title').textContent.toLowerCase() : '';
+      var desc = card.querySelector('.game-description') ? card.querySelector('.game-description').textContent.toLowerCase() : '';
+
+      // Pengecekan multi-genre untuk kategori roblox arcade dll
+      var matchCat = (category === 'all' || cardGenre.indexOf(category) !== -1);
+      var matchQuery = (!q || title.indexOf(q) !== -1 || desc.indexOf(q) !== -1);
+
+      if (matchCat && matchQuery) {
+        card.style.display = '';
+        gamesFoundCount++;
+      } else {
+        card.style.display = 'none';
+      }
+    });
+
+    var emptyState = document.getElementById('games-empty-state');
+    if (emptyState) {
+      if (gamesFoundCount === 0) {
+        emptyState.removeAttribute('hidden');
+        emptyState.style.display = 'block';
+      } else {
+        emptyState.setAttribute('hidden', '');
+        emptyState.style.display = 'none';
+      }
+    }
+  }
+
+  if (searchInput) {
+    searchInput.addEventListener('input', function () {
+      if (clearBtn) {
+        clearBtn.style.display = searchInput.value ? 'block' : 'none';
+      }
+      filterGames();
+    });
+  }
+
+  if (clearBtn) {
+    clearBtn.addEventListener('click', function () {
+      searchInput.value = '';
+      clearBtn.style.display = 'none';
+      searchInput.focus();
+      filterGames();
+    });
+  }
+
+  tabs.forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      tabs.forEach(function (t) { t.classList.remove('active'); });
+      tab.classList.add('active');
+      filterGames();
+    });
+  });
+}
+
 // ── INIT HOMEPAGE ────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {
   var langToggle = document.getElementById('langToggle');
@@ -360,5 +430,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   applyLang(LANG);
   initSiteAnnouncement();
+  initGamesFilter(); // Panggil fungsi filter pencarian saat dokumen siap
   if (typeof window.initReviewsSlider === 'function') window.initReviewsSlider();
 });
