@@ -332,28 +332,35 @@ async function submitReport(type) {
   }
 }
 
-// ── LOGIKA FILTER DAN PENCERIAN GAME (BARU & AUTOMATED) ──────
+// ── LOGIKA FILTER DAN PENCERIAN GAME (AUTO-DETEKSI TARGET) ──
 function initGamesFilter() {
   var searchInput = document.getElementById('game-search');
   var clearBtn = document.getElementById('game-search-clear');
-  var tabs = document.querySelectorAll('.filter-tab');
+  // Mendukung kelas .filter-tab atau .games-tab-btn
+  var tabs = document.querySelectorAll('.filter-tab, .games-tab-btn');
 
   function filterGames() {
-    var activeTab = document.querySelector('.filter-tab.active');
-    var category = activeTab ? activeTab.getAttribute('data-genre').toLowerCase() : 'all';
+    var activeTab = document.querySelector('.filter-tab.active, .games-tab-btn.active');
+    
+    // Ambil attribute filter game secara fleksibel
+    var category = 'all';
+    if (activeTab) {
+      category = (activeTab.getAttribute('data-genre') || activeTab.getAttribute('data-filter') || 'all').toLowerCase();
+    }
+    
     var q = searchInput ? searchInput.value.toLowerCase().trim() : '';
-
     var cards = document.querySelectorAll('.game-card');
     var gamesFoundCount = 0;
 
     cards.forEach(function (card) {
-      var cardGenre = card.getAttribute('data-genre') ? card.getAttribute('data-genre').toLowerCase() : '';
+      // Baca multi-attribute (data-genre atau data-category)
+      var cardGenre = (card.getAttribute('data-genre') || card.getAttribute('data-category') || '').toLowerCase();
       var title = card.querySelector('.game-title') ? card.querySelector('.game-title').textContent.toLowerCase() : '';
       var desc = card.querySelector('.game-description') ? card.querySelector('.game-description').textContent.toLowerCase() : '';
+      var tags = (card.getAttribute('data-tags') || '').toLowerCase();
 
-      // Pengecekan multi-genre untuk kategori roblox arcade dll
       var matchCat = (category === 'all' || cardGenre.indexOf(category) !== -1);
-      var matchQuery = (!q || title.indexOf(q) !== -1 || desc.indexOf(q) !== -1);
+      var matchQuery = (!q || title.indexOf(q) !== -1 || desc.indexOf(q) !== -1 || tags.indexOf(q) !== -1);
 
       if (matchCat && matchQuery) {
         card.style.display = '';
@@ -430,6 +437,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   applyLang(LANG);
   initSiteAnnouncement();
-  initGamesFilter(); // Panggil fungsi filter pencarian saat dokumen siap
+  initGamesFilter(); // Jalankan filter dengan penyesuaian selektor baru
   if (typeof window.initReviewsSlider === 'function') window.initReviewsSlider();
 });
