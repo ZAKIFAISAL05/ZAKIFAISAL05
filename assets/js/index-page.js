@@ -210,12 +210,16 @@ function initGamesFilter() {
     if (gameId) {
       gameId = gameId.trim();
       // Mengarahkan window aktif langsung ke domain + slug folder target
+<<<<<<< HEAD
       var targetUrl = window.location.origin + '/' + gameId;
       if (typeof window.nsNavigateWithFade === 'function') {
         window.nsNavigateWithFade(targetUrl);
         return;
       }
       window.location.href = targetUrl;
+=======
+      window.location.href = window.location.origin + '/' + gameId;
+>>>>>>> 5cedeb8cf4ed30e18de1126e0537e47ffbd59987
     }
   });
 
@@ -274,3 +278,4 @@ document.addEventListener('DOMContentLoaded', function () {
   initGamesFilter(); 
   if (typeof window.initReviewsSlider === 'function') window.initReviewsSlider();
 });
+    
