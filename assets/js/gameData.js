@@ -3,7 +3,7 @@
 
 const gameData = [
     {
-        id: 'minecraft-parkour-2d',
+        id: 'Minecraft-Parkour-2D',
         title: 'Minecraft Parkun 2D',
         logo: 'assets/img/mc_parkun_logo.png',
         thumb: 'assets/img/mc_parkun_thumb.jpg',
@@ -21,7 +21,7 @@ const gameData = [
         developer: 'Nusabit Studio'
     },
     {
-        id: 'the-one-for-zombie',
+        id: 'The-One-For-Zombie',
         title: 'THE ONE FOR ZOMBIE',
         logo: 'assets/img/one_zombie_logo.png',
         thumb: 'assets/img/one_zombie_thumb.jpg',
@@ -38,7 +38,7 @@ const gameData = [
         developer: 'Nusabit Studio'
     },
     {
-        id: 'desa-karya-investasi-zombie',
+        id: 'Desa-Karya-Investasi-Zombie',
         title: 'DESA KARYA INVESTASI ZOMBIE',
         logo: 'assets/img/desa_invest_logo.png',
         thumb: 'assets/img/desa_invest_thumb.jpg',
@@ -57,7 +57,7 @@ const gameData = [
         developer: 'Nusabit Studio'
     },
     {
-        id: 'gerbang-parkun-2d',
+        id: 'Gerbang-Parkun-2D',
         title: 'Gerbang Parkun 2D',
         logo: 'assets/img/gerbang_parkun_logo.png',
         thumb: 'assets/img/gerbang_parkun_thumb.jpg',
@@ -75,7 +75,7 @@ const gameData = [
         developer: 'Nusabit Studio'
     },
     {
-        id: 'desa-cipta-karya-ch2',
+        id: 'Desa-Cipta-Karya-Ch2',
         title: 'Desa Cipta Karya Chapter 2',
         logo: 'assets/img/cipta_karya2_logo.png',
         thumb: 'assets/img/cipta_karya2_thumb.jpg',
@@ -95,25 +95,7 @@ const gameData = [
         developer: 'Nusabit Studio'
     },
     {
-        id: 'the-undeads-roblox',
-        title: 'The Undeads (Roblox)',
-        logo: 'assets/img/undeads_roblox_logo.png',
-        thumb: 'assets/img/undeads_roblox_thumb.jpg',
-        desc: 'Game aksi bertahan hidup populer di Roblox. Bentuk tim, bangun pertahanan, dan lawan gelombang mayat hidup yang tak ada habisnya.',
-        genre: 'Survival, Action',
-        gallery: [
-            'assets/img/undeads_roblox_ss1.jpg',
-            'assets/img/undeads_roblox_ss4.jpg',
-            'assets/img/undeads_roblox_ss3.jpg',
-            'assets/img/undeads_roblox_ss2.jpg'
-        ],
-        platforms: [
-            { name: 'Play on Roblox', url: 'https://www.roblox.com/share?code=e4fd841cb9108b43bc5d7e7d9b47a2b3&type=ExperienceDetails&stamp=1765460894310', cls: 'btn-roblox' }
-        ],
-        developer: 'Nusabit Studio'
-    },
-    {
-        id: 'frequency-fury-obby',
+        id: 'Frequency-Fury-Obby',
         title: 'Frequency Fury Obby (Roblox)',
         logo: 'assets/img/frequency_fury_logo.png',
         thumb: 'assets/img/frequency_fury_thumb.jpg',
