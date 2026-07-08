@@ -10,6 +10,7 @@ const REVIEWS_API  = '/.netlify/functions/reviews';
 const REPORT_STORE = 'gs_reports';
 const SITE_SETTINGS_API = '/.netlify/functions/site-settings';
 const ADMIN_LOGS_API = '/.netlify/functions/admin-logs';
+const DEV_BYPASS_API = '/.netlify/functions/dev-bypass';
 
 /* ── AUTH CONFIG ── */
 const ADMIN_CREDENTIALS = {
@@ -152,6 +153,106 @@ function renderSiteSettingsPanel(settings) {
 async function initSiteSettingsPanel() {
   const settings = await fetchSiteSettings();
   renderSiteSettingsPanel(settings);
+}
+
+function getDeveloperBypassApi() {
+  return window.__DEV_BYPASS__ || null;
+}
+
+async function renderDeveloperModePanel() {
+  const statusEl = document.getElementById('ss-dev-bypass-status');
+  const infoEl = document.getElementById('ss-dev-bypass-info');
+  if (!statusEl && !infoEl) return;
+
+  const api = getDeveloperBypassApi();
+  if (!api) return;
+
+  const isActive = typeof api.hasValidBypass === 'function'
+    ? await api.hasValidBypass()
+    : false;
+
+  api.isActive = !!isActive;
+
+  if (statusEl) {
+    statusEl.textContent = isActive ? 'AKTIF di browser ini' : 'NONAKTIF';
+    statusEl.className = 'site-settings-value ' + (isActive ? 'ss-on' : 'ss-off');
+  }
+
+  if (infoEl) {
+    const token = localStorage.getItem(api.storageKey || 'developer_bypass_key') || '';
+    infoEl.textContent = token
+      ? `Token tersimpan. Anda bisa copy token ini dari tombol Copy.`
+      : 'Klik Aktifkan untuk membuat token acak otomatis.';
+  }
+}
+
+async function activateDeveloperMode() {
+  const api = getDeveloperBypassApi();
+  const adminToken = getAdminToken();
+  if (!adminToken) { showToast('Session admin tidak valid. Login ulang.', 'err'); return; }
+  if (!api) { showToast('site-guard belum termuat.', 'warn'); return; }
+
+  try {
+    const res = await fetch(DEV_BYPASS_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'issue', ttlMinutes: 180, adminToken }),
+    });
+    const data = await res.json();
+    if (!data || !data.ok || !data.token) throw new Error(data?.error || 'Gagal membuat token');
+
+    localStorage.setItem(api.storageKey || 'developer_bypass_key', data.token);
+    await renderDeveloperModePanel();
+    addLog('DEV BYPASS → ON (token acak dibuat)', 'warn');
+    showToast('Mode testing aktif. Token dibuat & disimpan di browser ini.', 'ok');
+
+    // Auto copy token
+    try { await navigator.clipboard.writeText(data.token); showToast('Token otomatis di-copy.', 'info'); } catch {}
+  } catch (e) {
+    addLog('DEV BYPASS ERROR: ' + e.message, 'err');
+    showToast('Gagal mengaktifkan mode testing: ' + e.message, 'err');
+  }
+}
+
+async function deactivateDeveloperMode() {
+  const api = getDeveloperBypassApi();
+  const adminToken = getAdminToken();
+  if (!adminToken) { showToast('Session admin tidak valid. Login ulang.', 'err'); return; }
+  if (!api || typeof api.deactivate !== 'function') { showToast('site-guard belum termuat.', 'warn'); return; }
+
+  const token = localStorage.getItem(api.storageKey || 'developer_bypass_key') || '';
+  try {
+    if (token) {
+      await fetch(DEV_BYPASS_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'revoke', token, adminToken }),
+      });
+    }
+  } catch {}
+
+  try {
+    api.deactivate();
+    await renderDeveloperModePanel();
+    addLog('DEV BYPASS → OFF (token dicabut)', 'evt');
+    showToast('Mode testing dimatikan (token dihapus).', 'ok');
+  } catch (e) {
+    addLog('DEV BYPASS OFF ERROR: ' + e.message, 'err');
+    showToast('Gagal mematikan mode testing: ' + e.message, 'err');
+  }
+}
+
+async function copyDeveloperToken() {
+  const api = getDeveloperBypassApi();
+  if (!api) { showToast('site-guard belum termuat.', 'warn'); return; }
+  const token = localStorage.getItem(api.storageKey || 'developer_bypass_key') || '';
+  if (!token) { showToast('Belum ada token. Klik Aktifkan dulu.', 'warn'); return; }
+  try {
+    await navigator.clipboard.writeText(token);
+    showToast('Token berhasil di-copy.', 'ok');
+  } catch {
+    showToast('Gagal copy token.', 'err');
+  }
 }
 
 async function setMaintenance(enabled) {
@@ -938,6 +1039,7 @@ async function showAdmin(sess) {
   initLivePreview();
   initCommandCenter();
   initSiteSettingsPanel();
+  await renderDeveloperModePanel();
   addLog(`Session aktif — expires in ${SESSION_MINUTES} minutes`);
 }
 

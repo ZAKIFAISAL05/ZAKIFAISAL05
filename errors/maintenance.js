@@ -32,6 +32,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const SETTINGS_API = "/.netlify/functions/site-settings";
   const containerWrapper = document.getElementById("maintenance-wrapper");
   let checkingInterval;
+  const devBypassApi = window.__DEV_BYPASS__ || null;
 
   // Fade-in halus saat halaman siap (biar masuknya tidak patah)
   if (containerWrapper) {
@@ -40,12 +41,20 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  function checkMaintenanceStatus() {
-    fetch(SETTINGS_API, { method: "GET", cache: "no-store" })
-      .then(function (response) {
-        return response.json();
-      })
-      .then(function (data) {
+  async function checkMaintenanceStatus() {
+    try {
+      const hasBypass = devBypassApi && typeof devBypassApi.hasValidBypass === "function"
+        ? await devBypassApi.hasValidBypass()
+        : false;
+
+      if (hasBypass) {
+        clearInterval(checkingInterval);
+        window.location.replace("/");
+        return;
+      }
+
+      const response = await fetch(SETTINGS_API, { method: "GET", cache: "no-store" });
+      const data = await response.json();
         // Ambil data status maintenance dari server backend
         const isMaintenanceEnabled = !!(
           data &&
@@ -76,11 +85,10 @@ document.addEventListener("DOMContentLoaded", function () {
           console.log("Server masih dalam perbaikan. Tetap di halaman maintenance...");
           // Di sini script sengaja diam (tidak reload layar) supaya tampilan tidak berkedip hitam/putih
         }
-      })
-      .catch(function (error) {
-        // Jika server mati total/error jaringan, biarkan tetap berada di halaman maintenance
-        console.log("Menunggu koneksi server kembali stabil...");
-      });
+    } catch (error) {
+      // Jika server mati total/error jaringan, biarkan tetap berada di halaman maintenance
+      console.log("Menunggu koneksi server kembali stabil...");
+    }
   }
 
   // Jalankan cek status pertama kali saat halaman dibuka
