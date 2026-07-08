@@ -8,6 +8,7 @@
 //  POST { action:'create', ticket:{...} }  → simpan tiket baru
 //  POST { action:'update_status', id, status, adminToken } → update status
 //  POST { action:'close', id, adminToken }  → tutup tiket (selesai)
+//  POST { action:'rate', id, token, rating, feedback } → user beri rating saat tiket selesai
 // ============================================================
 
 const { getStore } = require('@netlify/blobs');
@@ -49,6 +50,13 @@ const MAX_CHAT_ATTACHMENTS = 3;
 const MAX_CHAT_ATTACHMENT_BYTES = 5 * 1024 * 1024; // 5MB
 
 function toUpperSafe(s) { return String(s || '').trim().toUpperCase(); }
+function sanitizeAdminUser(u) {
+  // Nama admin hanya untuk label UI (bukan autentikasi).
+  // Batasi karakter agar aman ditampilkan.
+  const s = String(u || '').trim().slice(0, 40);
+  if (!s) return '';
+  return s.replace(/[^\w.\- @]/g, '');
+}
 
 function normalizeMessages(ticket) {
   const msgs = Array.isArray(ticket?.messages) ? ticket.messages : [];
@@ -92,12 +100,13 @@ function sanitizeMessage(m) {
   const from = (m && m.from === 'admin') ? 'admin' : 'user';
   const at = m && m.at ? String(m.at) : '';
   const text = m && m.text ? String(m.text) : '';
+  const adminUser = from === 'admin' && m && m.adminUser ? sanitizeAdminUser(m.adminUser) : '';
   const attachments = Array.isArray(m && m.attachments)
     ? m.attachments
         .filter(a => a && a.base64 && a.type && String(a.type).startsWith('image/'))
         .map(a => ({ name: String(a.name || 'foto'), type: String(a.type), base64: String(a.base64) }))
     : [];
-  return { from, at, text, attachments };
+  return { from, at, text, attachments, ...(adminUser ? { adminUser } : {}) };
 }
 
 function base64SizeBytes(base64) {
@@ -260,6 +269,11 @@ exports.handler = async (event) => {
           updatedAt: ticket.updatedAt,
           done: ticket.done,
           devNote: ticket.devNote || '',
+          closedAt: ticket.closedAt || null,
+          closedBy: ticket.closedBy || '',
+          rating: ticket.rating || 0,
+          feedback: ticket.feedback || '',
+          ratedAt: ticket.ratedAt || null,
           messages: normalizeMessages(ticket).map(sanitizeMessage),
         };
 
@@ -268,14 +282,21 @@ exports.handler = async (event) => {
 
       const entry = idx.find(e => String(e.token || '').toUpperCase() === tokenQ);
       if (!entry) return { statusCode: 404, headers: CORS, body: JSON.stringify({ error: 'Tiket tidak ditemukan atau token tidak valid' }) };
-      if (entry.done) return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, expired: true, num: entry.num }) };
       const ticket = await getTicket(store, entry.id);
-      if (!ticket) return { statusCode: 404, headers: CORS, body: JSON.stringify({ error: 'Tiket tidak ditemukan' }) };
+      if (!ticket) {
+        // Jika index masih ada tapi record sudah terhapus (retensi), tampilkan state closed sederhana.
+        return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, expired: true, num: entry.num }) };
+      }
       // Sembunyikan info sensitif dari user
       const safe = { id: ticket.id, num: ticket.num, type: ticket.type, game: ticket.game,
         desc: ticket.desc, status: ticket.status, statusLabel: STATUS[ticket.status]?.label || ticket.status,
         statusStep: STATUS[ticket.status]?.step ?? 0, createdAt: ticket.createdAt,
         updatedAt: ticket.updatedAt, done: ticket.done, devNote: ticket.devNote || '',
+        closedAt: ticket.closedAt || null,
+        closedBy: ticket.closedBy || '',
+        rating: ticket.rating || 0,
+        feedback: ticket.feedback || '',
+        ratedAt: ticket.ratedAt || null,
         messages: normalizeMessages(ticket).map(sanitizeMessage) };
       return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, ticket: safe }) };
     }
@@ -302,6 +323,11 @@ exports.handler = async (event) => {
         updatedAt: ticket.updatedAt,
         done: ticket.done,
         devNote: ticket.devNote || '',
+        closedAt: ticket.closedAt || null,
+        closedBy: ticket.closedBy || '',
+        rating: ticket.rating || 0,
+        feedback: ticket.feedback || '',
+        ratedAt: ticket.ratedAt || null,
         messages: normalizeMessages(ticket).map(sanitizeMessage),
       };
       return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, ticket: safe }) };
@@ -340,6 +366,11 @@ exports.handler = async (event) => {
         id, num, token, type, game: game || '—', desc, email: email || '', contact: contact || '',
         summary: summary || desc, status: 'received', statusLabel: 'Diterima',
         createdAt: now, updatedAt: now, done: false, devNote: '',
+        closedAt: null,
+        closedBy: '',
+        rating: 0,
+        feedback: '',
+        ratedAt: null,
         adminSeenAt: null,
         messages: [],
       };
@@ -356,7 +387,7 @@ exports.handler = async (event) => {
 
     // Tambah pesan chat (user ↔ admin) + optional foto (max 5MB per file)
     if (action === 'add_message') {
-      const { id, text, token, adminToken, attachments } = body || {};
+      const { id, text, token, adminToken, attachments, adminUser } = body || {};
       if (!id) return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'ID tiket wajib diisi' }) };
 
       const ticket = await getTicket(store, id);
@@ -404,6 +435,10 @@ exports.handler = async (event) => {
         at: new Date().toISOString(),
         attachments: cleanAtt,
       };
+      if (isAdmin) {
+        const au = sanitizeAdminUser(adminUser);
+        if (au) msg.adminUser = au;
+      }
 
       ticket.messages = normalizeMessages(ticket);
       ticket.messages.push(msg);
@@ -446,7 +481,7 @@ exports.handler = async (event) => {
 
     // Update status tiket (hanya admin / WA bot)
     if (action === 'update_status') {
-      const { id, status, adminToken, devNote } = body;
+      const { id, status, adminToken, devNote, adminUser } = body;
       if (!(await verifyAdmin(adminToken))) return { statusCode: 403, headers: CORS, body: JSON.stringify({ error: 'Akses ditolak' }) };
       if (!id || !status || !STATUS[status]) return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Data tidak valid' }) };
 
@@ -461,10 +496,14 @@ exports.handler = async (event) => {
       ticket.updatedAt   = new Date().toISOString();
       if (devNote !== undefined) ticket.devNote = devNote;
 
+      const au = sanitizeAdminUser(adminUser);
+      if (au) ticket.lastUpdatedBy = au;
+
       // Jika status di-set ke done, perlakukan sama seperti "close"
       if (status === 'done') {
         ticket.done = true;
         ticket.closedAt = ticket.updatedAt;
+        if (au) ticket.closedBy = au;
         ticket.messages = [];      // hapus chat otomatis
         ticket.adminSeenAt = null; // reset badge
       }
@@ -489,7 +528,7 @@ exports.handler = async (event) => {
 
     // Tutup tiket (selesai)
     if (action === 'close') {
-      const { id, adminToken } = body;
+      const { id, adminToken, adminUser } = body;
       if (!(await verifyAdmin(adminToken))) return { statusCode: 403, headers: CORS, body: JSON.stringify({ error: 'Akses ditolak' }) };
 
       const ticket = await getTicket(store, id);
@@ -502,6 +541,8 @@ exports.handler = async (event) => {
       ticket.done        = true;
       ticket.updatedAt   = new Date().toISOString();
       ticket.closedAt    = ticket.updatedAt;
+      const au = sanitizeAdminUser(adminUser);
+      if (au) ticket.closedBy = au;
 
       // Hapus chat otomatis saat tiket ditutup
       ticket.messages = [];
@@ -520,6 +561,37 @@ exports.handler = async (event) => {
       }
 
       return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, closed: true }) };
+    }
+
+    // User kasih rating saat tiket sudah selesai
+    if (action === 'rate') {
+      const { id, token, rating, feedback } = body || {};
+      if (!id) return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'ID tiket wajib diisi' }) };
+      if (!token) return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Token wajib diisi untuk memberi rating' }) };
+      const r = parseInt(rating, 10);
+      if (!r || r < 1 || r > 5) return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Rating harus 1 sampai 5' }) };
+
+      const ticket = await getTicket(store, id);
+      if (!ticket) return { statusCode: 404, headers: CORS, body: JSON.stringify({ error: 'Tiket tidak ditemukan' }) };
+
+      // Hanya pemilik token yang boleh rating
+      if (toUpperSafe(ticket.token) !== toUpperSafe(token)) {
+        return { statusCode: 403, headers: CORS, body: JSON.stringify({ error: 'Token tidak valid' }) };
+      }
+
+      // Rating hanya saat tiket selesai
+      if (!(ticket.done || ticket.status === 'done')) {
+        return { statusCode: 403, headers: CORS, body: JSON.stringify({ error: 'Rating hanya bisa dikirim setelah tiket selesai' }) };
+      }
+
+      const fb = String(feedback || '').trim().slice(0, 800);
+      ticket.rating = r;
+      ticket.feedback = fb;
+      ticket.ratedAt = new Date().toISOString();
+      // Jangan ubah updatedAt supaya tidak mengubah sorting list admin hanya karena rating
+      await saveTicket(store, ticket);
+
+      return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, rating: ticket.rating, feedback: ticket.feedback }) };
     }
 
     // Hapus tiket manual dari admin

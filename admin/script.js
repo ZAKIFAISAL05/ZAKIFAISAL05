@@ -1187,6 +1187,10 @@ function getAdminToken() {
   const s = getSession();
   return s ? s.adminToken || '' : '';
 }
+function getAdminUser() {
+  const s = getSession();
+  return s ? String(s.user || '').trim() : '';
+}
 
 async function fetchTickets() {
   const panel   = document.getElementById('reports-panel');
@@ -1218,6 +1222,13 @@ async function fetchTickets() {
     if (panel) panel.innerHTML = `<div style="padding:24px;text-align:center;color:var(--c-red);">Error: ${escHtml(e.message)}</div>`;
     addLog('Gagal fetch tiket: ' + e.message, 'err');
   }
+}
+
+function renderStarsText(n) {
+  const r = Math.max(0, Math.min(5, parseInt(n || 0, 10) || 0));
+  let out = '';
+  for (let i = 1; i <= 5; i++) out += (i <= r ? '★' : '☆');
+  return out;
 }
 
 function renderTicketPanel(tickets) {
@@ -1259,6 +1270,27 @@ function renderTicketPanel(tickets) {
 
     // Controls
     const chatNew = t.chatUnread ? `<span class="mini-pill" title="Ada chat baru dari user">Baru</span>` : '';
+
+    // Rating + siapa yang menyelesaikan (muncul saat tiket done)
+    const closedBy = t.closedBy ? escHtml(t.closedBy) : '';
+    const closedByHtml = isDone && closedBy
+      ? `<div style="margin:10px 0 12px;font-size:0.82rem;color:var(--text-dim);">Diselesaikan oleh: <span style="color:var(--text-dark);font-weight:700;">${closedBy}</span></div>`
+      : '';
+
+    const ratingNum = parseInt(t.rating || 0, 10) || 0;
+    const ratingHtml = isDone
+      ? (ratingNum >= 1
+          ? `<div style="margin:-6px 0 12px;padding:10px 12px;border:1px solid rgba(250,204,21,0.25);background:rgba(250,204,21,0.06);border-radius:10px;">
+               <div style="font-family:var(--font-mono);font-size:0.8rem;color:var(--text-dark);">
+                 <span style="color:#f59e0b;font-size:1rem;letter-spacing:1px;">${renderStarsText(ratingNum)}</span>
+                 <span style="margin-left:8px;color:var(--text-dim);">${ratingNum}/5</span>
+               </div>
+               ${t.feedback ? `<div style="margin-top:6px;font-size:0.82rem;color:var(--text-dim);line-height:1.5;">${escHtml(t.feedback).replace(/\n/g,'<br>')}</div>`
+                           : `<div style="margin-top:6px;font-size:0.82rem;color:var(--text-dim);">Tanpa feedback.</div>`}
+             </div>`
+          : `<div style="margin:-6px 0 12px;font-size:0.82rem;color:var(--text-dim);">Rating: <span style="color:var(--text-muted);">belum ada</span></div>`)
+      : '';
+
     const controls = !isDone ? `
       <select class="status-select" id="sel-status-${tid}">
         <option value="received"  ${t.status==='received' ?'selected':''}>Diterima</option>
@@ -1307,6 +1339,9 @@ function renderTicketPanel(tickets) {
     ${t.contact ? `<div class="report-contact-item"><i class="bi bi-telephone" aria-hidden="true"></i> <span style="color:var(--text-dark)">${escHtml(t.contact)}</span></div>` : ''}
   </div>
 
+  ${closedByHtml}
+  ${ratingHtml}
+
   <div class="report-stepper">${stepperHtml}</div>
 
   <div class="report-status-row">${controls}</div>
@@ -1335,11 +1370,12 @@ async function updateTicketStatus(id) {
   const status     = sel.value;
   const devNote    = note ? note.value.trim() : '';
   const adminToken = getAdminToken();
+  const adminUser  = getAdminUser();
 
   try {
     const res  = await fetch(TICKET_API, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'update_status', id, status, devNote, adminToken }),
+      body: JSON.stringify({ action: 'update_status', id, status, devNote, adminToken, adminUser }),
     });
     const data = await res.json();
     if (data.ok) { addLog(`Tiket ${id} → ${status}`); fetchTickets(); }
@@ -1349,10 +1385,11 @@ async function updateTicketStatus(id) {
 
 async function closeTicket(id) {
   const adminToken = getAdminToken();
+  const adminUser  = getAdminUser();
   try {
     const res  = await fetch(TICKET_API, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'close', id, adminToken }),
+      body: JSON.stringify({ action: 'close', id, adminToken, adminUser }),
     });
     const data = await res.json();
     if (data.ok) { addLog(`Tiket ${id} ditutup (selesai)`); fetchTickets(); }
@@ -1393,6 +1430,8 @@ function renderTicketChatMessages(messages) {
     const from = m.from === 'admin' ? 'admin' : 'user';
     const time = m.at ? chatFormatTime(m.at) : '—';
     const text = String(m.text || '').trim();
+    const adminName = (from === 'admin' && m && m.adminUser) ? String(m.adminUser).trim() : '';
+    const who = from === 'admin' ? (adminName ? `Admin (${chatEsc(adminName)})` : 'Admin') : 'User';
     const images = Array.isArray(m.attachments)
       ? m.attachments
           .filter(a => a && a.base64 && a.type && String(a.type).startsWith('image/'))
@@ -1406,7 +1445,7 @@ function renderTicketChatMessages(messages) {
         <div class="chat-bubble">
           ${text ? `<div class="chat-text">${chatEsc(text).replace(/\n/g,'<br>')}</div>` : ''}
           ${images ? `<div class="chat-images">${images}</div>` : ''}
-          <div class="chat-meta">${from === 'admin' ? 'Admin' : 'User'} · ${time}</div>
+          <div class="chat-meta">${who} · ${time}</div>
         </div>
       </div>
     `;
@@ -1557,6 +1596,7 @@ async function sendTicketChat() {
   if (!_chatTicketId) return;
   if (_chatTicketClosed) { showChatWarn('Tiket sudah selesai. Chat dinonaktifkan.'); return; }
   const adminToken = getAdminToken();
+  const adminUser  = getAdminUser();
   const textEl = document.getElementById('chatTextInput');
   const btn = document.getElementById('chatSendBtn');
   const fileEl = document.getElementById('chatFileInput');
@@ -1581,6 +1621,7 @@ async function sendTicketChat() {
         action: 'add_message',
         id: _chatTicketId,
         adminToken,
+        adminUser,
         text,
         attachments: atts,
       }),

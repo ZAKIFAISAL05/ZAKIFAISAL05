@@ -78,6 +78,141 @@ function esc(str) {
 ══════════════════════════════════════ */
 let _currentTicket = null;
 let _chatFile = null;
+let _pendingRating = 0;
+
+function buildStarsText(n) {
+  const r = Math.max(0, Math.min(5, parseInt(n || 0, 10) || 0));
+  let out = '';
+  for (let i = 1; i <= 5; i++) out += (i <= r ? '★' : '☆');
+  return out;
+}
+
+function buildRatingSection(ticket) {
+  const isDone = !!(ticket && (ticket.done || ticket.status === 'done'));
+  if (!isDone) return '';
+
+  const token = getTokenFromURL() || '';
+  const ratingNum = parseInt(ticket.rating || 0, 10) || 0;
+  const feedback = String(ticket.feedback || '').trim();
+
+  // Sudah ada rating → tampilkan saja
+  if (ratingNum >= 1) {
+    return `
+      <div class="rating-section">
+        <div class="section-label">Rating untuk Admin</div>
+        <div class="rating-display">
+          <span class="rating-stars-text">${buildStarsText(ratingNum)}</span>
+          <span class="rating-num">${ratingNum}/5</span>
+        </div>
+        ${feedback
+          ? `<div class="rating-feedback">${esc(feedback).replace(/\n/g,'<br>')}</div>`
+          : `<div class="rating-hint">Tanpa feedback.</div>`
+        }
+      </div>
+    `;
+  }
+
+  // Kalau user buka via ID (tanpa token), jangan izinkan rating (biar tidak bisa spam)
+  if (!token) {
+    return `
+      <div class="rating-section">
+        <div class="section-label">Rating untuk Admin</div>
+        <div class="rating-hint">Untuk memberi rating, buka tiket ini dari link yang memakai <b>token</b> (contoh: <code>?token=...</code>).</div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="rating-section" id="rating-section">
+      <div class="section-label">Rating untuk Admin</div>
+      <div class="rating-hint">Tiket sudah selesai. Bantu kami dengan rating untuk admin yang menyelesaikan tiket ini.</div>
+
+      <div class="rating-stars" id="rating-stars">
+        ${[1,2,3,4,5].map(i => `<button class="star-btn" type="button" data-v="${i}" aria-label="Bintang ${i}">★</button>`).join('')}
+      </div>
+
+      <textarea id="rating-feedback" class="rating-input" rows="3" placeholder="Tulis feedback (opsional)..."></textarea>
+
+      <div class="rating-actions">
+        <button class="btn btn-primary" id="rating-submit" type="button">Kirim Rating</button>
+        <div class="rating-msg" id="rating-msg" style="display:none;"></div>
+      </div>
+    </div>
+  `;
+}
+
+function showRatingMsg(msg, type = 'info') {
+  const el = document.getElementById('rating-msg');
+  if (!el) return;
+  if (!msg) { el.style.display = 'none'; el.textContent = ''; el.className = 'rating-msg'; return; }
+  el.style.display = 'block';
+  el.textContent = msg;
+  el.className = 'rating-msg ' + (type === 'err' ? 'is-err' : 'is-ok');
+}
+
+function bindRating(ticket) {
+  const isDone = !!(ticket && (ticket.done || ticket.status === 'done'));
+  const token = getTokenFromURL() || '';
+  if (!isDone || ticket.rating || !token) return;
+
+  _pendingRating = 0;
+  showRatingMsg('', 'info');
+
+  const starsWrap = document.getElementById('rating-stars');
+  const submitBtn = document.getElementById('rating-submit');
+  const fbEl = document.getElementById('rating-feedback');
+  if (!starsWrap || !submitBtn) return;
+
+  function refreshStars() {
+    const btns = starsWrap.querySelectorAll('button.star-btn');
+    btns.forEach(btn => {
+      const v = parseInt(btn.getAttribute('data-v') || '0', 10);
+      btn.classList.toggle('is-active', v <= _pendingRating);
+    });
+  }
+
+  starsWrap.addEventListener('click', (e) => {
+    const btn = e.target && e.target.closest ? e.target.closest('button.star-btn') : null;
+    if (!btn) return;
+    _pendingRating = parseInt(btn.getAttribute('data-v') || '0', 10) || 0;
+    refreshStars();
+  });
+  refreshStars();
+
+  submitBtn.addEventListener('click', async () => {
+    if (!ticket || !ticket.id) return;
+    if (_pendingRating < 1 || _pendingRating > 5) {
+      showRatingMsg('Pilih bintang 1–5 dulu.', 'err');
+      return;
+    }
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Mengirim...';
+    try {
+      const feedback = fbEl ? String(fbEl.value || '').trim() : '';
+      const res = await fetch(TICKET_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'rate',
+          id: ticket.id,
+          token,
+          rating: _pendingRating,
+          feedback,
+        }),
+      });
+      const data = await res.json();
+      if (!data || !data.ok) throw new Error(data?.error || 'Gagal kirim rating');
+      showRatingMsg('Terima kasih! Rating kamu sudah tersimpan.', 'ok');
+      // Reload tiket supaya tampilan berubah jadi "rating display"
+      setTimeout(loadTicket, 600);
+    } catch (e) {
+      showRatingMsg(e.message || 'Gagal mengirim rating.', 'err');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Kirim Rating';
+    }
+  });
+}
 
 function buildImgDataUrl(att) {
   if (!att || !att.base64 || !att.type) return '';
@@ -94,6 +229,8 @@ function renderChatMessages(messages) {
     const from = m.from === 'admin' ? 'admin' : 'user';
     const time = m.at ? formatDate(m.at) : '—';
     const text = (m.text || '').trim();
+    const adminName = (from === 'admin' && m && m.adminUser) ? String(m.adminUser).trim() : '';
+    const who = from === 'admin' ? (adminName ? `Admin (${esc(adminName)})` : 'Admin') : 'Kamu';
     const images = Array.isArray(m.attachments)
       ? m.attachments
           .filter(a => a && a.base64 && a.type && String(a.type).startsWith('image/'))
@@ -108,7 +245,7 @@ function renderChatMessages(messages) {
         <div class="chat-bubble">
           ${text ? `<div class="chat-text">${esc(text).replace(/\n/g, '<br>')}</div>` : ''}
           ${images ? `<div class="chat-images">${images}</div>` : ''}
-          <div class="chat-meta">${from === 'admin' ? 'Admin' : 'Kamu'} · ${time}</div>
+          <div class="chat-meta">${who} · ${time}</div>
         </div>
       </div>
     `;
@@ -288,6 +425,9 @@ function renderTicket(ticket) {
   const step   = ticket.statusStep ?? 0;
   const isDone = ticket.done || ticket.status === 'done';
   const cfg    = STATUS_CONFIG[ticket.status] || STATUS_CONFIG.received;
+  const closedByHtml = isDone && ticket.closedBy
+    ? `<div class="resolved-by">Diselesaikan oleh <b>${esc(ticket.closedBy)}</b></div>`
+    : '';
 
   const typeBadge = ticket.type === 'bug'
     ? '<span class="badge badge-bug">🐛 Laporan Bug</span>'
@@ -311,6 +451,7 @@ function renderTicket(ticket) {
        </div>`
     : '';
 
+  const ratingHtml = buildRatingSection(ticket);
   const chatHtml = buildChatSection(ticket);
 
   card.innerHTML = `
@@ -342,6 +483,7 @@ function renderTicket(ticket) {
           ${cfg.msg}
         </div>
       </div>
+      ${closedByHtml}
       ${devNoteHtml}
     </div>
 
@@ -365,6 +507,8 @@ function renderTicket(ticket) {
       </div>
     </div>
 
+    ${ratingHtml}
+
     ${chatHtml}
 
     <!-- FOOTER ACTIONS -->
@@ -378,6 +522,7 @@ function renderTicket(ticket) {
   document.getElementById('refresh-hint').style.display = isDone ? 'none' : 'block';
 
   if (!isDone) bindChat(ticket);
+  if (isDone) bindRating(ticket);
 }
 
 /* ══════════════════════════════════════
