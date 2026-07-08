@@ -209,7 +209,6 @@ function initGamesFilter() {
     var card = e.target.closest('.game-card');
     if (!card) return;
 
-<<<<<<< HEAD
     // Mendukung penulisan attribute data-game-id atau data-id pada markup card
     var gameId = card.getAttribute('data-game-id') || card.getAttribute('data-id');
 
@@ -220,19 +219,6 @@ function initGamesFilter() {
       // Dialihkan langsung menggunakan format query string standard global /game/?id=...
       var targetUrl = window.location.origin + '/game/?id=' + encodeURIComponent(gameId);
       
-=======
-    // Diubah dari 'data-id' menjadi 'data-game-id' agar cocok dengan main.js
-    var gameId = card.getAttribute('data-game-id');
-
-    if (gameId) {
-      gameId = gameId.trim();
-      
-      // Mencegah bentrok dengan fungsi click bawaan modal/popup lain jika ada
-      e.stopPropagation();
-
-      // Mengarahkan window aktif langsung ke domain + slug folder target
-      var targetUrl = window.location.origin + '/' + gameId;
->>>>>>> c35beba7990cd8230794b10e6dc479a078d381da
       if (typeof window.nsNavigateWithFade === 'function') {
         window.nsNavigateWithFade(targetUrl);
         return;
@@ -296,7 +282,3 @@ document.addEventListener('DOMContentLoaded', function () {
   initGamesFilter(); 
   if (typeof window.initReviewsSlider === 'function') window.initReviewsSlider();
 });
-<<<<<<< HEAD
-=======
-  
->>>>>>> c35beba7990cd8230794b10e6dc479a078d381da
