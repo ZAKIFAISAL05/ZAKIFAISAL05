@@ -149,6 +149,141 @@ function closeReportModal(type) {
   }
 }
 
+// ── SUBMIT REPORT (sinkron dengan CS) ────────────────────────
+var REPORT_ENDPOINT = '/.netlify/functions/report';
+var _isSubmittingReportIndex = false;
+
+function generateTicketId() {
+  return 'GS-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 5).toUpperCase();
+}
+
+function _safeSetHtml(el, html) { if (el) el.innerHTML = html; }
+function _safeSetText(el, txt) { if (el) el.textContent = txt; }
+
+function _makeTicketLabel(ticketNum, ticketId) {
+  var num = ticketNum ? ('#' + ticketNum) : '#—';
+  var tid = ticketId ? String(ticketId) : '';
+  return tid ? (num + ' · ' + tid) : num;
+}
+
+function submitReport(type) {
+  if (_isSubmittingReportIndex) return;
+  type = type === 'bug' ? 'bug' : 'saran';
+
+  var gameEl = document.getElementById(type + '-game');
+  var descEl = document.getElementById(type + '-desc');
+  var emailEl = document.getElementById(type + '-email');
+  var contactEl = document.getElementById(type + '-contact'); // hanya ada di bug modal
+  var btn = document.getElementById(type + '-submit');
+
+  var game = gameEl ? String(gameEl.value || '').trim() : '';
+  var desc = descEl ? String(descEl.value || '').trim() : '';
+  var email = emailEl ? String(emailEl.value || '').trim() : '';
+  var contact = contactEl ? String(contactEl.value || '').trim() : '';
+
+  // Validasi minimal (sesuai backend report.js)
+  if (!desc || desc.length < 10) {
+    if (descEl) {
+      descEl.focus();
+      descEl.style.borderColor = '#ff3c3c';
+      setTimeout(function () { try { descEl.style.borderColor = ''; } catch (e) {} }, 1800);
+    }
+    alert('Isi deskripsi minimal 10 karakter ya.');
+    return;
+  }
+  if (type === 'bug' && !game) {
+    if (gameEl) {
+      gameEl.focus();
+      gameEl.style.borderColor = '#ff3c3c';
+      setTimeout(function () { try { gameEl.style.borderColor = ''; } catch (e) {} }, 1800);
+    }
+    alert('Pilih game yang bermasalah dulu ya.');
+    return;
+  }
+
+  // Konfirmasi singkat (biar sync dengan CS yang minta confirm sebelum kirim)
+  var confirmText =
+    'Konfirmasi kirim ' + (type === 'bug' ? 'laporan bug' : 'saran') + '?\n\n' +
+    'Game: ' + (game || '—') + '\n' +
+    'Email: ' + (email || '—') + '\n' +
+    'Kontak: ' + (contact || '—') + '\n\n' +
+    'Detail:\n' + desc;
+  if (!confirm(confirmText)) return;
+
+  var ticketId = generateTicketId();
+  var payload = {
+    type: type,
+    game: game,
+    desc: desc,
+    email: email,
+    contact: contact,
+    ticketId: ticketId,
+  };
+
+  _isSubmittingReportIndex = true;
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = 'Mengirim...';
+  }
+
+  fetch(REPORT_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data || !data.ok) throw new Error((data && data.error) || 'Gagal mengirim laporan');
+
+      // Tampilkan success UI
+      var formEl = document.getElementById('modal-' + type + '-form');
+      var succEl = document.getElementById('modal-' + type + '-success');
+      if (formEl) formEl.style.display = 'none';
+      if (succEl) succEl.style.display = '';
+
+      // Isi nomor tiket + tampilkan box (jika ada)
+      var ticketBox = document.getElementById(type + '-ticket-box');
+      var ticketNumEl = document.getElementById(type + '-ticket-num');
+      if (ticketBox) ticketBox.style.display = 'flex';
+      _safeSetText(ticketNumEl, _makeTicketLabel(data.ticketNum, data.ticketId || ticketId));
+
+      // Tambah link pantau status (kalau ada)
+      if (succEl && data.ticketUrl) {
+        // hapus link lama kalau sudah pernah append
+        var old = succEl.querySelector('.rmodal-track-link');
+        if (old) old.remove();
+
+        var a = document.createElement('a');
+        a.className = 'rmodal-track-link';
+        a.href = data.ticketUrl.startsWith('http')
+          ? data.ticketUrl
+          : (window.location.origin + (data.ticketUrl.startsWith('/') ? '' : '/') + data.ticketUrl);
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.style.cssText = 'display:inline-flex;gap:8px;align-items:center;justify-content:center;margin-top:14px;padding:10px 14px;border-radius:12px;border:1px solid rgba(124,77,255,0.25);background:rgba(124,77,255,0.06);color:#7c4dff;font-weight:800;text-decoration:none;font-size:0.85rem;';
+        a.innerHTML = '📋 Pantau Status Tiket →';
+        succEl.appendChild(a);
+      }
+
+      // Reset input (biar tidak ke-submit ulang)
+      if (descEl) descEl.value = '';
+    })
+    .catch(function (e) {
+      alert((e && e.message) ? e.message : 'Gagal mengirim. Coba lagi nanti ya.');
+    })
+    .finally(function () {
+      _isSubmittingReportIndex = false;
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = type === 'bug'
+          ? '<i data-feather="alert-triangle"></i> Kirim Laporan Bug'
+          : '<i data-feather="zap"></i> Kirim Saran';
+      }
+      if (typeof window.rerenderFeather === 'function') window.rerenderFeather();
+      else if (typeof feather !== 'undefined') feather.replace();
+    });
+}
+
 // ── LOGIKA FILTER, PENCARIAN, DAN REDIRECT URL GAME ──────────
 function initGamesFilter() {
   var searchInput = document.getElementById('game-search');
