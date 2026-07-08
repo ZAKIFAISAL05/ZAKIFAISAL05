@@ -42,6 +42,14 @@
     Expires = "0"
 
 [[headers]]
+  # File versi harus selalu fresh (dipakai untuk auto-update cache)
+  for = "/version.json"
+  [headers.values]
+    Cache-Control = "no-store, no-cache, must-revalidate, proxy-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"
+
+[[headers]]
   for = "/admin/*"
   [headers.values]
     X-Robots-Tag = "noindex, nofollow"

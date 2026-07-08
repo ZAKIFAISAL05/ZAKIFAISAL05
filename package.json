@@ -5,8 +5,9 @@
   "scripts": {
     "dev": "npx netlify dev",
     "start": "npx netlify dev",
+    "gen:version": "node scripts/gen-version.js",
     "cache:bust": "node cache-buster.js",
-    "build": "node cache-buster.js && npx netlify build --offline",
+    "build": "node scripts/gen-version.js && node cache-buster.js && npx netlify build --offline",
     "deploy:preview": "npx netlify deploy",
     "deploy:prod": "npx netlify deploy --prod"
   },
