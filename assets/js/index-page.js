@@ -205,21 +205,22 @@ function initGamesFilter() {
     var card = e.target.closest('.game-card');
     if (!card) return;
 
-    var gameId = card.getAttribute('data-id');
+    // Diubah dari 'data-id' menjadi 'data-game-id' agar cocok dengan main.js
+    var gameId = card.getAttribute('data-game-id');
 
     if (gameId) {
       gameId = gameId.trim();
+      
+      // Mencegah bentrok dengan fungsi click bawaan modal/popup lain jika ada
+      e.stopPropagation();
+
       // Mengarahkan window aktif langsung ke domain + slug folder target
-<<<<<<< HEAD
       var targetUrl = window.location.origin + '/' + gameId;
       if (typeof window.nsNavigateWithFade === 'function') {
         window.nsNavigateWithFade(targetUrl);
         return;
       }
       window.location.href = targetUrl;
-=======
-      window.location.href = window.location.origin + '/' + gameId;
->>>>>>> 5cedeb8cf4ed30e18de1126e0537e47ffbd59987
     }
   });
 
@@ -278,4 +279,4 @@ document.addEventListener('DOMContentLoaded', function () {
   initGamesFilter(); 
   if (typeof window.initReviewsSlider === 'function') window.initReviewsSlider();
 });
-    
+  
