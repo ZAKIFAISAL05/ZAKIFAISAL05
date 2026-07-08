@@ -11,6 +11,7 @@ const REPORT_STORE = 'gs_reports';
 const SITE_SETTINGS_API = '/.netlify/functions/site-settings';
 const ADMIN_LOGS_API = '/.netlify/functions/admin-logs';
 const DEV_BYPASS_API = '/.netlify/functions/dev-bypass';
+const DB_HEALTH_API = '/.netlify/functions/db-health';
 
 /* ── AUTH CONFIG ── */
 const ADMIN_CREDENTIALS = {
@@ -43,6 +44,27 @@ function isSessionValid() { const s = getSession(); return s && Date.now() < s.e
 const logLines = [];
 let _isSyncingLogs = false;
 let _lastLogSignature = '';
+const _errBurst = {}; // { key: {count, firstTs} }
+
+function recordSuspicious(key, message) {
+  // Trigger kalau error beruntun banyak dalam waktu singkat (indikasi bug/DB masalah)
+  const now = Date.now();
+  const slot = _errBurst[key] || { count: 0, firstTs: now };
+  if (now - slot.firstTs > 60 * 1000) {
+    slot.count = 0;
+    slot.firstTs = now;
+  }
+  slot.count += 1;
+  _errBurst[key] = slot;
+
+  if (slot.count >= 5) {
+    slot.count = 0;
+    slot.firstTs = now;
+    _errBurst[key] = slot;
+    addLog('MENCURIGAKAN: ' + message + ' (error beruntun)', 'err');
+    showToast('Terjadi banyak error beruntun. Cek DB/bug.', 'warn');
+  }
+}
 
 async function persistLogToServer(msg, type = 'evt') {
   const adminToken = getAdminToken();
@@ -153,6 +175,67 @@ function renderSiteSettingsPanel(settings) {
 async function initSiteSettingsPanel() {
   const settings = await fetchSiteSettings();
   renderSiteSettingsPanel(settings);
+}
+
+/* ════════════════════════════════════════
+   DATABASE HEALTH (Netlify Blobs)
+   ════════════════════════════════════════ */
+let _dbHealthLast = null;
+let _dbHealthTimer = null;
+
+async function checkDatabaseHealth(forceLog = false) {
+  const statusEl = document.getElementById('ss-db-health-status');
+  const infoEl = document.getElementById('ss-db-health-info');
+  const adminToken = getAdminToken();
+
+  if (!adminToken) {
+    if (statusEl) { statusEl.textContent = 'BUTUH LOGIN'; statusEl.className = 'site-settings-value ss-off'; }
+    if (infoEl) infoEl.textContent = 'Login admin dulu untuk cek database.';
+    return null;
+  }
+
+  try {
+    const startedAt = Date.now();
+    const res = await fetch(`${DB_HEALTH_API}?adminToken=${encodeURIComponent(adminToken)}`, { cache: 'no-store' });
+    const data = await res.json();
+    const latency = Date.now() - startedAt;
+
+    _dbHealthLast = data && data.ok ? data : null;
+
+    const isOk = !!(data && data.ok && data.status === 'ok');
+    const statusText = isOk ? 'OK' : (data && data.status ? String(data.status).toUpperCase() : 'ERROR');
+
+    if (statusEl) {
+      statusEl.textContent = `${statusText}`;
+      statusEl.className = 'site-settings-value ' + (isOk ? 'ss-on' : 'ss-off');
+    }
+    if (infoEl) {
+      const w = data && typeof data.writeMs === 'number' ? data.writeMs + 'ms' : '—';
+      const r = data && typeof data.readMs === 'number' ? data.readMs + 'ms' : '—';
+      infoEl.textContent = `Latency: ${latency}ms | write: ${w} | read: ${r} | waktu: ${new Date().toLocaleString('id-ID')}`;
+    }
+
+    if (!isOk) {
+      recordSuspicious('db_health', 'Database/Blobs bermasalah');
+      if (forceLog) addLog('DB HEALTH → ' + statusText + ' | ' + (data?.error || 'cek detail'), 'err');
+    } else if (forceLog) {
+      addLog('DB HEALTH → OK (write ' + (data.writeMs ?? '?') + 'ms, read ' + (data.readMs ?? '?') + 'ms)', 'evt');
+    }
+
+    return data;
+  } catch (e) {
+    if (statusEl) { statusEl.textContent = 'ERROR'; statusEl.className = 'site-settings-value ss-off'; }
+    if (infoEl) infoEl.textContent = 'Gagal cek database: ' + e.message;
+    recordSuspicious('db_health', 'Gagal cek database');
+    if (forceLog) addLog('DB HEALTH ERROR: ' + e.message, 'err');
+    return null;
+  }
+}
+
+function initDatabaseHealthMonitor() {
+  if (_dbHealthTimer) return;
+  checkDatabaseHealth(false);
+  _dbHealthTimer = setInterval(() => checkDatabaseHealth(false), 30000);
 }
 
 function getDeveloperBypassApi() {
@@ -1040,6 +1123,7 @@ async function showAdmin(sess) {
   initCommandCenter();
   initSiteSettingsPanel();
   await renderDeveloperModePanel();
+  initDatabaseHealthMonitor();
   addLog(`Session aktif — expires in ${SESSION_MINUTES} minutes`);
 }
 

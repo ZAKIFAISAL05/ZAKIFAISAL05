@@ -359,6 +359,19 @@
 
                                 <div class="site-settings-row">
                                     <div class="site-settings-meta">
+                                        <div class="site-settings-label">Database (Netlify Blobs)</div>
+                                        <div class="site-settings-value" id="ss-db-health-status">Memuat...</div>
+                                    </div>
+                                    <div class="site-settings-actions">
+                                        <button class="btn-small" type="button" onclick="checkDatabaseHealth(true)">Cek DB</button>
+                                    </div>
+                                </div>
+                                <div class="site-settings-hint" id="ss-db-health-info">—</div>
+
+                                <div class="site-settings-divider"></div>
+
+                                <div class="site-settings-row">
+                                    <div class="site-settings-meta">
                                         <div class="site-settings-label">Developer Key / Mode Testing</div>
                                         <div class="site-settings-value" id="ss-dev-bypass-status">Memuat...</div>
                                     </div>
@@ -784,7 +797,7 @@
         </div>
     </div>
 
-    <script src="/admin/script.js?v=ae5182ca6d"></script>
+    <script src="/admin/script.js?v=8bafb8ff1a"></script>
     <script src="/assets/js/animations.js?v=a6d15293cc"></script>
 
     <script src="/assets/js/lang-auto.js?v=185fa2fa0f"></script>
