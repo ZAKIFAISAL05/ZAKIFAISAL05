@@ -134,7 +134,11 @@ function openReportModal(type) {
       : '<i data-feather="zap"></i> Kirim Saran';
   }
 
-  rerenderFeather();
+  if (typeof window.rerenderFeather === 'function') {
+    window.rerenderFeather();
+  } else if (typeof feather !== 'undefined') {
+    feather.replace();
+  }
 }
 
 function closeReportModal(type) {
@@ -200,26 +204,26 @@ function initGamesFilter() {
     }
   }
 
-  // 🛠️ PERBAIKAN LOGIKA KLIK: DIPAKSA RE-DIRECT LANGSUNG KE URL UTAMA
+  // 🛠️ FIX REDIRECT SINKRON: Mengambil ID murni game dari attribute kartu HTML
   gamesGrid.addEventListener('click', function (e) {
     var card = e.target.closest('.game-card');
     if (!card) return;
 
-    var gameId = card.getAttribute('data-id');
+    // Mendukung penulisan attribute data-game-id atau data-id pada markup card
+    var gameId = card.getAttribute('data-game-id') || card.getAttribute('data-id');
 
     if (gameId) {
       gameId = gameId.trim();
-      // Mengarahkan window aktif langsung ke domain + slug folder target
-<<<<<<< HEAD
-      var targetUrl = window.location.origin + '/' + gameId;
+      e.stopPropagation();
+
+      // Dialihkan langsung menggunakan format query string standard global /game/?id=...
+      var targetUrl = window.location.origin + '/game/?id=' + encodeURIComponent(gameId);
+      
       if (typeof window.nsNavigateWithFade === 'function') {
         window.nsNavigateWithFade(targetUrl);
         return;
       }
       window.location.href = targetUrl;
-=======
-      window.location.href = window.location.origin + '/' + gameId;
->>>>>>> 5cedeb8cf4ed30e18de1126e0537e47ffbd59987
     }
   });
 
@@ -278,4 +282,3 @@ document.addEventListener('DOMContentLoaded', function () {
   initGamesFilter(); 
   if (typeof window.initReviewsSlider === 'function') window.initReviewsSlider();
 });
-    

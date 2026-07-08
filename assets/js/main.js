@@ -128,6 +128,8 @@
 
     const __RAW_CATALOG__ = (window.NUSABIT_GAMES && Array.isArray(window.NUSABIT_GAMES))
         ? window.NUSABIT_GAMES
+        : (typeof window.getGameCatalog === 'function')
+            ? window.getGameCatalog()
         : (window.gameData && Array.isArray(window.gameData))
             ? window.gameData
             : (typeof gameData !== 'undefined' && Array.isArray(gameData))
@@ -136,19 +138,11 @@
 
     const CATALOG = __RAW_CATALOG__.map(_normalizeGame).filter(Boolean);
 
-    // Map ID → URL SEO-friendly (fallback ke /game/?id=...)
-    const HOME_ID_TO_URL = {
-        'minecraft-parkour-2d':        '/Minecraft-Parkun-2D',
-        'the-one-for-zombie':          '/The-One-For-Zombie',
-        'desa-karya-investasi-zombie': '/Desa-Karya-Investasi-Zombie',
-        'gerbang-parkun-2d':           '/Gerbang-Parkun-2D',
-        'desa-cipta-karya-ch2':        '/Desa-Cipta-Karya-Ch2',
-        'the-undeads-roblox':          '/The-Undeads-Roblox',
-        'frequency-fury-obby':         '/Frequency-Fury-Obby'
-    };
-
     function _getGameUrl(id) {
-        return HOME_ID_TO_URL[id] || ('/game/?id=' + encodeURIComponent(id));
+        if (typeof window.buildGameUrl === 'function') {
+            return window.buildGameUrl(id);
+        }
+        return '/game/?id=' + encodeURIComponent(id);
     }
 
     function renderHomepageGames() {
