@@ -933,18 +933,80 @@ async function submitAddGame() {
       : '<i class="fas fa-floppy-disk"></i><span>Simpan game ke katalog</span>';
   }
 }
-let pendingDeleteId = null;
-function confirmDelete(id, title) {
-  pendingDeleteId = id;
-  document.getElementById('confirmMsg').textContent = `Hapus game "${title}" dari katalog?`;
+let _confirmResolver = null;
+function openConfirmDialog(options = {}) {
   const ov = document.getElementById('confirmOverlay');
-  ov.classList.add('show'); ov.classList.add('visible');
-  document.getElementById('confirmYes').onclick = () => { doDeleteGame(pendingDeleteId, title); closeConfirm(); };
+  const titleEl = document.getElementById('confirmTitle');
+  const msgEl = document.getElementById('confirmMsg');
+  const yesBtn = document.getElementById('confirmYes');
+  const yesText = document.getElementById('confirmYesText');
+  const field = document.getElementById('confirmField');
+  const labelEl = document.getElementById('confirmLabel');
+  const reasonEl = document.getElementById('confirmReason');
+  const helpEl = document.getElementById('confirmHelp');
+  if (!ov || !msgEl || !yesBtn) return Promise.resolve({ confirmed: false, value: '' });
+
+  titleEl.textContent = options.title || 'Konfirmasi';
+  msgEl.textContent = options.message || 'Lanjutkan aksi ini?';
+  yesText.textContent = options.confirmText || 'Ya, lanjutkan';
+  yesBtn.className = options.confirmClass || 'btn-danger';
+
+  if (options.requireReason) {
+    field.style.display = 'block';
+    labelEl.textContent = options.reasonLabel || 'Alasan';
+    reasonEl.placeholder = options.reasonPlaceholder || 'Tulis alasan...';
+    reasonEl.value = options.reasonValue || '';
+    helpEl.textContent = options.reasonHelp || 'Input ini wajib diisi.';
+  } else {
+    field.style.display = 'none';
+    reasonEl.value = '';
+  }
+
+  ov.classList.add('show');
+  ov.classList.add('visible');
+
+  return new Promise((resolve) => {
+    _confirmResolver = resolve;
+    yesBtn.onclick = () => {
+      const value = String(reasonEl.value || '').trim();
+      if (options.requireReason && !value) {
+        reasonEl.focus();
+        return;
+      }
+      closeConfirm(true, value);
+    };
+    setTimeout(() => {
+      if (options.requireReason) reasonEl.focus();
+      else yesBtn.focus();
+    }, 30);
+  });
 }
-function closeConfirm() {
+
+function confirmDelete(id, title) {
+  openConfirmDialog({
+    title: 'Hapus game',
+    message: `Hapus game "${title}" dari katalog?`,
+    confirmText: 'Ya, hapus',
+    confirmClass: 'btn-danger',
+  }).then(({ confirmed }) => {
+    if (confirmed) doDeleteGame(id, title);
+  });
+}
+function closeConfirm(confirmed = false, value = '') {
   const ov = document.getElementById('confirmOverlay');
-  ov.classList.remove('show'); ov.classList.remove('visible');
-  pendingDeleteId = null;
+  const field = document.getElementById('confirmField');
+  const reasonEl = document.getElementById('confirmReason');
+  if (ov) {
+    ov.classList.remove('show');
+    ov.classList.remove('visible');
+  }
+  if (field) field.style.display = 'none';
+  if (reasonEl) reasonEl.value = '';
+  if (_confirmResolver) {
+    const resolve = _confirmResolver;
+    _confirmResolver = null;
+    resolve({ confirmed, value });
+  }
 }
 
 async function doDeleteGame(id, title) {
@@ -1128,16 +1190,17 @@ async function showAdmin(sess) {
 }
 
 function doLogout() {
-  // Tampilkan modal konfirmasi logout
-  const ov = document.getElementById('confirmOverlay');
-  document.getElementById('confirmMsg').textContent = 'Yakin mau logout? Semua perubahan yang belum disimpan akan hilang.';
-  ov.classList.add('show'); ov.classList.add('visible');
-  document.getElementById('confirmYes').onclick = () => {
-    closeConfirm();
+  openConfirmDialog({
+    title: 'Logout admin',
+    message: 'Yakin mau logout? Semua perubahan yang belum disimpan akan hilang.',
+    confirmText: 'Ya, logout',
+    confirmClass: 'btn-danger',
+  }).then(({ confirmed }) => {
+    if (!confirmed) return;
     addLog('LOGOUT — session terminated', 'warn');
     clearSession();
     location.reload();
-  };
+  });
 }
 
 function startSessionTimer(sess) {
@@ -1245,13 +1308,14 @@ function renderTicketPanel(tickets) {
     return;
   }
 
-  const STATUS_STEPS = { received: 0, seen: 1, confirmed: 2, done: 3 };
-  const STATUS_LABEL = { received:'Diterima', seen:'Dilihat', confirmed:'Dikonfirmasi', done:'Selesai' };
-  const STEP_LABELS  = ['Diterima', 'Dilihat', 'Dikonfirmasi', 'Selesai'];
+  const STATUS_STEPS = { received: 0, seen: 1, confirmed: 2, done: 3, cancelled: 3 };
+  const STATUS_LABEL = { received:'Diterima', seen:'Dilihat', confirmed:'Dikonfirmasi', done:'Selesai', cancelled:'Dibatalkan' };
+  const STEP_LABELS  = ['Diterima', 'Dilihat', 'Dikonfirmasi', 'Final'];
 
   panel.innerHTML = tickets.map(t => {
     const step   = STATUS_STEPS[t.status] ?? 0;
-    const isDone = t.done || t.status === 'done';
+    const isCancelled = t.status === 'cancelled';
+    const isDone = t.done || t.status === 'done' || isCancelled;
     const tid    = escHtml(t.id);
     const dateStr = t.createdAt
       ? new Date(t.createdAt).toLocaleString('id-ID', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit', timeZone:'Asia/Jakarta' })
@@ -1261,7 +1325,10 @@ function renderTicketPanel(tickets) {
     const stepperHtml = STEP_LABELS.map((label, i) => {
       const cls = i < step ? 'done' : (i === step ? (isDone ? 'done' : 'active') : '');
       const dot = (i < step || isDone) ? '✓' : (i + 1);
-      return `<div class="rs-step ${cls}"><div class="rs-dot">${dot}</div><div class="rs-label">${label}</div></div>`;
+      const finalLabel = i === STEP_LABELS.length - 1
+        ? (isCancelled ? 'Dibatalkan' : 'Selesai')
+        : label;
+      return `<div class="rs-step ${cls}"><div class="rs-dot">${dot}</div><div class="rs-label">${finalLabel}</div></div>`;
     }).join('');
 
     // Status badge
@@ -1273,12 +1340,18 @@ function renderTicketPanel(tickets) {
 
     // Rating + siapa yang menyelesaikan (muncul saat tiket done)
     const closedBy = t.closedBy ? escHtml(t.closedBy) : '';
+    const closedByLabel = isCancelled ? 'Dibatalkan oleh' : 'Diselesaikan oleh';
     const closedByHtml = isDone && closedBy
-      ? `<div style="margin:10px 0 12px;font-size:0.82rem;color:var(--text-dim);">Diselesaikan oleh: <span style="color:var(--text-dark);font-weight:700;">${closedBy}</span></div>`
+      ? `<div style="margin:10px 0 12px;font-size:0.82rem;color:var(--text-dim);">${closedByLabel}: <span style="color:var(--text-dark);font-weight:700;">${closedBy}</span></div>`
+      : '';
+    const cancelReasonHtml = isCancelled
+      ? `<div style="display:flex;align-items:flex-start;gap:8px;margin:-4px 0 12px;padding:10px 14px;background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.18);border-radius:8px;font-size:0.83rem;color:var(--text-dim);">
+           <span style="color:var(--c-red);font-weight:700;flex-shrink:0;display:inline-flex;align-items:center;gap:6px;"><i class="bi bi-x-octagon" aria-hidden="true"></i> Alasan:</span> ${escHtml(t.cancelReason || 'Tidak ada alasan pembatalan')}
+         </div>`
       : '';
 
     const ratingNum = parseInt(t.rating || 0, 10) || 0;
-    const ratingHtml = isDone
+    const ratingHtml = (!isCancelled && isDone)
       ? (ratingNum >= 1
           ? `<div style="margin:-6px 0 12px;padding:10px 12px;border:1px solid rgba(250,204,21,0.25);background:rgba(250,204,21,0.06);border-radius:10px;">
                <div style="font-family:var(--font-mono);font-size:0.8rem;color:var(--text-dark);">
@@ -1300,10 +1373,11 @@ function renderTicketPanel(tickets) {
       <input class="devnote-input" type="text" id="note-${tid}" placeholder="Catatan untuk user (opsional)..." value="${escHtml(t.devNote||'')}">
       <button class="btn-update-status" onclick="updateTicketStatus('${tid}')">Simpan</button>
       <button class="btn-small" onclick="closeTicket('${tid}')"><i class="bi bi-check2-circle" aria-hidden="true"></i> Selesaikan</button>
+      <button class="btn-small" onclick="cancelTicket('${tid}')"><i class="bi bi-x-circle" aria-hidden="true"></i> Batalkan</button>
       <button class="btn-small" onclick="openTicketChat('${tid}')"><i class="bi bi-chat-dots" aria-hidden="true"></i> Chat ${chatNew}</button>
       <button class="btn-del-report" onclick="deleteReport('${tid}')">Hapus</button>
     ` : `
-      <span class="s-badge done"><i class="bi bi-check-circle-fill" aria-hidden="true"></i> Tiket selesai &amp; ditutup</span>
+      <span class="s-badge ${isCancelled ? 'cancelled' : 'done'}"><i class="bi ${isCancelled ? 'bi-x-circle-fill' : 'bi-check-circle-fill'}" aria-hidden="true"></i> ${isCancelled ? 'Tiket dibatalkan &amp; ditutup' : 'Tiket selesai &amp; ditutup'}</span>
       <button class="btn-small" onclick="openTicketChat('${tid}')" style="margin-left:auto;"><i class="bi bi-chat-dots" aria-hidden="true"></i> Chat ${chatNew}</button>
       <button class="btn-del-report" onclick="deleteReport('${tid}')">Hapus</button>
     `;
@@ -1340,6 +1414,7 @@ function renderTicketPanel(tickets) {
   </div>
 
   ${closedByHtml}
+  ${cancelReasonHtml}
   ${ratingHtml}
 
   <div class="report-stepper">${stepperHtml}</div>
@@ -1351,7 +1426,13 @@ function renderTicketPanel(tickets) {
 
 async function deleteReport(id) {
   const adminToken = getAdminToken();
-  if (!confirm('Hapus laporan ini permanen?')) return;
+  const { confirmed } = await openConfirmDialog({
+    title: 'Hapus tiket',
+    message: `Hapus tiket ${id} secara permanen?`,
+    confirmText: 'Ya, hapus',
+    confirmClass: 'btn-danger',
+  });
+  if (!confirmed) return;
   try {
     const res  = await fetch(TICKET_API, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -1384,17 +1465,63 @@ async function updateTicketStatus(id) {
 }
 
 async function closeTicket(id) {
+  const noteEl = document.getElementById('note-' + id);
   const adminToken = getAdminToken();
   const adminUser  = getAdminUser();
+  const devNote    = noteEl ? noteEl.value.trim() : '';
+  const { confirmed } = await openConfirmDialog({
+    title: 'Selesaikan tiket',
+    message: `Tandai tiket ${id} sebagai selesai dan tutup chat user?`,
+    confirmText: 'Ya, selesaikan',
+    confirmClass: 'btn-save',
+  });
+  if (!confirmed) return;
   try {
     const res  = await fetch(TICKET_API, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'close', id, adminToken, adminUser }),
+      body: JSON.stringify({ action: 'close', id, adminToken, adminUser, devNote }),
     });
     const data = await res.json();
-    if (data.ok) { addLog(`Tiket ${id} ditutup (selesai)`); fetchTickets(); }
+    if (data.ok) {
+      addLog(`Tiket ${id} ditutup (selesai)${data.emailSent ? ' + email terkirim' : ''}`);
+      fetchTickets();
+    }
     else         { addLog('Gagal tutup tiket: ' + (data.error||'?'), 'err'); }
   } catch (e) { addLog('Error close tiket: ' + e.message, 'err'); }
+}
+
+async function cancelTicket(id) {
+  const noteEl = document.getElementById('note-' + id);
+  const adminToken = getAdminToken();
+  const adminUser = getAdminUser();
+  const devNote = noteEl ? noteEl.value.trim() : '';
+  const { confirmed, value } = await openConfirmDialog({
+    title: 'Batalkan tiket',
+    message: `Batalkan tiket ${id}? User akan melihat alasan pembatalan ini.`,
+    confirmText: 'Ya, batalkan',
+    confirmClass: 'btn-danger',
+    requireReason: true,
+    reasonLabel: 'Alasan pembatalan',
+    reasonPlaceholder: 'Contoh: laporan duplikat, data tidak cukup, atau masalah tidak valid.',
+    reasonHelp: 'Wajib diisi. Alasan ini tampil di halaman tiket dan dikirim lewat email ke user.',
+  });
+  if (!confirmed) return;
+  try {
+    const res = await fetch(TICKET_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'cancel', id, adminToken, adminUser, reason: value, devNote }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      addLog(`Tiket ${id} dibatalkan${data.emailSent ? ' + email terkirim' : ''}`, 'warn');
+      fetchTickets();
+    } else {
+      addLog('Gagal batalkan tiket: ' + (data.error || '?'), 'err');
+    }
+  } catch (e) {
+    addLog('Error cancel tiket: ' + e.message, 'err');
+  }
 }
 
 /* ── CHAT TIKET (admin ↔ user) ── */

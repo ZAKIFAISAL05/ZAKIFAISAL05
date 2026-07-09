@@ -12,6 +12,7 @@
 // ============================================================
 
 const { getStore } = require('@netlify/blobs');
+const nodemailer = require('nodemailer');
 
 const CORS = {
   'Access-Control-Allow-Origin':  '*',
@@ -26,6 +27,7 @@ const STATUS = {
   seen:      { label: 'Dilihat',     step: 1 },
   confirmed: { label: 'Dikonfirmasi',step: 2 },
   done:      { label: 'Selesai',     step: 3 },
+  cancelled: { label: 'Dibatalkan',  step: 3 },
 };
 
 function createStore() {
@@ -39,6 +41,183 @@ function createStore() {
 const COUNTER_KEY = 'ticket-counter';
 const TICKETS_KEY = 'ticket-list';   // index: [{id, num, token, status, createdAt, done}]
 const DONE_RETENTION_MS = 2 * 24 * 60 * 60 * 1000;
+
+function escapeHtml(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function isClosedTicket(ticket) {
+  return !!(ticket && (ticket.done || ticket.status === 'done' || ticket.status === 'cancelled'));
+}
+
+let cachedTransporter = null;
+function getGmailTransporter() {
+  if (cachedTransporter) return cachedTransporter;
+
+  const user =
+    process.env.GMAIL_SMTP_USER ||
+    process.env.GMAIL_USER ||
+    process.env.SMTP_USER ||
+    '';
+  const pass =
+    process.env.GMAIL_SMTP_APP_PASSWORD ||
+    process.env.GMAIL_APP_PASSWORD ||
+    process.env.SMTP_PASS ||
+    '';
+
+  if (!user || !pass) return null;
+
+  cachedTransporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user, pass },
+  });
+  return cachedTransporter;
+}
+
+async function sendEmail({ to, subject, html }) {
+  try {
+    const transporter = getGmailTransporter();
+    if (!transporter) return false;
+
+    const user =
+      process.env.GMAIL_SMTP_USER ||
+      process.env.GMAIL_USER ||
+      process.env.SMTP_USER ||
+      '';
+    const fromEnv =
+      process.env.MAIL_FROM ||
+      process.env.GMAIL_MAIL_FROM ||
+      '';
+    const from = fromEnv || `Nusabit Studio CS <${user}>`;
+
+    const info = await transporter.sendMail({
+      from,
+      replyTo: user || undefined,
+      to,
+      subject,
+      html,
+    });
+
+    return !!info?.messageId;
+  } catch (e) {
+    console.error('Ticket email error:', e.message);
+    return false;
+  }
+}
+
+function getNowWIBString() {
+  return new Date().toLocaleString('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+function getPublicSiteUrl() {
+  return (
+    process.env.URL ||
+    process.env.DEPLOY_PRIME_URL ||
+    process.env.SITE_URL ||
+    ''
+  ).replace(/\/$/, '');
+}
+
+function buildTicketStatusEmailHtml(ticket, mode = 'done') {
+  const isCancelled = mode === 'cancelled';
+  const title = isCancelled ? 'Tiket Dibatalkan' : 'Tiket Berhasil Diselesaikan';
+  const accent = isCancelled ? '#ef4444' : '#22c55e';
+  const badgeText = isCancelled ? 'DIBATALKAN' : 'SELESAI';
+  const lead = isCancelled
+    ? 'Tiket kamu telah dibatalkan oleh admin. Detail alasan pembatalan ada di bawah ini.'
+    : 'Kabar baik, tiket kamu sudah berhasil diselesaikan oleh admin Nusabit Studio.';
+  const reasonBox = isCancelled
+    ? `
+      <div class="field">
+        <label>Alasan Pembatalan</label>
+        <p>${escapeHtml(ticket.cancelReason || 'Tidak ada alasan yang diberikan admin.').replace(/\n/g, '<br>')}</p>
+      </div>`
+    : '';
+  const noteBox = ticket.devNote
+    ? `
+      <div class="field">
+        <label>Catatan Admin</label>
+        <p>${escapeHtml(ticket.devNote).replace(/\n/g, '<br>')}</p>
+      </div>`
+    : '';
+  const actorLabel = isCancelled ? 'Dibatalkan oleh' : 'Diselesaikan oleh';
+  const closedAtText = ticket.closedAt || ticket.updatedAt || new Date().toISOString();
+  const siteUrl = getPublicSiteUrl();
+  const path = ticket.token ? `/tiket/?token=${encodeURIComponent(ticket.token)}` : `/tiket/?id=${encodeURIComponent(ticket.id)}`;
+  const statusUrl = siteUrl ? `${siteUrl}${path}` : path;
+
+  return `
+<!DOCTYPE html>
+<html lang="id">
+<head><meta charset="UTF-8"><style>
+  body { font-family: 'Segoe UI', Arial, sans-serif; background:#f4f4f7; color:#1a1a2e; margin:0; padding:0; }
+  .wrap { max-width:560px; margin:32px auto; background:#ffffff; border-radius:14px; overflow:hidden; box-shadow:0 4px 24px rgba(0,0,0,0.10); }
+  .header { background:linear-gradient(135deg, ${accent}, #1f2937); padding:28px 32px; text-align:center; }
+  .header h1 { color:#fff; margin:0; font-size:1.35rem; letter-spacing:0.6px; }
+  .header p  { color:rgba(255,255,255,0.88); margin:8px 0 0; font-size:0.9rem; }
+  .body { padding:28px 32px; }
+  .ticket { background:#f8fafc; border:2px solid ${accent}; border-radius:12px; padding:16px 24px; text-align:center; margin-bottom:24px; }
+  .ticket-label { font-size:0.72rem; color:${accent}; text-transform:uppercase; letter-spacing:1px; display:block; }
+  .ticket-num   { font-size:1.5rem; font-weight:800; color:${accent}; letter-spacing:1.6px; display:block; margin-top:4px; }
+  .ticket-badge { display:inline-block; margin-top:10px; padding:6px 12px; border-radius:999px; background:${accent}; color:#fff; font-size:0.72rem; font-weight:700; letter-spacing:0.8px; }
+  .intro { margin:0 0 20px; line-height:1.7; color:#334155; font-size:0.95rem; }
+  .field  { margin-bottom:14px; }
+  .field label { font-size:0.72rem; color:#888; text-transform:uppercase; letter-spacing:0.8px; display:block; margin-bottom:4px; font-weight:600; }
+  .field p { margin:0; background:#f7f7fa; border:1px solid #e8e8f0; border-radius:8px; padding:10px 14px; font-size:0.92rem; line-height:1.6; color:#1a1a2e; }
+  .cta { display:block; text-align:center; background:${accent}; color:#fff !important; text-decoration:none; padding:13px 24px; border-radius:10px; font-weight:700; font-size:0.95rem; margin:22px 0 0; }
+  .footer { border-top:1px solid #eee; padding:18px 32px; font-size:0.78rem; color:#999; text-align:center; }
+</style></head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <h1>🎫 ${title}</h1>
+    <p>Nusabit Studio Ticket Update</p>
+  </div>
+  <div class="body">
+    <div class="ticket">
+      <span class="ticket-label">Nomor Tiket</span>
+      <span class="ticket-num">${escapeHtml(ticket.id)}</span>
+      <span class="ticket-badge">${badgeText}</span>
+    </div>
+    <p class="intro">${lead}</p>
+    <div class="field"><label>Game</label><p>${escapeHtml(ticket.game || 'Tidak disebutkan')}</p></div>
+    <div class="field"><label>Jenis Laporan</label><p>${ticket.type === 'bug' ? '🐛 Bug / Error' : '💡 Saran'}</p></div>
+    <div class="field"><label>${actorLabel}</label><p>${escapeHtml(ticket.closedBy || 'Admin Nusabit Studio')}</p></div>
+    <div class="field"><label>Waktu Update</label><p>${escapeHtml(getNowWIBString())}</p></div>
+    ${reasonBox}
+    ${noteBox}
+    <div class="field"><label>Ringkasan Laporan</label><p>${escapeHtml(ticket.desc || '—').replace(/\n/g, '<br>')}</p></div>
+    <a class="cta" href="${statusUrl}">Lihat Status Tiket</a>
+  </div>
+  <div class="footer">
+    Update sistem tercatat pada ${escapeHtml(new Date(closedAtText).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }))}.
+  </div>
+</div>
+</body></html>`;
+}
+
+async function sendTicketStatusEmail(ticket, mode = 'done') {
+  const email = String(ticket?.email || '').trim();
+  if (!email || !email.includes('@')) return false;
+  const subject = mode === 'cancelled'
+    ? `Tiket ${ticket.id} dibatalkan`
+    : `Tiket ${ticket.id} berhasil diselesaikan`;
+  const html = buildTicketStatusEmailHtml(ticket, mode);
+  return sendEmail({ to: email, subject, html });
+}
 
 // ────────────────────────────────────────────────
 // Chat helpers (user ↔ admin) disimpan di record tiket
@@ -175,7 +354,7 @@ async function cleanupExpiredTickets(store, indexInput) {
     }
 
     const doneAt = Date.parse(ticket.closedAt || ticket.updatedAt || entry.updatedAt || entry.createdAt || '');
-    const isExpiredDone = !!ticket.done && !Number.isNaN(doneAt) && (Date.now() - doneAt >= DONE_RETENTION_MS);
+    const isExpiredDone = isClosedTicket(ticket) && !Number.isNaN(doneAt) && (Date.now() - doneAt >= DONE_RETENTION_MS);
 
     if (isExpiredDone) {
       await deleteTicketRecord(store, entry.id);
@@ -185,7 +364,7 @@ async function cleanupExpiredTickets(store, indexInput) {
 
     // Jika tiket sudah selesai: hapus chat secara otomatis supaya tidak bisa lanjut chat
     // (sekalian rapikan badge chat agar tidak misleading).
-    if (ticket.done || ticket.status === 'done') {
+    if (isClosedTicket(ticket)) {
       const hadMessages = Array.isArray(ticket.messages) && ticket.messages.length > 0;
       const hadSeen = !!ticket.adminSeenAt;
       if (hadMessages || hadSeen) {
@@ -202,8 +381,8 @@ async function cleanupExpiredTickets(store, indexInput) {
       status: ticket.status,
       createdAt: ticket.createdAt,
       updatedAt: ticket.updatedAt,
-      closedAt: ticket.closedAt || null,
-      done: !!ticket.done,
+          closedAt: ticket.closedAt || null,
+          done: !!ticket.done,
     });
   }
 
@@ -271,6 +450,8 @@ exports.handler = async (event) => {
           devNote: ticket.devNote || '',
           closedAt: ticket.closedAt || null,
           closedBy: ticket.closedBy || '',
+          cancelReason: ticket.cancelReason || '',
+          cancelledAt: ticket.cancelledAt || null,
           rating: ticket.rating || 0,
           feedback: ticket.feedback || '',
           ratedAt: ticket.ratedAt || null,
@@ -294,6 +475,8 @@ exports.handler = async (event) => {
         updatedAt: ticket.updatedAt, done: ticket.done, devNote: ticket.devNote || '',
         closedAt: ticket.closedAt || null,
         closedBy: ticket.closedBy || '',
+        cancelReason: ticket.cancelReason || '',
+        cancelledAt: ticket.cancelledAt || null,
         rating: ticket.rating || 0,
         feedback: ticket.feedback || '',
         ratedAt: ticket.ratedAt || null,
@@ -325,6 +508,8 @@ exports.handler = async (event) => {
         devNote: ticket.devNote || '',
         closedAt: ticket.closedAt || null,
         closedBy: ticket.closedBy || '',
+        cancelReason: ticket.cancelReason || '',
+        cancelledAt: ticket.cancelledAt || null,
         rating: ticket.rating || 0,
         feedback: ticket.feedback || '',
         ratedAt: ticket.ratedAt || null,
@@ -368,6 +553,8 @@ exports.handler = async (event) => {
         createdAt: now, updatedAt: now, done: false, devNote: '',
         closedAt: null,
         closedBy: '',
+        cancelReason: '',
+        cancelledAt: null,
         rating: 0,
         feedback: '',
         ratedAt: null,
@@ -394,8 +581,8 @@ exports.handler = async (event) => {
       if (!ticket) return { statusCode: 404, headers: CORS, body: JSON.stringify({ error: 'Tiket tidak ditemukan' }) };
 
       // Jika tiket sudah selesai, chat ditutup total (admin & user tidak bisa kirim lagi)
-      if (ticket.done || ticket.status === 'done') {
-        return { statusCode: 403, headers: CORS, body: JSON.stringify({ error: 'Tiket sudah selesai. Chat ditutup dan tidak bisa mengirim pesan lagi.' }) };
+      if (isClosedTicket(ticket)) {
+        return { statusCode: 403, headers: CORS, body: JSON.stringify({ error: 'Tiket sudah ditutup. Chat ditutup dan tidak bisa mengirim pesan lagi.' }) };
       }
 
       const isAdmin = await verifyAdmin(adminToken);
@@ -481,7 +668,7 @@ exports.handler = async (event) => {
 
     // Update status tiket (hanya admin / WA bot)
     if (action === 'update_status') {
-      const { id, status, adminToken, devNote, adminUser } = body;
+      const { id, status, adminToken, devNote, adminUser, cancelReason } = body;
       if (!(await verifyAdmin(adminToken))) return { statusCode: 403, headers: CORS, body: JSON.stringify({ error: 'Akses ditolak' }) };
       if (!id || !status || !STATUS[status]) return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Data tidak valid' }) };
 
@@ -500,10 +687,14 @@ exports.handler = async (event) => {
       if (au) ticket.lastUpdatedBy = au;
 
       // Jika status di-set ke done, perlakukan sama seperti "close"
-      if (status === 'done') {
+      if (status === 'done' || status === 'cancelled') {
         ticket.done = true;
         ticket.closedAt = ticket.updatedAt;
         if (au) ticket.closedBy = au;
+        if (status === 'cancelled') {
+          ticket.cancelReason = String(cancelReason || ticket.cancelReason || '').trim().slice(0, 1000);
+          ticket.cancelledAt = ticket.updatedAt;
+        }
         ticket.messages = [];      // hapus chat otomatis
         ticket.adminSeenAt = null; // reset badge
       }
@@ -523,7 +714,13 @@ exports.handler = async (event) => {
         await saveIndex(store, idx);
       }
 
-      return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, ticket }) };
+      if (status === 'done') {
+        ticket.emailSent = await sendTicketStatusEmail(ticket, 'done');
+      } else if (status === 'cancelled') {
+        ticket.emailSent = await sendTicketStatusEmail(ticket, 'cancelled');
+      }
+
+      return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, ticket, emailSent: !!ticket.emailSent }) };
     }
 
     // Tutup tiket (selesai)
@@ -560,7 +757,51 @@ exports.handler = async (event) => {
         await saveIndex(store, idx);
       }
 
-      return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, closed: true }) };
+      const emailSent = await sendTicketStatusEmail(ticket, 'done');
+      return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, closed: true, emailSent }) };
+    }
+
+    // Batalkan tiket (hanya admin, wajib isi alasan)
+    if (action === 'cancel') {
+      const { id, adminToken, adminUser, reason, devNote } = body || {};
+      if (!(await verifyAdmin(adminToken))) return { statusCode: 403, headers: CORS, body: JSON.stringify({ error: 'Akses ditolak' }) };
+      if (!id) return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'ID tiket wajib diisi' }) };
+      const cleanReason = String(reason || '').trim().slice(0, 1000);
+      if (!cleanReason) return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Alasan pembatalan wajib diisi' }) };
+
+      const ticket = await getTicket(store, id);
+      if (!ticket) return { statusCode: 404, headers: CORS, body: JSON.stringify({ error: 'Tiket tidak ditemukan' }) };
+      if (isClosedTicket(ticket)) {
+        return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Tiket sudah ditutup sebelumnya' }) };
+      }
+
+      ticket.messages = normalizeMessages(ticket);
+      ticket.status = 'cancelled';
+      ticket.statusLabel = STATUS.cancelled.label;
+      ticket.done = true;
+      ticket.updatedAt = new Date().toISOString();
+      ticket.closedAt = ticket.updatedAt;
+      ticket.cancelledAt = ticket.updatedAt;
+      ticket.cancelReason = cleanReason;
+      if (devNote !== undefined) ticket.devNote = String(devNote || '').trim();
+      const au = sanitizeAdminUser(adminUser);
+      if (au) ticket.closedBy = au;
+      ticket.messages = [];
+      ticket.adminSeenAt = null;
+      await saveTicket(store, ticket);
+
+      const idx = await getIndex(store);
+      const ei = idx.findIndex(e => e.id === id);
+      if (ei !== -1) {
+        idx[ei].status = 'cancelled';
+        idx[ei].done = true;
+        idx[ei].updatedAt = ticket.updatedAt;
+        idx[ei].closedAt = ticket.closedAt;
+        await saveIndex(store, idx);
+      }
+
+      const emailSent = await sendTicketStatusEmail(ticket, 'cancelled');
+      return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, cancelled: true, emailSent, ticket }) };
     }
 
     // User kasih rating saat tiket sudah selesai
@@ -580,7 +821,7 @@ exports.handler = async (event) => {
       }
 
       // Rating hanya saat tiket selesai
-      if (!(ticket.done || ticket.status === 'done')) {
+      if (!(ticket.status === 'done')) {
         return { statusCode: 403, headers: CORS, body: JSON.stringify({ error: 'Rating hanya bisa dikirim setelah tiket selesai' }) };
       }
 

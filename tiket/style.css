@@ -417,6 +417,7 @@ body {
 .status-seen      { background: rgba(0,229,255,0.07); border: 1px solid rgba(0,229,255,0.2); }
 .status-confirmed { background: rgba(243,156,18,0.08); border: 1px solid rgba(243,156,18,0.25); }
 .status-done      { background: rgba(46,204,113,0.08); border: 1px solid rgba(46,204,113,0.25); }
+.status-cancelled { background: rgba(231,76,60,0.08); border: 1px solid rgba(231,76,60,0.25); }
 
 /* ── DEV NOTE ── */
 .dev-note-box {
@@ -450,6 +451,28 @@ body {
   color: var(--text-muted);
 }
 .resolved-by b{ color: var(--text); }
+
+.cancel-reason-box {
+  margin-top: 12px;
+  padding: 14px 16px;
+  background: rgba(231,76,60,0.05);
+  border: 1px solid rgba(231,76,60,0.18);
+  border-left: 3px solid var(--red);
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.cancel-reason-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--red);
+  font-weight: 700;
+}
 
 /* ── RATING SECTION ── */
 .rating-section{

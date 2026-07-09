@@ -15,7 +15,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" crossorigin="anonymous">
-    <link rel="stylesheet" href="/admin/style.css?v=c13a8f3fc4">
+    <link rel="stylesheet" href="/admin/style.css?v=09dc0272ec">
     <link rel="stylesheet" href="/assets/css/animations.css?v=8f9f15b05f">
     <!-- Global UI: Loading Screen + Offline Detector -->
     <link rel="stylesheet" href="/assets/css/global-ui.css?v=6b2530c767" />
@@ -752,12 +752,17 @@
     <div class="confirm-overlay" id="confirmOverlay">
         <div class="confirm-box">
             <div class="confirm-icon"><i class="fas fa-triangle-exclamation"></i></div>
-            <div class="confirm-title">Konfirmasi</div>
+            <div class="confirm-title" id="confirmTitle">Konfirmasi</div>
             <div class="confirm-msg" id="confirmMsg">Lanjutkan aksi ini?</div>
+            <div class="confirm-field" id="confirmField" style="display:none;">
+                <label class="confirm-label" id="confirmLabel" for="confirmReason">Alasan</label>
+                <textarea id="confirmReason" class="confirm-textarea" rows="4" placeholder="Tulis alasan..."></textarea>
+                <div class="confirm-help" id="confirmHelp">Alasan ini akan ditampilkan ke user dan dikirim lewat email.</div>
+            </div>
             <div class="confirm-actions">
                 <button class="btn-danger" id="confirmYes">
                     <i class="fas fa-trash"></i>
-                    <span>Ya, lanjutkan</span>
+                    <span id="confirmYesText">Ya, lanjutkan</span>
                 </button>
                 <button class="btn-cancel" type="button" onclick="closeConfirm()">
                     <i class="fas fa-xmark"></i>
@@ -797,7 +802,7 @@
         </div>
     </div>
 
-    <script src="/admin/script.js?v=fbbbbd42c6"></script>
+    <script src="/admin/script.js?v=84aa114f5b"></script>
     <script src="/assets/js/animations.js?v=a6d15293cc"></script>
 
     <script src="/assets/js/lang-auto.js?v=185fa2fa0f"></script>

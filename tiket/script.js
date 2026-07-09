@@ -9,7 +9,7 @@
    CONSTANTS
 ══════════════════════════════════════ */
 const TICKET_API    = '/.netlify/functions/ticket';
-const REFRESH_DELAY = 30_000; // ms (auto-refresh setiap 30 detik jika belum selesai)
+const REFRESH_DELAY = 10_000; // ms (auto-refresh setiap 10 detik jika tiket masih aktif)
 
 const STEP_LABELS = ['Diterima', 'Dilihat', 'Dikonfirmasi', 'Selesai'];
 
@@ -37,6 +37,12 @@ const STATUS_CONFIG = {
     title: 'Selesai',
     msg:   'Masalah sudah diselesaikan! Terima kasih banyak sudah melaporkan. Tiket ini sekarang ditutup.',
     cls:   'status-done',
+  },
+  cancelled: {
+    icon:  '⛔',
+    title: 'Tiket Dibatalkan',
+    msg:   'Tiket ini ditutup oleh admin dan tidak akan diproses lebih lanjut. Lihat alasan pembatalan di bawah.',
+    cls:   'status-cancelled',
   },
 };
 
@@ -79,6 +85,7 @@ function esc(str) {
 let _currentTicket = null;
 let _chatFile = null;
 let _pendingRating = 0;
+let _refreshTimer = null;
 
 function buildStarsText(n) {
   const r = Math.max(0, Math.min(5, parseInt(n || 0, 10) || 0));
@@ -88,7 +95,7 @@ function buildStarsText(n) {
 }
 
 function buildRatingSection(ticket) {
-  const isDone = !!(ticket && (ticket.done || ticket.status === 'done'));
+  const isDone = !!(ticket && ticket.status === 'done');
   if (!isDone) return '';
 
   const token = getTokenFromURL() || '';
@@ -253,11 +260,11 @@ function renderChatMessages(messages) {
 }
 
 function buildChatSection(ticket) {
-  const isDone = !!(ticket && (ticket.done || ticket.status === 'done'));
+  const isDone = !!(ticket && (ticket.done || ticket.status === 'done' || ticket.status === 'cancelled'));
   return `
     <div class="chat-section" aria-label="Chat tiket">
       <div class="section-label">Chat dengan Admin</div>
-      <div class="chat-hint">${isDone ? 'Tiket sudah selesai. Chat ditutup.' : 'Kamu bisa kirim pesan atau foto bukti (maks 5MB).'}</div>
+      <div class="chat-hint">${isDone ? (ticket && ticket.status === 'cancelled' ? 'Tiket dibatalkan. Chat ditutup.' : 'Tiket sudah selesai. Chat ditutup.') : 'Kamu bisa kirim pesan atau foto bukti (maks 5MB).'}</div>
 
       <div class="chat-box" id="ticket-chat-box">
         ${renderChatMessages(ticket && ticket.messages)}
@@ -379,6 +386,20 @@ function bindChat(ticket) {
   });
 }
 
+function clearAutoRefresh() {
+  if (_refreshTimer) {
+    clearTimeout(_refreshTimer);
+    _refreshTimer = null;
+  }
+}
+
+function scheduleAutoRefresh() {
+  clearAutoRefresh();
+  _refreshTimer = setTimeout(() => {
+    loadTicket({ silent: true });
+  }, REFRESH_DELAY);
+}
+
 /* ══════════════════════════════════════
    RENDER: LOADING
 ══════════════════════════════════════ */
@@ -423,10 +444,17 @@ function buildStepper(step, isDone) {
 function renderTicket(ticket) {
   const card   = document.getElementById('ticket-card');
   const step   = ticket.statusStep ?? 0;
-  const isDone = ticket.done || ticket.status === 'done';
+  const isCancelled = ticket.status === 'cancelled';
+  const isDone = ticket.done || ticket.status === 'done' || isCancelled;
   const cfg    = STATUS_CONFIG[ticket.status] || STATUS_CONFIG.received;
   const closedByHtml = isDone && ticket.closedBy
-    ? `<div class="resolved-by">Diselesaikan oleh <b>${esc(ticket.closedBy)}</b></div>`
+    ? `<div class="resolved-by">${isCancelled ? 'Dibatalkan oleh' : 'Diselesaikan oleh'} <b>${esc(ticket.closedBy)}</b></div>`
+    : '';
+  const cancelReasonHtml = isCancelled
+    ? `<div class="cancel-reason-box">
+        <span class="cancel-reason-label">Alasan pembatalan</span>
+        ${esc(ticket.cancelReason || 'Admin tidak memberikan alasan tambahan.').replace(/\n/g, '<br>')}
+       </div>`
     : '';
 
   const typeBadge = ticket.type === 'bug'
@@ -451,7 +479,7 @@ function renderTicket(ticket) {
        </div>`
     : '';
 
-  const ratingHtml = buildRatingSection(ticket);
+  const ratingHtml = isCancelled ? '' : buildRatingSection(ticket);
   const chatHtml = buildChatSection(ticket);
 
   card.innerHTML = `
@@ -484,6 +512,7 @@ function renderTicket(ticket) {
         </div>
       </div>
       ${closedByHtml}
+      ${cancelReasonHtml}
       ${devNoteHtml}
     </div>
 
@@ -522,7 +551,7 @@ function renderTicket(ticket) {
   document.getElementById('refresh-hint').style.display = isDone ? 'none' : 'block';
 
   if (!isDone) bindChat(ticket);
-  if (isDone) bindRating(ticket);
+  if (ticket.status === 'done') bindRating(ticket);
 }
 
 /* ══════════════════════════════════════
@@ -644,16 +673,18 @@ window.cekManual = cekManual;
 /* ══════════════════════════════════════
    LOAD TICKET (main function)
 ══════════════════════════════════════ */
-async function loadTicket() {
+async function loadTicket(options = {}) {
   const token = getTokenFromURL();
   const id    = getIdFromURL();
+  const silent = !!options.silent;
+  clearAutoRefresh();
 
   if (!token && !id) {
     renderError('no_token');
     return;
   }
 
-  renderLoading();
+  if (!silent) renderLoading();
 
   try {
     const normalizedId = !id && token && /^GS-[A-Z0-9]+$/i.test(String(token).trim())
@@ -676,6 +707,7 @@ async function loadTicket() {
 
     // Server error (5xx)
     if (res.status >= 500) {
+      clearAutoRefresh();
       renderError('server');
       return;
     }
@@ -683,24 +715,29 @@ async function loadTicket() {
     const data = await res.json();
 
     if (!data.ok) {
+      clearAutoRefresh();
       // Tiket tidak ditemukan (404 atau token salah)
       renderError('not_found', data.error);
       return;
     }
 
     if (data.expired) {
+      clearAutoRefresh();
       renderClosed(data.num);
       return;
     }
 
     renderTicket(data.ticket);
 
-    // Auto-refresh setiap 30 detik jika tiket belum selesai
-    if (!data.ticket.done) {
-      setTimeout(loadTicket, REFRESH_DELAY);
+    // Auto-refresh jika tiket masih aktif
+    if (!(data.ticket.done || data.ticket.status === 'done' || data.ticket.status === 'cancelled')) {
+      scheduleAutoRefresh();
+    } else {
+      clearAutoRefresh();
     }
 
   } catch (err) {
+    clearAutoRefresh();
     // Network / parse error
     renderError('network');
   }

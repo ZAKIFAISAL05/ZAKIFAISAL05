@@ -1434,6 +1434,12 @@ img {
     color: #86efac;
 }
 
+.s-badge.cancelled {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.16);
+    color: #fca5a5;
+}
+
 .report-ticket-id,
 .report-time,
 .report-contact-item {
@@ -1473,6 +1479,21 @@ img {
     flex-wrap: wrap;
     gap: 10px;
     align-items: center;
+}
+
+.report-status-row {
+    align-items: stretch;
+}
+
+.report-status-row .status-select,
+.report-status-row .devnote-input {
+    flex: 1 1 180px;
+}
+
+.report-status-row .btn-update-status,
+.report-status-row .btn-small,
+.report-status-row .btn-del-report {
+    flex: 0 0 auto;
 }
 
 .report-contact-item a {
@@ -1643,6 +1664,45 @@ img {
     color: var(--text-soft);
     margin-bottom: 20px;
     line-height: 1.7;
+}
+
+.confirm-field {
+    text-align: left;
+    margin-bottom: 20px;
+}
+
+.confirm-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-soft);
+}
+
+.confirm-textarea {
+    width: 100%;
+    min-height: 110px;
+    border: 1px solid var(--border);
+    background: var(--bg-input);
+    color: var(--text-main);
+    border-radius: 14px;
+    padding: 14px 15px;
+    outline: none;
+    resize: vertical;
+}
+
+.confirm-textarea:focus {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.12);
+}
+
+.confirm-help {
+    margin-top: 8px;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    color: var(--text-muted);
 }
 
 .btn-danger {
@@ -1908,6 +1968,15 @@ img {
     .toolbar-note,
     .topbar-storage {
         display: none;
+    }
+
+    .report-status-row .status-select,
+    .report-status-row .devnote-input,
+    .report-status-row .btn-update-status,
+    .report-status-row .btn-small,
+    .report-status-row .btn-del-report {
+        width: 100%;
+        flex: 1 1 100%;
     }
 }
 
