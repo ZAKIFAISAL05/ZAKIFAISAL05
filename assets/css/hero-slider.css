@@ -1,0 +1,250 @@
+/* Copied from slider style.css (scoped version)
+   NOTE:
+   - Tidak mengubah tampilan slider, tapi seluruh CSS di-scope ke
+     `#rekomendasi-slider` supaya tidak mengganggu style global website. */
+
+/* ==========================================================================
+   2. HERO LAYOUT SYSTEM
+   ========================================================================== */
+#rekomendasi-slider {
+  position: relative;
+  z-index: 10;
+  /* Optimasi layout: jangan paksa 90vh biar tidak kebanyakan ruang kosong */
+  min-height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 24px;
+  padding-bottom: 24px;
+}
+
+#rekomendasi-slider .hero-container {
+  position: relative;
+  width: 100%;
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
+#rekomendasi-slider .hero-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+/* Caption nama game (di bawah slider) */
+#rekomendasi-slider .hero-slider-caption {
+  margin-top: 14px;
+  text-align: center;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  font-weight: 800;
+  font-size: 1.1rem;
+  letter-spacing: 0.02em;
+  color: #111827;
+}
+
+/* ==========================================================================
+   3. SISI GAMBAR SLIDER (Format Wide YouTube 16:9)
+   ========================================================================== */
+#rekomendasi-slider .hero-col-right {
+  width: 100%;
+  max-width: 860px; /* Ukuran lebar proporsional untuk monitor PC/Laptop */
+  aspect-ratio: 16 / 9; /* Kunci aspek rasio thumbnail YouTube */
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Background Gradasi Dekoratif di Belakang Kartu */
+#rekomendasi-slider .bg-decoration-gradient {
+  position: absolute;
+  width: 96%;
+  height: 96%;
+  background: linear-gradient(135deg, #ffedd5 0%, #fee2e2 100%);
+  border-radius: 2rem;
+  /* Blur besar cukup berat di GPU, kecilin sedikit */
+  filter: blur(28px);
+  z-index: -2;
+  top: 2%;
+  left: 2%;
+}
+
+#rekomendasi-slider .bg-decoration-white {
+  position: absolute;
+  inset: -12px;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(8px);
+  border-radius: 2rem;
+  z-index: -1;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+#rekomendasi-slider #hero-slider-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+/* ==========================================================================
+   4. PERBAIKAN RESPONSIVE BADGES (Statistik Pengalaman & Game)
+   ========================================================================== */
+/* Pengaturan dasar Badge (Ukuran fleksibel menggunakan rem dan % posisi) */
+#rekomendasi-slider .stat-badge-experience,
+#rekomendasi-slider .stat-badge-games {
+  position: absolute;
+  background: #ffffff;
+  padding: 0.6rem 1rem; /* Padding responsif agar tidak kebesaran */
+  border-radius: 1rem;
+  box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.1);
+  border: 1px solid #f3f4f6;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  z-index: 10;
+  max-width: 180px;
+}
+
+/* Atur posisi presisi nempel di sudut luar frame gambar */
+#rekomendasi-slider .stat-badge-experience {
+  bottom: -5%;
+  left: -2%;
+  animation: nsFloat 6s ease-in-out infinite;
+}
+
+#rekomendasi-slider .stat-badge-games {
+  top: -5%;
+  right: -2%;
+  animation: nsFloat 6s ease-in-out infinite;
+  animation-delay: 2s; /* Efek jeda melayang agar bervariasi */
+}
+
+/* Desain lingkaran angka */
+#rekomendasi-slider .badge-circle-brand,
+#rekomendasi-slider .badge-circle-blue {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+#rekomendasi-slider .badge-circle-brand {
+  background-color: #fff7ed;
+  color: #f97316;
+}
+#rekomendasi-slider .badge-circle-blue {
+  background-color: #eff6ff;
+  color: #2563eb;
+}
+
+#rekomendasi-slider .badge-text {
+  text-align: left;
+}
+#rekomendasi-slider .badge-title {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #111827;
+  margin: 0 0 2px 0;
+  line-height: 1.1;
+}
+#rekomendasi-slider .badge-subtitle {
+  font-size: 0.65rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  margin: 0;
+  line-height: 1;
+}
+
+/* OPTIMASI DI SCREEN HP (Ukuran layar di bawah 640px) */
+@media (max-width: 640px) {
+  #rekomendasi-slider .stat-badge-experience,
+  #rekomendasi-slider .stat-badge-games {
+    padding: 0.2rem 0.5rem; /* Makin kecil di HP */
+    gap: 0.5rem;
+    border-radius: 0.75rem;
+    max-width: 140px;
+  }
+  #rekomendasi-slider .badge-circle-brand,
+  #rekomendasi-slider .badge-circle-blue {
+    width: 2rem;
+    height: 2rem;
+    font-size: 0.9rem;
+  }
+  #rekomendasi-slider .badge-title {
+    font-size: 0.75rem;
+  }
+  #rekomendasi-slider .badge-subtitle {
+    font-size: 0.55rem;
+  }
+
+  /* Posisi di HP sedikit digeser agar tidak keluar dari area layar gadget */
+  #rekomendasi-slider .stat-badge-experience {
+    bottom: -2%;
+    left: 2%;
+  }
+  #rekomendasi-slider .stat-badge-games {
+    top: -2%;
+    right: 2%;
+  }
+}
+
+/* ==========================================================================
+   5. SISTEM SLIDER CARD TRANSITION ANIMATION
+   ========================================================================== */
+#rekomendasi-slider .slide-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 1.5rem;
+  object-fit: cover;
+  transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  border: 6px solid white;
+}
+
+#rekomendasi-slider .card-front {
+  transform: translate(0, 0) scale(1) rotate(0deg);
+  z-index: 3;
+  opacity: 1;
+}
+#rekomendasi-slider .card-middle {
+  transform: translate(12px, 10px) scale(0.98) rotate(1deg);
+  z-index: 2;
+  opacity: 0.85;
+}
+#rekomendasi-slider .card-back {
+  transform: translate(24px, 20px) scale(0.96) rotate(2deg);
+  z-index: 1;
+  opacity: 0.5;
+}
+#rekomendasi-slider .card-hidden {
+  transform: translate(0, 0) scale(0.8);
+  opacity: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+@keyframes nsFloat {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}

@@ -161,6 +161,7 @@
       referrerpolicy="no-referrer"
     />
     <link rel="stylesheet" href="assets/css/style.css?v=9863f8b2df" />
+    <link rel="stylesheet" href="assets/css/hero-slider.css?v=1" />
     <link rel="stylesheet" href="/assets/css/animations.css?v=8f9f15b05f" />
     <script src="https://unpkg.com/feather-icons"></script>
   </head>
@@ -299,10 +300,39 @@
       </div>
     </section>
 
+    <!-- ===== SLIDER REKOMENDASI ===== -->
+    <section id="rekomendasi-slider" aria-label="Slider rekomendasi">
+      <div class="hero-container">
+        <div class="hero-row">
+          <div class="hero-col-right">
+            <div class="bg-decoration-gradient"></div>
+            <div class="bg-decoration-white"></div>
+
+            <div id="hero-slider-container"></div>
+
+            <div class="stat-badge-games">
+              <div class="badge-circle-blue" id="gameCountStat">0</div>
+              <div class="badge-text">
+                <p class="badge-title">Game</p>
+                <p class="badge-subtitle">Telah Dirilis</p>
+              </div>
+            </div>
+          </div>
+          <div class="hero-slider-caption" id="heroSliderCaption">—</div>
+        </div>
+      </div>
+    </section>
+
     <!-- ===== STATS SECTION ===== -->
     <div id="stats-section" aria-label="Studio statistics">
       <div class="stat-card">
-        <span class="stat-number" data-target="7" data-suffix="">0</span>
+        <span
+          class="stat-number"
+          id="statReleasedNumber"
+          data-target="7"
+          data-suffix=""
+          >0</span
+        >
         <span class="stat-label" data-id="stat-released">GAME DIRILIS</span>
       </div>
       <div class="stat-card">
@@ -1136,6 +1166,11 @@
 
     <!-- ===== SCRIPT DATA GAME ===== -->
     <script src="assets/js/gameData.js?v=6b74e58388"></script>
+    <script src="assets/js/stats-from-data.js?v=1"></script>
+
+    <!-- ===== HERO SLIDER (REKOMENDASI) ===== -->
+    <script src="assets/js/hero-slider-data.js?v=1"></script>
+    <script src="assets/js/hero-slider.js?v=1"></script>
 
     <!-- ===== SCRIPT UTAMA HOMEPAGE ===== -->
     <script src="assets/js/main.js?v=86b2a5d0e5"></script>
