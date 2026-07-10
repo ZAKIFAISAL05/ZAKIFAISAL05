@@ -229,71 +229,35 @@ function sanitizeWhatsAppNumber(phoneNumber) {
 async function sendWhatsAppNotification(toPhoneNumber, messageText) {
   try {
     const cleanNumber = sanitizeWhatsAppNumber(toPhoneNumber);
-    const phoneNumberId = String(process.env.WA_PHONE_NUMBER_ID || '').trim();
-    const accessToken = String(process.env.META_ACCESS_TOKEN || '').trim();
+    const backendUrl = String(process.env.WA_BOT_BACKEND_URL || process.env.BOT_BACKEND_URL || '').trim().replace(/\/$/, '');
+    const apiKey = String(process.env.WA_BOT_API_KEY || process.env.BOT_API_KEY || '').trim();
     const bodyText = String(messageText || '').trim();
 
-    if (!cleanNumber || !bodyText || !phoneNumberId || !accessToken) return false;
+    if (!cleanNumber || !bodyText || !backendUrl || !apiKey) return false;
 
-    const response = await fetch(`https://graph.facebook.com/v18.0/${phoneNumberId}/messages`, {
+    const response = await fetch(`${backendUrl}/bot-send-direct`, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
+        'x-api-key': apiKey,
       },
       body: JSON.stringify({
-        messaging_product: 'whatsapp',
-        recipient_type: 'individual',
-        to: cleanNumber,
-        type: 'text',
-        text: {
-          preview_url: true,
-          body: bodyText,
-        },
+        phoneNumbers: [cleanNumber],
+        text: bodyText,
+        label: 'Nusabit Ticket',
       }),
     });
 
-    if (response.ok) {
-      const data = await response.json().catch(() => null);
-      return !!(data?.messages?.[0]?.id || data?.message_id);
-    }
-
-    const errorText = await response.text();
-    console.error('Meta WhatsApp text error:', errorText);
-
-    const templateName = String(process.env.WA_TEMPLATE_NAME || 'hello_world').trim();
-    const templateLang = String(process.env.WA_TEMPLATE_LANG || 'en_US').trim();
-    if (!templateName) return false;
-
-    const templateResponse = await fetch(`https://graph.facebook.com/v18.0/${phoneNumberId}/messages`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        messaging_product: 'whatsapp',
-        to: cleanNumber,
-        type: 'template',
-        template: {
-          name: templateName,
-          language: {
-            code: templateLang,
-          },
-        },
-      }),
-    });
-
-    if (!templateResponse.ok) {
-      const templateErrorText = await templateResponse.text();
-      console.error('Meta WhatsApp template error:', templateErrorText);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('WA bot backend error:', errorText);
       return false;
     }
 
-    const templateData = await templateResponse.json().catch(() => null);
-    return !!(templateData?.messages?.[0]?.id || templateData?.message_id);
+    const data = await response.json().catch(() => null);
+    return !!data?.ok;
   } catch (e) {
-    console.error('Meta WhatsApp send error:', e.message);
+    console.error('WA bot send error:', e.message);
     return false;
   }
 }
