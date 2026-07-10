@@ -147,7 +147,7 @@ async function sendWhatsAppNotification(toPhoneNumber, messageText) {
       return false;
     }
 
-    const res = await fetch(`https://graph.facebook.com/v18.0/${phoneNumberId}/messages`, {
+    const textRes = await fetch(`https://graph.facebook.com/v18.0/${phoneNumberId}/messages`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -165,14 +165,45 @@ async function sendWhatsAppNotification(toPhoneNumber, messageText) {
       }),
     });
 
-    if (!res.ok) {
-      const errorText = await res.text();
-      console.error('Meta WhatsApp error:', errorText);
+    if (textRes.ok) {
+      const data = await textRes.json().catch(() => null);
+      return !!(data?.messages?.[0]?.id || data?.message_id);
+    }
+
+    const errorText = await textRes.text();
+    console.error('Meta WhatsApp text error:', errorText);
+
+    const templateName = String(process.env.WA_TEMPLATE_NAME || 'hello_world').trim();
+    const templateLang = String(process.env.WA_TEMPLATE_LANG || 'en_US').trim();
+    if (!templateName) return false;
+
+    const templateRes = await fetch(`https://graph.facebook.com/v18.0/${phoneNumberId}/messages`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        to: cleanNumber,
+        type: 'template',
+        template: {
+          name: templateName,
+          language: {
+            code: templateLang,
+          },
+        },
+      }),
+    });
+
+    if (!templateRes.ok) {
+      const templateErrorText = await templateRes.text();
+      console.error('Meta WhatsApp template error:', templateErrorText);
       return false;
     }
 
-    const data = await res.json().catch(() => null);
-    return !!(data?.messages?.[0]?.id || data?.message_id);
+    const templateData = await templateRes.json().catch(() => null);
+    return !!(templateData?.messages?.[0]?.id || templateData?.message_id);
   } catch (e) {
     console.error('Meta WhatsApp send error:', e.message);
     return false;
