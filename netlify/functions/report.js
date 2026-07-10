@@ -4,7 +4,7 @@
 //  1. Generate / terima ticketId
 //  2. AI summarize via Gemini
 //  3. Simpan tiket ke Netlify Blobs (via ticket function logic)
-//  4. Kirim notif WA admin via Fonnte
+//  4. Kirim notif WA admin via Meta Cloud API
 //  5. Kirim email konfirmasi ke user (jika ada email)
 //  6. Kirim email notif ke admin
 // ============================================================
@@ -124,15 +124,86 @@ async function callGemini(apiKey, prompt) {
   return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
 }
 
-async function sendFonnte(token, target, message) {
+function sanitizeWhatsAppNumber(phoneNumber) {
+  const digitsOnly = String(phoneNumber || '').replace(/\D/g, '');
+  if (!digitsOnly) return '';
+  if (digitsOnly.startsWith('0')) return `62${digitsOnly.slice(1)}`;
+  return digitsOnly;
+}
+
+async function sendWhatsAppNotification(toPhoneNumber, messageText) {
   try {
-    const res = await fetch('https://api.fonnte.com/send', {
+    const cleanNumber = sanitizeWhatsAppNumber(toPhoneNumber);
+    const phoneNumberId = String(process.env.WA_PHONE_NUMBER_ID || '').trim();
+    const accessToken = String(process.env.META_ACCESS_TOKEN || '').trim();
+    const bodyText = String(messageText || '').trim();
+
+    if (!cleanNumber || !bodyText || !phoneNumberId || !accessToken) {
+      console.warn('META WA NOT CONFIGURED:', {
+        hasPhoneNumberId: !!phoneNumberId,
+        hasAccessToken: !!accessToken,
+        hasRecipient: !!cleanNumber,
+      });
+      return false;
+    }
+
+    const res = await fetch(`https://graph.facebook.com/v18.0/${phoneNumberId}/messages`, {
       method: 'POST',
-      headers: { 'Authorization': token },
-      body: new URLSearchParams({ target, message, delay: '0', countryCode: '62' }),
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: cleanNumber,
+        type: 'text',
+        text: {
+          preview_url: true,
+          body: bodyText,
+        },
+      }),
     });
-    return res.ok;
-  } catch (e) { console.error('Fonnte error:', e.message); return false; }
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error('Meta WhatsApp error:', errorText);
+      return false;
+    }
+
+    const data = await res.json().catch(() => null);
+    return !!(data?.messages?.[0]?.id || data?.message_id);
+  } catch (e) {
+    console.error('Meta WhatsApp send error:', e.message);
+    return false;
+  }
+}
+
+function buildAdminTicketWhatsAppMessage({ ticketNum, ticketId, type, gameLabel, desc, summary, email, contact, waktuWIB, ticketUrl }) {
+  const typeLabel = type === 'bug' ? 'Bug / Error' : 'Saran';
+  const adminUrl = 'https://nusabit.netlify.app/admin';
+  return [
+    'Halo Admin Nusabit Studio,',
+    '',
+    'Ada tiket baru yang baru saja dibuat.',
+    '',
+    `ID Tiket: ${ticketId}`,
+    `Nomor Antrian: #${ticketNum}`,
+    `Jenis: ${typeLabel}`,
+    `Game: ${gameLabel || 'Tidak disebutkan'}`,
+    `Waktu Masuk: ${waktuWIB}`,
+    `Email User: ${email || '-'}`,
+    `Kontak User: ${contact || '-'}`,
+    '',
+    'Ringkasan AI:',
+    String(summary || desc || '—'),
+    '',
+    'Deskripsi Lengkap:',
+    String(desc || '—'),
+    '',
+    `Panel Admin: ${adminUrl}`,
+    `Link Tiket: ${ticketUrl || '-'}`,
+  ].join('\n');
 }
 
 function getSiteOrigin(event) {
@@ -346,7 +417,6 @@ exports.handler = async function (event) {
     process.env.GEMINI_API_KEY_3,
   ].filter(Boolean);
 
-  const fonnteToken  = process.env.FONNTE_API_KEY;
   const adminTarget  = process.env.ADMIN_WA_NUMBER;
   const adminEmail   = process.env.ADMIN_EMAIL || 'dzakifaisal11@gmail.com';
   const emailConfigured = !!getGmailTransporter();
@@ -370,28 +440,24 @@ exports.handler = async function (event) {
   const siteOrigin = getSiteOrigin(event);
   const ticketUrl  = ticketData ? `${siteOrigin}${ticketData.ticketUrl}` : '';
 
-  // 3. WA admin via Fonnte
-  if (fonnteToken && adminTarget) {
-    const waMsg =
-`━━━━━━━━━━━━━━━━━━━━
-${typeLabel} — NUSABIT STUDIO
-Tiket: *#${ticketNum}* (${ticketId})
-━━━━━━━━━━━━━━━━━━━━
-📅 *Waktu:* ${waktuWIB}
-🎮 *Game:* ${gameLabel}
-📝 *Deskripsi:*
-${desc.trim()}
-
-🤖 *Ringkasan AI:*
-${summary}
-
-📧 *Email:* ${email || '—'}
-📱 *Kontak:* ${contact || '—'}
-━━━━━━━━━━━━━━━━━━━━
-Update status tiket via /admin atau balas pesan ini dengan:
-STATUS ${ticketId} seen|confirmed|done
-━━━━━━━━━━━━━━━━━━━━`;
-    await sendFonnte(fonnteToken, adminTarget, waMsg);
+  // 3. WA admin via Meta Cloud API
+  let waSent = false;
+  if (adminTarget) {
+    waSent = await sendWhatsAppNotification(
+      adminTarget,
+      buildAdminTicketWhatsAppMessage({
+        ticketNum,
+        ticketId,
+        type,
+        gameLabel,
+        desc: desc.trim(),
+        summary,
+        email,
+        contact,
+        waktuWIB,
+        ticketUrl: ticketUrl || '',
+      })
+    );
   }
 
   // 4. Email ke user (kalau ada email)
@@ -436,6 +502,7 @@ STATUS ${ticketId} seen|confirmed|done
       ticketNum,
       ticketUrl: ticketData?.ticketUrl || '',
       message: 'Laporan berhasil dikirim!',
+      waSent,
       email: {
         configured: emailConfigured,
         userSent: userEmailSent,

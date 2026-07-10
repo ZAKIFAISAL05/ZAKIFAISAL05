@@ -219,6 +219,103 @@ async function sendTicketStatusEmail(ticket, mode = 'done') {
   return sendEmail({ to: email, subject, html });
 }
 
+function sanitizeWhatsAppNumber(phoneNumber) {
+  const digitsOnly = String(phoneNumber || '').replace(/\D/g, '');
+  if (!digitsOnly) return '';
+  if (digitsOnly.startsWith('0')) return `62${digitsOnly.slice(1)}`;
+  return digitsOnly;
+}
+
+async function sendWhatsAppNotification(toPhoneNumber, messageText) {
+  try {
+    const cleanNumber = sanitizeWhatsAppNumber(toPhoneNumber);
+    const phoneNumberId = String(process.env.WA_PHONE_NUMBER_ID || '').trim();
+    const accessToken = String(process.env.META_ACCESS_TOKEN || '').trim();
+    const bodyText = String(messageText || '').trim();
+
+    if (!cleanNumber || !bodyText || !phoneNumberId || !accessToken) return false;
+
+    const response = await fetch(`https://graph.facebook.com/v18.0/${phoneNumberId}/messages`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        messaging_product: 'whatsapp',
+        recipient_type: 'individual',
+        to: cleanNumber,
+        type: 'text',
+        text: {
+          preview_url: true,
+          body: bodyText,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Meta WhatsApp error:', errorText);
+      return false;
+    }
+
+    const data = await response.json().catch(() => null);
+    return !!(data?.messages?.[0]?.id || data?.message_id);
+  } catch (e) {
+    console.error('Meta WhatsApp send error:', e.message);
+    return false;
+  }
+}
+
+function buildAdminNewTicketWhatsAppMessage(ticket) {
+  const adminUrl = 'https://nusabit.netlify.app/admin';
+  const lines = [
+    'Halo Admin Nusabit Studio,',
+    '',
+    'Ada tiket baru yang baru saja dibuat.',
+    '',
+    `ID Tiket: ${ticket.id}`,
+    `Nomor Antrian: #${ticket.num}`,
+    `Jenis: ${ticket.type === 'bug' ? 'Bug / Error' : 'Saran'}`,
+    `Game: ${ticket.game || '—'}`,
+    `Kontak User: ${ticket.contact || '-'}`,
+    `Email User: ${ticket.email || '-'}`,
+    `Waktu Masuk: ${getNowWIBString()}`,
+    '',
+    'Ringkasan Laporan:',
+    String(ticket.summary || ticket.desc || '—'),
+    '',
+    'Deskripsi Lengkap:',
+    String(ticket.desc || '—'),
+    '',
+    `Panel Admin: ${adminUrl}`,
+  ];
+
+  return lines.join('\n');
+}
+
+function buildTicketStatusWhatsAppMessage(ticket) {
+  const statusLabel = STATUS[ticket.status]?.label || ticket.status || 'Tidak diketahui';
+  const lines = [
+    'Halo, tiket kamu sudah diperbarui oleh admin Nusabit Studio.',
+    '',
+    `ID Tiket: ${ticket.id}`,
+    `Status: ${statusLabel}`,
+    `Game: ${ticket.game || '—'}`,
+    `Waktu Update: ${getNowWIBString()}`,
+  ];
+
+  if (ticket.devNote) {
+    lines.push('', 'Catatan Admin:', String(ticket.devNote));
+  }
+
+  if (ticket.status === 'cancelled' && ticket.cancelReason) {
+    lines.push('', 'Alasan Pembatalan:', String(ticket.cancelReason));
+  }
+
+  return lines.join('\n');
+}
+
 // ────────────────────────────────────────────────
 // Chat helpers (user ↔ admin) disimpan di record tiket
 // - Untuk list admin, chat di-strip supaya payload ringan
@@ -569,6 +666,8 @@ exports.handler = async (event) => {
       idx.unshift({ id, num, token, status: 'received', createdAt: now, done: false });
       await saveIndex(store, idx);
 
+      await sendWhatsAppNotification(process.env.ADMIN_WA_NUMBER, buildAdminNewTicketWhatsAppMessage(ticket));
+
       return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, num, token, ticketUrl: '/tiket/?token=' + token }) };
     }
 
@@ -712,6 +811,10 @@ exports.handler = async (event) => {
         }
         idx[ei].updatedAt = ticket.updatedAt;
         await saveIndex(store, idx);
+      }
+
+      if (ticket.contact) {
+        await sendWhatsAppNotification(ticket.contact, buildTicketStatusWhatsAppMessage(ticket));
       }
 
       if (status === 'done') {
