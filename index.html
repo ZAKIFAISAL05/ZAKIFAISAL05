@@ -41,12 +41,12 @@
       href="/assets/img/apple-touch-icon.png"
     />
     <link rel="manifest" href="/site.webmanifest" />
-    <link rel="canonical" href="https://nusabit.netlify.app/" />
+    <link rel="canonical" id="canonical-link" href="https://nusabit.netlify.app/" />
     <title>Nusabit Studio — Game Indie Indonesia</title>
 
     <!-- ===== OPEN GRAPH / TWITTER ===== -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://nusabit.netlify.app/" />
+    <meta property="og:url" id="og-url" content="https://nusabit.netlify.app/" />
     <meta property="og:title" content="Nusabit Studio — Game Indie Indonesia" />
     <meta
       property="og:description"
@@ -76,7 +76,7 @@
     />
 
     <!-- ===== STRUCTURED DATA ===== -->
-    <script type="application/ld+json">
+    <script type="application/ld+json" id="org-jsonld">
       {
         "@context": "https://schema.org",
         "@type": "Organization",
@@ -125,7 +125,7 @@
         ]
       }
     </script>
-    <script type="application/ld+json">
+    <script type="application/ld+json" id="person-jsonld">
       {
         "@context": "https://schema.org",
         "@type": "Person",
@@ -135,7 +135,7 @@
         "worksFor": { "@type": "Organization", "name": "Nusabit Studio" }
       }
     </script>
-    <script type="application/ld+json">
+    <script type="application/ld+json" id="website-jsonld">
       {
         "@context": "https://schema.org",
         "@type": "WebSite",
@@ -242,8 +242,10 @@
       >
       <ul class="menu-links">
         <li><a href="#hero" data-id="menu-home">HOME</a></li>
+        <li><a href="#rekomendasi-slider">REKOMENDASI</a></li>
         <li><a href="#games" data-id="menu-games">GAMES</a></li>
         <li><a href="#stats-section" data-id="menu-stats">STATS</a></li>
+        <li><a href="#support">DUKUNGAN</a></li>
         <li><a href="#about" data-id="menu-about">ABOUT</a></li>
         <li><a href="#contact" data-id="menu-contact">CONTACT</a></li>
         <li>
@@ -301,6 +303,7 @@
     </section>
 
     <!-- ===== SLIDER REKOMENDASI ===== -->
+    <h2 class="slider-title">Rekomendasi Game Kami</h2>
     <section id="rekomendasi-slider" aria-label="Slider rekomendasi">
       <div class="hero-container">
         <div class="hero-row">
@@ -319,6 +322,9 @@
             </div>
           </div>
           <div class="hero-slider-caption" id="heroSliderCaption">—</div>
+        </div>
+        <div class="hero-slider-button">
+          <button onclick="kunjungiGameAktif()" class="bt-slider">LIHAT DETAIL GAME</button>
         </div>
       </div>
     </section>
@@ -346,112 +352,6 @@
       <div class="stat-card">
         <span class="stat-number" data-target="2021" data-suffix="">0</span>
         <span class="stat-label" data-id="stat-founded">TAHUN BERDIRI</span>
-      </div>
-    </div>
-
-    <!-- ===== DONATUR TERBARU (SAWERIA) =====
-     Diletakkan di luar section "PROYEK GAME KAMI" (di atasnya).
-     Diisi via JS: assets/js/donations.js (poll real-time) -->
-
-    <!-- ===== TARGET DONASI (SAWERIA) =====
-     Diisi via JS: assets/js/donations.js -->
-    <div
-      class="donation-card"
-      id="donationCard"
-      aria-label="Target donasi"
-      data-goal-name="Beli Google Play Console"
-      data-goal-text="Target Rp600.000 untuk beli akun Google Play Console supaya game Nusabit Studio bisa rilis resmi di Google Play"
-    >
-      <div class="donation-head">
-        <div class="donation-title">
-          <i data-feather="target"></i>
-          <span>Target donasi</span>
-        </div>
-        <a
-          class="donation-cta"
-          id="donationCta"
-          href="#"
-          target="_blank"
-          rel="noopener"
-        >
-          Dukung via Saweria
-        </a>
-      </div>
-
-      <div class="donation-body">
-        <div class="donation-goal">
-          <div class="donation-goal-kicker">Tujuan</div>
-          <div class="donation-goal-name" id="donationGoalName">—</div>
-          <div class="donation-goal-text" id="donationGoalText">—</div>
-          <div class="donation-support" id="donationSupportText">
-            Mau support Nusabit Studio? Klik tombol “Dukung via Saweria”.
-          </div>
-        </div>
-
-        <div class="donation-bar" aria-hidden="true">
-          <div
-            class="donation-bar-fill"
-            id="donationBarFill"
-            style="width: 0%"
-          ></div>
-        </div>
-        <div class="donation-metrics" aria-live="polite">
-          <span class="donation-amount" id="donationCollected">Rp0</span>
-          <span class="donation-sep">/</span>
-          <span class="donation-amount muted" id="donationTarget">Rp0</span>
-          <span class="donation-percent" id="donationPercent">0%</span>
-        </div>
-        <div class="donation-sub" id="donationSub">
-          Update berikutnya dalam <span id="donationCountdown">0</span> detik.
-        </div>
-      </div>
-    </div>
-
-    <div class="donor-strip" id="donorStrip" aria-label="Donatur terbaru">
-      <div class="donor-strip-head">
-        <div class="donor-strip-title">
-          <i data-feather="heart"></i>
-          <span>Donatur terbaru</span>
-        </div>
-        <a
-          class="donor-strip-cta"
-          id="donorCtaTop"
-          href="#"
-          target="_blank"
-          rel="noopener"
-        >
-          Dukung di Saweria
-        </a>
-      </div>
-
-      <div class="donor-strip-body">
-        <button
-          class="donor-nav"
-          id="donorPrev"
-          type="button"
-          aria-label="Geser ke kiri"
-        >
-          <i data-feather="chevron-left"></i>
-        </button>
-        <div
-          class="donor-track"
-          id="donorTrack"
-          tabindex="0"
-          aria-live="polite"
-        ></div>
-        <button
-          class="donor-nav"
-          id="donorNext"
-          type="button"
-          aria-label="Geser ke kanan"
-        >
-          <i data-feather="chevron-right"></i>
-        </button>
-      </div>
-
-      <div class="donor-strip-empty" id="donorEmpty" style="display: none">
-        Belum ada donatur yang tercatat. Kalau kamu mau, kamu bisa jadi yang
-        pertama dukung Nusabit Studio.
       </div>
     </div>
 
@@ -684,7 +584,116 @@
         </form>
       </div>
     </section>
+    
+      <!-- ===== DONATUR TERBARU (SAWERIA) =====
+     Diletakkan di luar section "PROYEK GAME KAMI" (di atasnya).
+     Diisi via JS: assets/js/donations.js (poll real-time) -->
 
+    <!-- ===== TARGET DONASI (SAWERIA) =====
+     Diisi via JS: assets/js/donations.js -->
+    <section id="support" class="section-padding" aria-label="Dukungan studio">
+     <h2 class="slider-title">Dukung Karya Kami</h2>
+    <div
+      class="donation-card"
+      id="donationCard"
+      aria-label="Target donasi"
+      data-goal-name="Beli Google Play Console"
+      data-goal-text="Target Rp600.000 untuk beli akun Google Play Console supaya game Nusabit Studio bisa rilis resmi di Google Play"
+    >
+      <div class="donation-head">
+        <div class="donation-title">
+          <i data-feather="target"></i>
+          <span>Target Dukungan</span>
+        </div>
+        <a
+          class="donation-cta"
+          id="donationCta"
+          href="#"
+          target="_blank"
+          rel="noopener"
+        >
+          Dukung via Saweria
+        </a>
+      </div>
+
+      <div class="donation-body">
+        <div class="donation-goal">
+          <div class="donation-goal-kicker">Tujuan</div>
+          <div class="donation-goal-name" id="donationGoalName">—</div>
+          <div class="donation-goal-text" id="donationGoalText">—</div>
+          <div class="donation-support" id="donationSupportText">
+            Mau support Nusabit Studio? Klik tombol “Dukung via Saweria”.
+          </div>
+        </div>
+
+        <div class="donation-bar" aria-hidden="true">
+          <div
+            class="donation-bar-fill"
+            id="donationBarFill"
+            style="width: 0%"
+          ></div>
+        </div>
+        <div class="donation-metrics" aria-live="polite">
+          <span class="donation-amount" id="donationCollected">Rp0</span>
+          <span class="donation-sep">/</span>
+          <span class="donation-amount muted" id="donationTarget">Rp0</span>
+          <span class="donation-percent" id="donationPercent">0%</span>
+        </div>
+        <div class="donation-sub" id="donationSub">
+          Update berikutnya dalam <span id="donationCountdown">0</span> detik.
+        </div>
+      </div>
+    </div>
+
+    <div class="donor-strip" id="donorStrip" aria-label="Donatur terbaru">
+      <div class="donor-strip-head">
+        <div class="donor-strip-title">
+          <i data-feather="heart"></i>
+          <span>Donatur terbaru</span>
+        </div>
+        <a
+          class="donor-strip-cta"
+          id="donorCtaTop"
+          href="#"
+          target="_blank"
+          rel="noopener"
+        >
+          Dukung di Saweria
+        </a>
+      </div>
+
+      <div class="donor-strip-body">
+        <button
+          class="donor-nav"
+          id="donorPrev"
+          type="button"
+          aria-label="Geser ke kiri"
+        >
+          <i data-feather="chevron-left"></i>
+        </button>
+        <div
+          class="donor-track"
+          id="donorTrack"
+          tabindex="0"
+          aria-live="polite"
+        ></div>
+        <button
+          class="donor-nav"
+          id="donorNext"
+          type="button"
+          aria-label="Geser ke kanan"
+        >
+          <i data-feather="chevron-right"></i>
+        </button>
+      </div>
+
+      <div class="donor-strip-empty" id="donorEmpty" style="display: none">
+        Belum ada donatur yang tercatat. Kalau kamu mau, kamu bisa jadi yang
+        pertama dukung Nusabit Studio.
+      </div>
+    </div>
+    </section>
+    
     <!-- ===== ABOUT SECTION ===== -->
     <section id="about" class="about-section" aria-label="About us">
       <h2 class="section-header-title" data-id="sec-about">
@@ -1009,8 +1018,33 @@
             ></textarea>
           </div>
           <div class="rmodal-field">
+            <label>Upload gambar bukti</label>
+            <div class="rmodal-upload-area">
+              <label for="bug-file-input" class="rmodal-upload-label">
+                <i data-feather="image"></i>
+                <span>Pilih gambar bukti (opsional)</span>
+                <input
+                  type="file"
+                  id="bug-file-input"
+                  accept="image/*"
+                  multiple
+                  style="display: none"
+                />
+              </label>
+              <div class="rmodal-upload-note">
+                Maksimal 5 gambar. Ukuran aman 3 MB per gambar.
+              </div>
+              <div
+                class="upload-warning rmodal-upload-warning"
+                id="bug-upload-warning"
+                style="display: none"
+              ></div>
+              <div class="rmodal-upload-preview" id="bug-upload-preview"></div>
+            </div>
+          </div>
+          <div class="rmodal-field">
             <label
-              >Email kamu
+              >Email kamu *
               <span style="color: var(--text-muted); font-weight: 400"
                 >(untuk konfirmasi tiket)</span
               ></label
@@ -1019,17 +1053,22 @@
           </div>
           <div class="rmodal-field">
             <label
-              >Kontak lain
+              >Nomor / kontak lain
               <span style="color: var(--text-muted); font-weight: 400"
-                >(WA / Discord — opsional)</span
+                >(opsional, WA / Discord)</span
               ></label
             >
-            <input type="text" id="bug-contact" placeholder="WA / Discord..." />
+            <input
+              type="text"
+              id="bug-contact"
+              placeholder="Nomor WA / Discord (opsional)"
+            />
           </div>
           <button
             class="rmodal-submit"
             id="bug-submit"
             onclick="submitReport('bug')"
+            disabled
           >
             <i data-feather="alert-triangle"></i> Kirim Laporan Bug
           </button>
@@ -1074,9 +1113,9 @@
         </div>
         <div class="rmodal-body" id="modal-saran-form">
           <div class="rmodal-field">
-            <label>Game yang disarankan</label>
+            <label>Nama game yang diberi saran *</label>
             <select id="saran-game">
-              <option value="">— Pilih game (opsional) —</option>
+              <option value="">— Wajib pilih game —</option>
               <option>Minecraft Parkun 2D</option>
               <option>THE ONE FOR ZOMBIE</option>
               <option>Desa Investasi Zombie</option>
@@ -1089,7 +1128,7 @@
             </select>
           </div>
           <div class="rmodal-field">
-            <label>Saran / Ide kamu *</label>
+            <label>Jelaskan saran / ide kamu *</label>
             <textarea
               id="saran-desc"
               rows="4"
@@ -1098,10 +1137,38 @@
             ></textarea>
           </div>
           <div class="rmodal-field">
+            <label>Upload gambar referensi</label>
+            <div class="rmodal-upload-area">
+              <label for="saran-file-input" class="rmodal-upload-label">
+                <i data-feather="image"></i>
+                <span>Pilih gambar referensi (opsional)</span>
+                <input
+                  type="file"
+                  id="saran-file-input"
+                  accept="image/*"
+                  multiple
+                  style="display: none"
+                />
+              </label>
+              <div class="rmodal-upload-note">
+                Maksimal 5 gambar. Ukuran aman 3 MB per gambar.
+              </div>
+              <div
+                class="upload-warning rmodal-upload-warning"
+                id="saran-upload-warning"
+                style="display: none"
+              ></div>
+              <div
+                class="rmodal-upload-preview"
+                id="saran-upload-preview"
+              ></div>
+            </div>
+          </div>
+          <div class="rmodal-field">
             <label
-              >Email kamu
+              >Email kamu *
               <span style="color: var(--text-muted); font-weight: 400"
-                >(opsional)</span
+                >(untuk konfirmasi tiket)</span
               ></label
             >
             <input
@@ -1110,10 +1177,24 @@
               placeholder="contoh@gmail.com"
             />
           </div>
+          <div class="rmodal-field">
+            <label
+              >Nomor / kontak lain
+              <span style="color: var(--text-muted); font-weight: 400"
+                >(opsional, WA / Discord)</span
+              ></label
+            >
+            <input
+              type="text"
+              id="saran-contact"
+              placeholder="Nomor WA / Discord (opsional)"
+            />
+          </div>
           <button
             class="rmodal-submit"
             id="saran-submit"
             onclick="submitReport('saran')"
+            disabled
           >
             <i data-feather="zap"></i> Kirim Saran
           </button>

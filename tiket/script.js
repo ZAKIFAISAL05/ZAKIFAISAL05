@@ -148,6 +148,27 @@ function buildRatingSection(ticket) {
   `;
 }
 
+function buildTicketAttachmentGallery(ticket) {
+  const attachments = Array.isArray(ticket && ticket.attachments) ? ticket.attachments : [];
+  const images = attachments
+    .filter(a => a && a.base64 && a.type && String(a.type).startsWith('image/'))
+    .map(a => `
+      <a class="ticket-attachment-link" href="${buildImgDataUrl(a)}" target="_blank" rel="noopener">
+        <img class="ticket-attachment-img" src="${buildImgDataUrl(a)}" alt="${esc(a.name || 'gambar bukti')}">
+      </a>
+    `)
+    .join('');
+
+  if (!images) return '';
+
+  return `
+    <div class="field field-attachments">
+      <span class="field-label">Gambar Bukti</span>
+      <div class="ticket-attachments">${images}</div>
+    </div>
+  `;
+}
+
 function showRatingMsg(msg, type = 'info') {
   const el = document.getElementById('rating-msg');
   if (!el) return;
@@ -533,6 +554,7 @@ function renderTicket(ticket) {
           <span class="field-label">Isi Laporan</span>
           <div class="desc-box">${esc(ticket.desc || '—').replace(/\n/g, '<br>')}</div>
         </div>
+        ${buildTicketAttachmentGallery(ticket)}
       </div>
     </div>
 

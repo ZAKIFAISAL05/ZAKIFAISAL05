@@ -78,6 +78,38 @@ function renderHeroSlider() {
         autoSlideInterval = setInterval(nextSlide, 4000);
     });
 }
+// Fungsi global untuk mengarahkan tombol ke halaman game yang aktif di slider
+window.kunjungiGameAktif = function() {
+    // 1. Ambil container slider
+    const container = document.getElementById('hero-slider-container');
+    if (!container) return;
+
+    // 2. Cari semua element gambar dengan class 'slide-card' langsung dari container
+    const semuaSlides = container.querySelectorAll('.slide-card');
+    let activeIndex = 0;
+    
+    // 3. Cari slide mana yang saat ini memegang class 'card-front'
+    semuaSlides.forEach((slide, idx) => {
+        if (slide.classList.contains('card-front')) {
+            activeIndex = idx;
+        }
+    });
+
+    // 4. Ambil data asli dari catalog gameData berdasarkan index yang aktif
+    const katalogAsli = typeof getGameCatalog === 'function' ? getGameCatalog() : [];
+    const gameAktif = katalogAsli[activeIndex];
+
+    if (gameAktif && gameAktif.id) {
+        // 5. Buat URL tujuan menggunakan helper buildGameUrl bawaan gameData.js
+        const urlTujuan = buildGameUrl(gameAktif.id);
+        
+        // 6. Alihkan halaman ke url tersebut
+        window.location.href = urlTujuan;
+    } else {
+        console.error("Data game tidak ditemukan untuk index: " + activeIndex);
+    }
+};
+
 
 // Inisialisasi (jangan pakai window.onload biar tidak niban script lain)
 window.addEventListener('load', () => {

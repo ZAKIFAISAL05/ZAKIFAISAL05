@@ -598,6 +598,9 @@ body {
 .field-desc {
   grid-column: 1 / -1;
 }
+.field-attachments {
+  grid-column: 1 / -1;
+}
 .desc-box {
   background: rgba(15,23,42,0.03);
   border: 1px solid var(--border);
@@ -608,6 +611,22 @@ body {
   color: var(--text);
   white-space: pre-wrap;
   word-break: break-word;
+}
+.ticket-attachments {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.ticket-attachment-link {
+  display: inline-flex;
+}
+.ticket-attachment-img {
+  width: 132px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
 }
 
 /* ── ACTIONS FOOTER ── */

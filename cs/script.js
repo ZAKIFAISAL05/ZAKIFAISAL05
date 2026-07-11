@@ -90,14 +90,28 @@ function setUploadWarning(targetId, messages) {
     box.innerHTML = messages.map(function(msg) { return '<div>' + msg + '</div>'; }).join('');
 }
 
-function filterAcceptedFiles(files, currentFiles, warningId) {
+function filterAcceptedFiles(files, currentFiles, warningId, options) {
+    options = options || {};
+    var imagesOnly = !!options.imagesOnly;
     var incoming = Array.from(files || []);
     var existing = Array.isArray(currentFiles) ? currentFiles.slice() : [];
     var accepted = [];
     var warnings = [];
 
     incoming.forEach(function(file) {
-        if (!file || (!file.type.startsWith('image/') && !file.type.startsWith('video/'))) {
+        if (!file) {
+            return;
+        }
+
+        var isImage = !!(file.type && file.type.startsWith('image/'));
+        var isVideo = !!(file.type && file.type.startsWith('video/'));
+
+        if (imagesOnly && !isImage) {
+            warnings.push('Untuk laporan, hanya gambar yang bisa diupload.');
+            return;
+        }
+
+        if (!imagesOnly && !isImage && !isVideo) {
             warnings.push('Hanya gambar atau video yang bisa dilampirkan.');
             return;
         }
@@ -149,6 +163,15 @@ function validatePreparedFiles(files, warningId) {
 
     setUploadWarning(warningId, warnings);
     return warnings.length === 0;
+}
+
+function isValidEmail(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
+}
+
+function setFieldInvalid(el, invalid) {
+    if (!el || !el.classList) return;
+    el.classList.toggle('input-invalid', !!invalid);
 }
 
 // Quick reply kontekstual — muncul sesuai konteks percakapan (bergaya Shopee/WA)
@@ -691,15 +714,25 @@ function postAIReportConfirmBubble(payload) {
 
 function confirmPendingAIReport() {
     if (!pendingAIReport || !pendingAIReport.payload || isSubmittingReport) return;
+    var payload = pendingAIReport.payload;
+    var missingGame = !String(payload.game || '').trim();
+    var invalidDesc = !String(payload.desc || '').trim() || String(payload.desc || '').trim().length < 10;
+    var invalidEmail = !isValidEmail(payload.email || '');
+
+    if (missingGame || invalidDesc || invalidEmail) {
+        pendingAIReport = null;
+        addMsg('bot', 'Laporan belum bisa saya kirim. Pastikan **nama game**, **penjelasan minimal 10 karakter**, dan **email yang valid** sudah ada ya. Silakan tulis ulang detailnya atau pakai tombol laporan supaya form wajibnya lengkap.', now());
+        return;
+    }
+
     isSubmittingReport = true;
     hideQuickArea();
 
     addMsg('bot', 'Oke, saya teruskan laporannya sekarang. Tunggu sebentar ya…', now());
     showTyping();
 
-    var payload = pendingAIReport.payload;
     var ticketId = pendingAIReport.ticketId || generateTicket();
-    var hasEmail = !!(payload.email && String(payload.email).includes('@'));
+    var hasEmail = !!(payload.email && isValidEmail(payload.email));
     var typeOverride = payload.type || 'saran';
 
     fetch(REPORT_ENDPOINT, {
@@ -746,6 +779,69 @@ function cancelPendingAIReport() {
 var modalFiles = [];
 var pendingModalReport = null;
 
+function getModalDraft() {
+    var descEl = document.getElementById('r-desc');
+    var gameEl = document.getElementById('r-game');
+    var emailEl = document.getElementById('r-email');
+    var contactEl = document.getElementById('r-contact');
+    return {
+        desc: descEl ? String(descEl.value || '').trim() : '',
+        game: gameEl ? String(gameEl.value || '').trim() : '',
+        email: emailEl ? String(emailEl.value || '').trim() : '',
+        contact: contactEl ? String(contactEl.value || '').trim() : ''
+    };
+}
+
+function isModalDraftComplete() {
+    var draft = getModalDraft();
+    if (currentType === 'review') {
+        return draft.desc.length >= 10 && isValidEmail(draft.email);
+    }
+    return !!draft.game && draft.desc.length >= 10 && isValidEmail(draft.email);
+}
+
+function refreshModalSubmitState() {
+    var btn = document.getElementById('r-submit');
+    if (!btn) return;
+    btn.disabled = isSubmittingReport || !isModalDraftComplete();
+}
+
+function validateModalDraft(showAlert) {
+    var gameEl = document.getElementById('r-game');
+    var descEl = document.getElementById('r-desc');
+    var emailEl = document.getElementById('r-email');
+    var draft = getModalDraft();
+
+    var invalidGame = currentType !== 'review' && !draft.game;
+    var invalidDesc = !draft.desc || draft.desc.length < 10;
+    var invalidEmail = !isValidEmail(draft.email);
+
+    setFieldInvalid(gameEl, invalidGame);
+    setFieldInvalid(descEl, invalidDesc);
+    setFieldInvalid(emailEl, invalidEmail);
+
+    if (!showAlert) {
+        return !(invalidGame || invalidDesc || invalidEmail);
+    }
+
+    if (invalidGame) {
+        if (gameEl) gameEl.focus();
+        alert('Nama game wajib dipilih dulu ya.');
+        return false;
+    }
+    if (invalidDesc) {
+        if (descEl) descEl.focus();
+        alert('Penjelasan wajib diisi minimal 10 karakter ya.');
+        return false;
+    }
+    if (invalidEmail) {
+        if (emailEl) emailEl.focus();
+        alert('Email wajib diisi dengan format yang valid ya.');
+        return false;
+    }
+    return true;
+}
+
 function openModal(type) {
     currentType = type || 'bug';
     switchType(currentType);
@@ -768,12 +864,18 @@ function openModal(type) {
     setUploadWarning('modal-upload-warning');
 
     // Bersihkan error highlight
-    ['r-desc','r-email'].forEach(function(id) {
+    ['r-game', 'r-desc', 'r-email', 'r-contact'].forEach(function(id) {
         var el = document.getElementById(id);
-        if (el) { el.style.borderColor = ''; el.style.boxShadow = ''; }
+        if (el) {
+            el.style.borderColor = '';
+            el.style.boxShadow = '';
+            el.classList.remove('input-invalid');
+        }
     });
 
     document.getElementById('modal-bg').classList.add('open');
+    validateModalDraft(false);
+    refreshModalSubmitState();
 }
 
 function closeModal() {
@@ -794,11 +896,45 @@ function switchType(type) {
     document.getElementById('modal-title').textContent =
         isBug ? 'Laporan Bug / Error' : (isReview ? 'Edit / Hapus Ulasan' : 'Kirim Saran');
 
-    document.getElementById('r-desc-label').textContent =
-        isBug ? 'Deskripsi bug / error *' : (isReview ? 'Detail permintaan *' : 'Isi saran / masukan *');
+    var gameLabelEl = document.getElementById('r-game-label');
+    var descLabelEl = document.getElementById('r-desc-label');
+    var uploadLabelEl = document.getElementById('r-upload-label');
+    var uploadTextEl = document.getElementById('r-upload-text');
+    var uploadNoteEl = document.getElementById('r-upload-note');
+    var emailLabelEl = document.getElementById('r-email-label');
+    var contactLabelEl = document.getElementById('r-contact-label');
+
+    if (gameLabelEl) {
+        gameLabelEl.textContent = isReview
+            ? 'Ulasan website'
+            : (isBug ? 'Nama game yang bermasalah *' : 'Nama game yang diberi saran *');
+    }
+
+    if (descLabelEl) {
+        descLabelEl.textContent =
+            isBug ? 'Jelaskan bug / error *' : (isReview ? 'Detail permintaan *' : 'Jelaskan saran / ide kamu *');
+    }
+
+    if (uploadLabelEl) {
+        uploadLabelEl.textContent = isBug ? 'Upload gambar bukti' : (isReview ? 'Upload gambar pendukung' : 'Upload gambar referensi');
+    }
+    if (uploadTextEl) {
+        uploadTextEl.textContent = isBug
+            ? 'Pilih gambar bukti (opsional)'
+            : (isReview ? 'Pilih gambar pendukung (opsional)' : 'Pilih gambar referensi (opsional)');
+    }
+    if (uploadNoteEl) {
+        uploadNoteEl.textContent = 'Batas aman: maksimal 5 gambar, 3 MB per gambar.';
+    }
+    if (emailLabelEl) {
+        emailLabelEl.innerHTML = 'Email kamu * <span style="color:var(--muted);font-weight:400;">(untuk konfirmasi tiket)</span>';
+    }
+    if (contactLabelEl) {
+        contactLabelEl.innerHTML = 'Nomor / kontak lain <span style="color:var(--muted);font-weight:400;">(opsional — WA / Discord)</span>';
+    }
 
     document.getElementById('r-desc').placeholder = isBug
-        ? 'Ceritakan bug yang kamu temukan...'
+        ? 'Ceritakan bug yang kamu temukan secara jelas...'
         : (isReview
             ? 'Tulis detail edit/hapus ulasan kamu:\n' +
               '- Mau edit atau hapus?\n' +
@@ -806,7 +942,7 @@ function switchType(type) {
               '- Rating/isi ulasan lama (atau perkiraan waktu kirim)\n' +
               '- Jika edit: tulis rating/isi ulasan yang baru\n' +
               '- Alasan (opsional)'
-            : 'Tulis saran atau masukan kamu...');
+            : 'Jelaskan saran atau ide kamu secara detail...');
 
     document.getElementById('r-submit').textContent =
         isBug ? 'Kirim Laporan Bug' : (isReview ? 'Kirim Permintaan' : 'Kirim Saran');
@@ -815,8 +951,14 @@ function switchType(type) {
     var gameEl = document.getElementById('r-game');
     if (gameEl) {
         gameEl.disabled = isReview;
+        if (gameEl.options && gameEl.options.length) {
+            gameEl.options[0].textContent = isReview ? '-- Ulasan Website --' : '-- Wajib pilih game --';
+        }
         if (isReview) gameEl.value = 'Ulasan Website';
     }
+
+    validateModalDraft(false);
+    refreshModalSubmitState();
 }
 
 /* ── MODAL FILE UPLOAD ── */
@@ -824,10 +966,11 @@ function initModalFileInput() {
     var mInput = document.getElementById('modal-file-input');
     if (!mInput) return;
     mInput.addEventListener('change', function() {
-        var accepted = filterAcceptedFiles(mInput.files, modalFiles, 'modal-upload-warning');
+        var accepted = filterAcceptedFiles(mInput.files, modalFiles, 'modal-upload-warning', { imagesOnly: true });
         accepted.forEach(function(f) { modalFiles.push(f); });
         mInput.value = '';
         renderModalPreviews();
+        refreshModalSubmitState();
     });
 }
 
@@ -839,18 +982,14 @@ function renderModalPreviews() {
         var item = document.createElement('div');
         item.className = 'preview-item-sm';
         var url = URL.createObjectURL(f);
-        if (f.type.startsWith('image/')) {
-            item.innerHTML = '<img src="' + url + '" alt="' + f.name + '"><button class="preview-remove" data-i="' + i + '">✕</button>';
-        } else {
-            item.innerHTML = '<div class="preview-video-icon-sm">' + f.name.slice(0,10) + '…</div>' +
-                '<button class="preview-remove" data-i="' + i + '">✕</button>';
-        }
+        item.innerHTML = '<img src="' + url + '" alt="' + f.name + '"><button class="preview-remove" data-i="' + i + '">✕</button>';
         mPreview.appendChild(item);
     });
     mPreview.querySelectorAll('.preview-remove').forEach(function(btn) {
         btn.addEventListener('click', function() {
             modalFiles.splice(parseInt(btn.getAttribute('data-i')), 1);
             renderModalPreviews();
+            refreshModalSubmitState();
         });
     });
 }
@@ -863,15 +1002,7 @@ function submitReport() {
     var email   = document.getElementById('r-email').value.trim();
     var btn     = document.getElementById('r-submit');
 
-    // Validasi deskripsi
-    if (!desc || desc.length < 10) {
-        var descEl = document.getElementById('r-desc');
-        descEl.focus();
-        descEl.style.borderColor = '#e74c3c';
-        descEl.style.boxShadow   = '0 0 0 3px rgba(231,76,60,0.15)';
-        setTimeout(function() { descEl.style.borderColor = ''; descEl.style.boxShadow = ''; }, 2000);
-        return;
-    }
+    if (!validateModalDraft(true)) return;
     if (!validatePreparedFiles(modalFiles, 'modal-upload-warning')) return;
 
     var ticketId = generateTicket();
@@ -916,7 +1047,8 @@ function showModalConfirm(r) {
             '<b>Game:</b> ' + escHtml(r.game || '—') + '<br>' +
             '<b>Detail:</b><br>' + escHtml(r.desc || '').replace(/\n/g, '<br>') + '<br><br>' +
             '<b>Email:</b> ' + escHtml(r.email || '—') + '<br>' +
-            '<b>Kontak:</b> ' + escHtml(r.contact || '—');
+            '<b>Kontak:</b> ' + escHtml(r.contact || '—') + '<br>' +
+            '<b>Jumlah gambar:</b> ' + String((r.files || []).length || 0);
     }
 
     // Render tombol konfirmasi (dibuat sekali saja)
@@ -944,7 +1076,8 @@ function cancelModalConfirm() {
     document.getElementById('modal-form').style.display = 'block';
     document.getElementById('modal-success').classList.remove('show');
     var btn = document.getElementById('r-submit');
-    if (btn) { btn.disabled = false; btn.textContent = currentType === 'bug' ? 'Kirim Laporan Bug' : 'Kirim Saran'; }
+    if (btn) { btn.textContent = currentType === 'bug' ? 'Kirim Laporan Bug' : 'Kirim Saran'; }
+    refreshModalSubmitState();
 }
 
 function sendConfirmedModalReport() {
@@ -986,7 +1119,7 @@ function sendConfirmedModalReport() {
     .then(function(resp) { return resp.json(); })
     .then(function(data) {
         saveReportLocal({
-            id: ticketId, type: r.type,
+            id: ticketId, type: r.uiType || r.apiType,
             game: r.game || '—', desc: r.desc,
             contact: r.contact, email: r.email,
             summary: data.summary || r.desc,
@@ -1001,7 +1134,7 @@ function sendConfirmedModalReport() {
     })
     .catch(function() {
         saveReportLocal({
-            id: ticketId, type: r.type,
+            id: ticketId, type: r.uiType || r.apiType,
             game: r.game || '—', desc: r.desc,
             contact: r.contact, email: r.email,
             summary: r.desc,
@@ -1145,6 +1278,18 @@ function saveReportLocal(r) {
     } catch(e) {}
 }
 
+function initModalValidation() {
+    ['r-game', 'r-desc', 'r-email', 'r-contact'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        var eventName = id === 'r-game' ? 'change' : 'input';
+        el.addEventListener(eventName, function() {
+            validateModalDraft(false);
+            refreshModalSubmitState();
+        });
+    });
+}
+
 /* ══════════════════════════════════════════
    INIT
 ══════════════════════════════════════════ */
@@ -1154,6 +1299,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initToggles();
     initFileInput();
     initModalFileInput();
+    initModalValidation();
     initMobileViewportFix();
     initAIReportConfirmDelegation();
     sendWelcome();

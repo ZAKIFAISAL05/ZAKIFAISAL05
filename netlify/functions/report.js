@@ -20,6 +20,27 @@ const CORS = {
 };
 
 const GEMINI_MODEL = 'gemini-2.5-flash';
+const MAX_REPORT_ATTACHMENTS = 5;
+const MAX_REPORT_ATTACHMENT_BYTES = 3 * 1024 * 1024;
+
+function sanitizeReportAttachments(list) {
+  const raw = Array.isArray(list) ? list.slice(0, MAX_REPORT_ATTACHMENTS) : [];
+  const clean = [];
+  for (const item of raw) {
+    if (!item || !item.base64 || !item.type) continue;
+    const type = String(item.type || '');
+    if (!type.startsWith('image/')) continue;
+    const base64 = String(item.base64 || '');
+    const sizeBytes = Math.floor((base64.length * 3) / 4) - (base64.endsWith('==') ? 2 : base64.endsWith('=') ? 1 : 0);
+    if (sizeBytes > MAX_REPORT_ATTACHMENT_BYTES) continue;
+    clean.push({
+      name: String(item.name || 'gambar-bukti').slice(0, 120),
+      type,
+      base64,
+    });
+  }
+  return clean;
+}
 
 /* ── TICKET BLOBS HELPERS ── */
 function createTicketStore() {
@@ -30,7 +51,7 @@ function createTicketStore() {
   return getStore(opts);
 }
 
-async function saveTicketToBlobs({ id, type, game, desc, email, contact, summary }) {
+async function saveTicketToBlobs({ id, type, game, desc, email, contact, summary, attachments }) {
   try {
     const store = createTicketStore();
     const COUNTER_KEY = 'ticket-counter';
@@ -94,6 +115,7 @@ async function saveTicketToBlobs({ id, type, game, desc, email, contact, summary
     const fullTicket = {
       id, num, token, type, game: game || '—', desc, email: email || '',
       contact: contact || '', summary: summary || desc,
+      attachments: Array.isArray(attachments) ? attachments : [],
       status: 'received', statusLabel: 'Diterima',
       statusStep: 0, createdAt: now, updatedAt: now, done: false, devNote: ''
     };
@@ -174,9 +196,9 @@ async function sendWhatsAppNotification(toPhoneNumber, messageText) {
   }
 }
 
-function buildAdminTicketWhatsAppMessage({ ticketNum, ticketId, type, gameLabel, desc, summary, email, contact, waktuWIB, ticketUrl }) {
+function buildAdminTicketWhatsAppMessage({ ticketNum, ticketId, type, gameLabel, desc, summary, email, contact, waktuWIB, ticketUrl, attachmentSummary, siteOrigin }) {
   const typeLabel = type === 'bug' ? 'Bug / Error' : 'Saran';
-  const adminUrl = 'https://nusabit.netlify.app/admin';
+  const adminUrl = `${String(siteOrigin || 'https://nusabit.netlify.app').replace(/\/+$/, '')}/admin`;
   return [
     'Halo Admin Nusabit Studio,',
     '',
@@ -189,6 +211,7 @@ function buildAdminTicketWhatsAppMessage({ ticketNum, ticketId, type, gameLabel,
     `Waktu Masuk: ${waktuWIB}`,
     `Email User: ${email || '-'}`,
     `Kontak User: ${contact || '-'}`,
+    `Bukti Gambar: ${attachmentSummary || '-'}`,
     '',
     'Ringkasan AI:',
     String(summary || desc || '—'),
@@ -301,7 +324,7 @@ function getNowWIBString() {
   });
 }
 
-function emailUserHtml(ticketId, type, game, desc, waktu) {
+function emailUserHtml(ticketId, type, game, desc, waktu, attachmentSummary) {
   const typeLabel = type === 'bug' ? '🐛 Bug / Error' : '💡 Saran';
   return `
 <!DOCTYPE html>
@@ -340,6 +363,7 @@ function emailUserHtml(ticketId, type, game, desc, waktu) {
     <div class="field"><label>Game</label><p>${game || 'Tidak disebutkan'}</p></div>
     <div class="field"><label>Laporan</label><p>${desc.replace(/\n/g,'<br>')}</p></div>
     <div class="field"><label>Waktu Masuk</label><p>${waktu}</p></div>
+    <div class="field"><label>Bukti Gambar</label><p>${attachmentSummary || 'Tidak ada upload gambar'}</p></div>
   </div>
   <div class="footer">
     Pertanyaan? Hubungi kami di <a href="mailto:dzakifaisal11@gmail.com">dzakifaisal11@gmail.com</a><br>
@@ -349,7 +373,7 @@ function emailUserHtml(ticketId, type, game, desc, waktu) {
 </body></html>`;
 }
 
-function emailAdminHtml(ticketId, type, game, desc, contact, email, summary, waktu) {
+function emailAdminHtml(ticketId, type, game, desc, contact, email, summary, waktu, attachmentSummary) {
   const typeLabel = type === 'bug' ? '🐛 BUG REPORT' : '💡 SARAN';
   const accentColor = type === 'bug' ? '#e74c3c' : '#f39c12';
   return `
@@ -384,6 +408,7 @@ function emailAdminHtml(ticketId, type, game, desc, contact, email, summary, wak
     <div class="ai-box"><label>🤖 Ringkasan AI</label><p>${summary}</p></div>
     <div class="field"><label>Email Pelapor</label><p>${email || '—'}</p></div>
     <div class="field"><label>Kontak Lain</label><p>${contact || '—'}</p></div>
+    <div class="field"><label>Bukti Gambar</label><p>${attachmentSummary || 'Tidak ada upload gambar'}</p></div>
   </div>
   <div class="footer">Nusabit Studio Admin Notification</div>
 </div>
@@ -398,10 +423,14 @@ exports.handler = async function (event) {
   try { body = JSON.parse(event.body || '{}'); }
   catch (_) { return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Body tidak valid' }) }; }
 
-  const { type, game, desc, contact, email, ticketId: clientTicket } = body;
+  const { type, game, desc, contact, email, attachments, ticketId: clientTicket } = body;
   if (!type || !desc || desc.trim().length < 10) {
     return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Data laporan tidak lengkap' }) };
   }
+  const cleanAttachments = sanitizeReportAttachments(attachments);
+  const attachmentSummary = cleanAttachments.length
+    ? `${cleanAttachments.length} gambar (${cleanAttachments.map(item => item.name).join(', ')})`
+    : '';
 
   // Pakai ticketId dari client, atau generate baru
   const ticketId = clientTicket || ('GS-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2,5).toUpperCase());
@@ -430,7 +459,16 @@ exports.handler = async function (event) {
   }
 
   // 2. Simpan tiket ke Netlify Blobs (nomor urut + token)
-  const ticketData = await saveTicketToBlobs({ id: ticketId, type, game: gameLabel, desc: desc.trim(), email, contact, summary });
+  const ticketData = await saveTicketToBlobs({
+    id: ticketId,
+    type,
+    game: gameLabel,
+    desc: desc.trim(),
+    email,
+    contact,
+    summary,
+    attachments: cleanAttachments,
+  });
   const ticketNum  = ticketData?.num || '—';
   const siteOrigin = getSiteOrigin(event);
   const ticketUrl  = ticketData ? `${siteOrigin}${ticketData.ticketUrl}` : '';
@@ -451,6 +489,8 @@ exports.handler = async function (event) {
         contact,
         waktuWIB,
         ticketUrl: ticketUrl || '',
+        attachmentSummary: attachmentSummary || '-',
+        siteOrigin,
       })
     );
   }
@@ -459,7 +499,7 @@ exports.handler = async function (event) {
   let userEmailSent = false;
   if (email && email.includes('@')) {
     const subjUser = `[Tiket #${ticketNum}] ${type === 'bug' ? 'Bug Dilaporkan' : 'Saran Diterima'} — Nusabit Studio`;
-    const htmlUser = emailUserHtml(ticketId, type, gameLabel, desc.trim(), waktuWIB)
+    const htmlUser = emailUserHtml(ticketId, type, gameLabel, desc.trim(), waktuWIB, attachmentSummary || 'Tidak ada upload gambar')
       .replace('</div>\n</body>', `
   <div class="body" style="padding-top:0;">
     <a href="${ticketUrl}" style="display:block;text-align:center;background:#7c4dff;color:#fff;text-decoration:none;padding:12px 24px;border-radius:10px;font-weight:700;font-size:0.95rem;">🔍 Pantau Status Tiket Kamu</a>
@@ -482,7 +522,7 @@ exports.handler = async function (event) {
       adminEmailSent = await sendEmail({
         to: adminEmail,
         subject: subjAdmin,
-        html: emailAdminHtml(ticketId, type, gameLabel, desc.trim(), contact, email, summary, waktuWIB),
+        html: emailAdminHtml(ticketId, type, gameLabel, desc.trim(), contact, email, summary, waktuWIB, attachmentSummary || 'Tidak ada upload gambar'),
       });
     }
   }

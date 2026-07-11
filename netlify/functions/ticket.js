@@ -131,7 +131,28 @@ function getPublicSiteUrl() {
   ).replace(/\/$/, '');
 }
 
-function buildTicketStatusEmailHtml(ticket, mode = 'done') {
+function getSiteOrigin(event) {
+  const headers = event?.headers || {};
+  const protoHeader = headers['x-forwarded-proto'] || headers['X-Forwarded-Proto'] || 'https';
+  const hostHeader =
+    headers['x-forwarded-host'] ||
+    headers['X-Forwarded-Host'] ||
+    headers.host ||
+    headers.Host ||
+    getPublicSiteUrl() ||
+    '';
+
+  const proto = String(protoHeader).split(',')[0].trim() || 'https';
+  const host = String(hostHeader)
+    .trim()
+    .replace(/^https?:\/\//i, '')
+    .replace(/\/+$/, '');
+
+  if (!host) return 'https://nusabit.netlify.app';
+  return `${proto}://${host}`;
+}
+
+function buildTicketStatusEmailHtml(ticket, mode = 'done', siteOrigin = '') {
   const isCancelled = mode === 'cancelled';
   const title = isCancelled ? 'Tiket Dibatalkan' : 'Tiket Berhasil Diselesaikan';
   const accent = isCancelled ? '#ef4444' : '#22c55e';
@@ -155,7 +176,7 @@ function buildTicketStatusEmailHtml(ticket, mode = 'done') {
     : '';
   const actorLabel = isCancelled ? 'Dibatalkan oleh' : 'Diselesaikan oleh';
   const closedAtText = ticket.closedAt || ticket.updatedAt || new Date().toISOString();
-  const siteUrl = getPublicSiteUrl();
+  const siteUrl = String(siteOrigin || getPublicSiteUrl()).replace(/\/$/, '');
   const path = ticket.token ? `/tiket/?token=${encodeURIComponent(ticket.token)}` : `/tiket/?id=${encodeURIComponent(ticket.id)}`;
   const statusUrl = siteUrl ? `${siteUrl}${path}` : path;
 
@@ -209,13 +230,13 @@ function buildTicketStatusEmailHtml(ticket, mode = 'done') {
 </body></html>`;
 }
 
-async function sendTicketStatusEmail(ticket, mode = 'done') {
+async function sendTicketStatusEmail(ticket, mode = 'done', siteOrigin = '') {
   const email = String(ticket?.email || '').trim();
   if (!email || !email.includes('@')) return false;
   const subject = mode === 'cancelled'
     ? `Tiket ${ticket.id} dibatalkan`
     : `Tiket ${ticket.id} berhasil diselesaikan`;
-  const html = buildTicketStatusEmailHtml(ticket, mode);
+  const html = buildTicketStatusEmailHtml(ticket, mode, siteOrigin);
   return sendEmail({ to: email, subject, html });
 }
 
@@ -262,8 +283,8 @@ async function sendWhatsAppNotification(toPhoneNumber, messageText) {
   }
 }
 
-function buildAdminNewTicketWhatsAppMessage(ticket) {
-  const adminUrl = 'https://nusabit.netlify.app/admin';
+function buildAdminNewTicketWhatsAppMessage(ticket, siteOrigin = '') {
+  const adminUrl = `${String(siteOrigin || 'https://nusabit.netlify.app').replace(/\/+$/, '')}/admin`;
   const lines = [
     'Halo Admin Nusabit Studio,',
     '',
@@ -356,6 +377,7 @@ function stripChatForAdminList(ticket) {
 
   const out = {
     ...ticket,
+    attachmentCount: Array.isArray(ticket.attachments) ? ticket.attachments.length : 0,
     chatCount: msgs.length,
     chatLastAt: lastAt,
     chatLastFrom: lastFrom,
@@ -363,6 +385,7 @@ function stripChatForAdminList(ticket) {
     adminSeenAt,
     chatUnread,
   };
+  delete out.attachments;
   delete out.messages;
   return out;
 }
@@ -661,7 +684,7 @@ exports.handler = async (event) => {
       idx.unshift({ id, num, token, status: 'received', createdAt: now, done: false });
       await saveIndex(store, idx);
 
-      await sendWhatsAppNotification(process.env.ADMIN_WA_NUMBER, buildAdminNewTicketWhatsAppMessage(ticket));
+      await sendWhatsAppNotification(process.env.ADMIN_WA_NUMBER, buildAdminNewTicketWhatsAppMessage(ticket, getSiteOrigin(event)));
 
       return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, num, token, ticketUrl: '/tiket/?token=' + token }) };
     }
@@ -813,9 +836,9 @@ exports.handler = async (event) => {
       }
 
       if (status === 'done') {
-        ticket.emailSent = await sendTicketStatusEmail(ticket, 'done');
+        ticket.emailSent = await sendTicketStatusEmail(ticket, 'done', getSiteOrigin(event));
       } else if (status === 'cancelled') {
-        ticket.emailSent = await sendTicketStatusEmail(ticket, 'cancelled');
+        ticket.emailSent = await sendTicketStatusEmail(ticket, 'cancelled', getSiteOrigin(event));
       }
 
       return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, ticket, emailSent: !!ticket.emailSent }) };
@@ -855,7 +878,7 @@ exports.handler = async (event) => {
         await saveIndex(store, idx);
       }
 
-      const emailSent = await sendTicketStatusEmail(ticket, 'done');
+      const emailSent = await sendTicketStatusEmail(ticket, 'done', getSiteOrigin(event));
       return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, closed: true, emailSent }) };
     }
 
@@ -898,7 +921,7 @@ exports.handler = async (event) => {
         await saveIndex(store, idx);
       }
 
-      const emailSent = await sendTicketStatusEmail(ticket, 'cancelled');
+      const emailSent = await sendTicketStatusEmail(ticket, 'cancelled', getSiteOrigin(event));
       return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, cancelled: true, emailSent, ticket }) };
     }
 

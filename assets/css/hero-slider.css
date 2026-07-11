@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Pixelify+Sans:wght@400..700&display=swap');
+
 /* Copied from slider style.css (scoped version)
    NOTE:
    - Tidak mengubah tampilan slider, tapi seluruh CSS di-scope ke
@@ -37,14 +39,102 @@
 }
 
 /* Caption nama game (di bawah slider) */
-#rekomendasi-slider .hero-slider-caption {
-  margin-top: 14px;
+/* --- TAMPILAN UTAMA (PC & TABLET) --- */
+.slider-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  font-family: 'Outfit', 'Inter', sans-serif;
+  font-family: "Archivo Black", sans-serif;
+  font-size: 1.5rem;
+  color: orange;
+  margin-top: 20px;       /* Jarak aman dengan elemen di atasnya */
+  margin-bottom: 24px;    /* Jarak agar tidak terlalu dekat dengan slider di bawahnya */
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Membuat garis otomatis di kiri dan kanan teks */
+.slider-title::before,
+.slider-title::after {
+  content: "";
+  flex: 1;
+  border-bottom: 3px solid orange; /* Warna garis matching dengan box-shadow */
+  margin: 0 15px;                  /* Jarak spasi horizontal kiri-kanan teks */
+  max-width: 80px;                 /* Panjang maksimal garis di layar lebar */
+}
+
+/* --- TAMPILAN RESPONSIF (KHUSUS LAYAR HP < 480px) --- */
+@media (max-width: 480px) {
+  .slider-title {
+    font-size: 1.15rem;            /* Ukuran font disesuaikan agar pas di layar sempit */
+    margin-bottom: 16px;           /* Jarak bawah dikurangi sedikit di HP */
+  }
+  
+  .slider-title::before,
+  .slider-title::after {
+    max-width: 40px;               /* Garis memendek otomatis agar teks tidak turun ke bawah */
+    margin: 0 8px;                 /* Jarak spasi dikecilkan sedikit agar hemat ruang */
+    border-bottom-width: 2.5px;    /* Ketebalan garis disesuaikan sedikit */
+  }
+}
+
+
+.hero-slider-caption {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: auto;
+  padding: 10px;
+  background-color: orange;
+  border-radius: 26px;
+  box-shadow: 5px 5px 0px #2C2A29;
+  font-family: "Archivo Black";
+  text-shadow: 2px 4px 8px rgba(30, 8, 9, 0.15);
+}
+
+#rekomendasi-slider .hero-slider-caption {
+  margin-top: 34px;
+  text-align: center;
   font-weight: 800;
   font-size: 1.1rem;
   letter-spacing: 0.02em;
   color: #111827;
+}
+
+.hero-slider-button {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 24px;
+}
+
+
+.bt-slider {
+  border: none;
+  display: flex;
+  width: auto;
+  padding: 10px;
+  text-align: center;
+  justify-content: center;
+  background-color: orange;
+  color: black;
+  font-size: 0.7rem;
+  font-family: "Archivo Black";
+  box-shadow: 5px 5px 0px #2C2A29; 
+  border-radius: 26px;
+  text-shadow: 2px 4px 8px rgba(30, 8, 9, 0.15);
+  
+}
+
+.bt-slider:hover {
+  cursor: pointer;
+  filter: brightness(1.05); 
+}
+
+.bt-slider:active {
+  box-shadow: 1px 1px 0px #2C2A29; 
+  transform: translate(4px, 4px); 
 }
 
 /* ==========================================================================

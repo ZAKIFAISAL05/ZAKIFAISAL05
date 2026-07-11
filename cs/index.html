@@ -141,9 +141,9 @@
 
         <div id="modal-form">
             <div class="field">
-                <label>Game yang bermasalah</label>
+                <label id="r-game-label">Nama game *</label>
                 <select id="r-game">
-                    <option value="">-- Pilih game --</option>
+                    <option value="">-- Wajib pilih game --</option>
                     <option>Minecraft Parkun 2D</option>
                     <option>THE ONE FOR ZOMBIE</option>
                     <option>Desa Investasi Zombie</option>
@@ -159,27 +159,27 @@
                 <textarea id="r-desc" rows="4" placeholder="Ceritakan bug yang kamu temukan..." maxlength="1000"></textarea>
             </div>
             <div class="field">
-                <label>Bukti (gambar / video)</label>
+                <label id="r-upload-label">Upload gambar bukti</label>
                 <div class="modal-upload-area" id="modal-upload-area">
                     <label for="modal-file-input" class="modal-upload-label">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66L9.41 17.41A2 2 0 0 1 6.59 14.59l8.49-8.48"/></svg>
-                        <span>Pilih gambar / video (opsional)</span>
-                        <input type="file" id="modal-file-input" accept="image/*,video/*" multiple style="display:none">
+                        <span id="r-upload-text">Pilih gambar bukti (opsional)</span>
+                        <input type="file" id="modal-file-input" accept="image/*" multiple style="display:none">
                     </label>
-                    <div class="modal-upload-note">Batas aman: gambar maks. 3 MB per file, video maks. 15 MB per file.</div>
+                    <div class="modal-upload-note" id="r-upload-note">Batas aman: maksimal 5 gambar, 3 MB per gambar.</div>
                     <div class="upload-warning" id="modal-upload-warning" style="display:none;"></div>
                     <div class="modal-upload-preview" id="modal-upload-preview"></div>
                 </div>
             </div>
             <div class="field">
-                <label>Email kamu <span style="color:var(--muted);font-weight:400;">(untuk konfirmasi tiket)</span></label>
+                <label id="r-email-label">Email kamu * <span style="color:var(--muted);font-weight:400;">(untuk konfirmasi tiket)</span></label>
                 <input type="email" id="r-email" placeholder="contoh@gmail.com">
             </div>
             <div class="field">
-                <label>Kontak lain <span style="color:var(--muted);font-weight:400;">(opsional — WA / Discord)</span></label>
-                <input type="text" id="r-contact" placeholder="WA / Discord...">
+                <label id="r-contact-label">Nomor / kontak lain <span style="color:var(--muted);font-weight:400;">(opsional — WA / Discord)</span></label>
+                <input type="text" id="r-contact" placeholder="Nomor WA / Discord (opsional)">
             </div>
-            <button class="submit-btn" id="r-submit">Kirim Laporan Bug</button>
+            <button class="submit-btn" id="r-submit" disabled>Kirim Laporan Bug</button>
         </div>
 
         <div class="modal-success" id="modal-success">

@@ -8,8 +8,8 @@
     <!-- Global UI: Loading Screen + Offline Detector -->
     <link rel="stylesheet" href="/assets/css/global-ui.css?v=6b2530c767" />
     <script src="/assets/js/global-ui.js?v=d7fa6f6c20"></script>
-    <title>FAQ — Nusabit Studio</title>
-    <meta name="description" content="FAQ Nusabit Studio." />
+    <title>FAQ — Bantuan Nusabit Studio</title>
+    <meta name="description" content="Pusat bantuan Nusabit Studio untuk download game, tiket laporan, email konfirmasi, bug, saran, dan kontak resmi." />
     <link rel="icon" href="/favicon.ico">
     <link rel="icon" type="image/png" sizes="16x16" href="/assets/img/favicon-16.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicon-32.png">
@@ -22,18 +22,18 @@
     <header class="hero">
         <a class="back" href="./" aria-label="Kembali ke Beranda">← Kembali</a>
         <div class="hero-inner">
-            <h1 class="hero-title">How can we help?</h1>
+            <h1 class="hero-title">Pusat Bantuan Nusabit Studio</h1>
 
             <div class="hero-search">
                 <div class="searchbar" role="search">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                         <path d="M21 21l-4.3-4.3m1.3-5.2a7.5 7.5 0 11-15 0 7.5 7.5 0 0115 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                     </svg>
-                    <input id="faq-search" type="search" placeholder="Search..." autocomplete="off" />
+                    <input id="faq-search" type="search" placeholder="Cari pertanyaan, misalnya: tiket, email, bug, download..." autocomplete="off" />
                 </div>
 
                 <a class="btn-cs" href="cs/index.html">
-                    <span>Menuju CS AI</span>
+                    <span>Hubungi CS AI</span>
                     <span aria-hidden="true">→</span>
                 </a>
             </div>
@@ -45,17 +45,28 @@
             <div class="quick-grid" id="quick-grid"></div>
         </section>
 
-        <section class="section" aria-label="Get more information">
-            <h2>Get more information</h2>
-            <p class="sub">Pilih topik untuk memfilter pertanyaan, lalu lihat jawabannya di bawah.</p>
+        <section class="notice" aria-label="Info penting FAQ">
+            <div class="notice-card">
+                <div class="notice-title">Info penting</div>
+                <p class="notice-text">
+                    Kalau kamu sudah kirim laporan bug atau saran tapi <strong>email tiket belum masuk</strong>,
+                    coba cek folder <strong>Spam</strong>, <strong>Promosi</strong>, atau <strong>Semua Mail</strong> dulu.
+                    Kadang email masuk terlambat beberapa menit tergantung layanan email yang dipakai.
+                </p>
+            </div>
+        </section>
+
+        <section class="section" aria-label="Kategori bantuan">
+            <h2>Kategori bantuan</h2>
+            <p class="sub">Pilih topik untuk memfilter pertanyaan yang paling relevan.</p>
             <div class="info-grid" id="info-grid"></div>
         </section>
 
         <div class="divider" role="separator" aria-hidden="true"></div>
 
-        <section class="section" aria-label="FAQ list">
+        <section class="section" aria-label="Daftar pertanyaan FAQ">
             <h2>Pertanyaan</h2>
-            <p class="sub">Hasil pencarian akan muncul di sini.</p>
+            <p class="sub">Gunakan pencarian atau pilih topik, lalu buka jawaban yang kamu butuhkan.</p>
             <div class="faq-count" id="faq-count"></div>
             <div class="faq-list" id="faq-list"></div>
         </section>

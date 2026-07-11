@@ -134,6 +134,9 @@ function openReportModal(type) {
       : '<i data-feather="zap"></i> Kirim Saran';
   }
 
+  _validateIndexReport(type, false);
+  _refreshIndexReportSubmitState(type);
+
   if (typeof window.rerenderFeather === 'function') {
     window.rerenderFeather();
   } else if (typeof feather !== 'undefined') {
@@ -152,6 +155,10 @@ function closeReportModal(type) {
 // ── SUBMIT REPORT (sinkron dengan CS) ────────────────────────
 var REPORT_ENDPOINT = '/.netlify/functions/report';
 var _isSubmittingReportIndex = false;
+var INDEX_REPORT_MAX_ATTACHMENTS = 5;
+var INDEX_REPORT_MAX_IMAGE_SIZE = 3 * 1024 * 1024;
+var INDEX_REPORT_MAX_TOTAL_SIZE = 15 * 1024 * 1024;
+var _indexReportFiles = { bug: [], saran: [] };
 
 function generateTicketId() {
   return 'GS-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).slice(2, 5).toUpperCase();
@@ -164,6 +171,180 @@ function _makeTicketLabel(ticketNum, ticketId) {
   var num = ticketNum ? ('#' + ticketNum) : '#—';
   var tid = ticketId ? String(ticketId) : '';
   return tid ? (num + ' · ' + tid) : num;
+}
+
+function _reportFileToBase64(file) {
+  return new Promise(function (resolve, reject) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      resolve(String(reader.result || '').split(',')[1] || '');
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function _isValidReportEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
+}
+
+function _setReportInvalid(el, invalid) {
+  if (!el || !el.classList) return;
+  el.classList.toggle('input-invalid', !!invalid);
+}
+
+function _getIndexReportEls(type) {
+  return {
+    game: document.getElementById(type + '-game'),
+    desc: document.getElementById(type + '-desc'),
+    email: document.getElementById(type + '-email'),
+    contact: document.getElementById(type + '-contact'),
+    submit: document.getElementById(type + '-submit'),
+    form: document.getElementById('modal-' + type + '-form'),
+    success: document.getElementById('modal-' + type + '-success'),
+    fileInput: document.getElementById(type + '-file-input'),
+    uploadPreview: document.getElementById(type + '-upload-preview'),
+    uploadWarning: document.getElementById(type + '-upload-warning')
+  };
+}
+
+function _getIndexReportDraft(type) {
+  var els = _getIndexReportEls(type);
+  return {
+    game: els.game ? String(els.game.value || '').trim() : '',
+    desc: els.desc ? String(els.desc.value || '').trim() : '',
+    email: els.email ? String(els.email.value || '').trim() : '',
+    contact: els.contact ? String(els.contact.value || '').trim() : ''
+  };
+}
+
+function _isIndexReportComplete(type) {
+  var draft = _getIndexReportDraft(type);
+  return !!draft.game && draft.desc.length >= 10 && _isValidReportEmail(draft.email);
+}
+
+function _setIndexUploadWarning(type, messages) {
+  var els = _getIndexReportEls(type);
+  if (!els.uploadWarning) return;
+  if (!messages || !messages.length) {
+    els.uploadWarning.style.display = 'none';
+    els.uploadWarning.innerHTML = '';
+    return;
+  }
+  els.uploadWarning.style.display = 'block';
+  els.uploadWarning.innerHTML = messages.map(function (msg) {
+    return '<div>' + msg + '</div>';
+  }).join('');
+}
+
+function _renderIndexReportPreviews(type) {
+  var els = _getIndexReportEls(type);
+  var files = _indexReportFiles[type] || [];
+  if (!els.uploadPreview) return;
+
+  els.uploadPreview.innerHTML = '';
+  files.forEach(function (file, index) {
+    var item = document.createElement('div');
+    item.className = 'rmodal-preview-item';
+    item.innerHTML =
+      '<img src="' + URL.createObjectURL(file) + '" alt="' + file.name + '">' +
+      '<button type="button" class="rmodal-preview-remove" data-index="' + index + '">×</button>';
+    els.uploadPreview.appendChild(item);
+  });
+
+  els.uploadPreview.querySelectorAll('.rmodal-preview-remove').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var idx = parseInt(btn.getAttribute('data-index'), 10);
+      if (isNaN(idx)) return;
+      _indexReportFiles[type].splice(idx, 1);
+      _renderIndexReportPreviews(type);
+      _refreshIndexReportSubmitState(type);
+    });
+  });
+}
+
+function _handleIndexReportFiles(type, files) {
+  var incoming = Array.from(files || []);
+  var existing = (_indexReportFiles[type] || []).slice();
+  var accepted = [];
+  var warnings = [];
+
+  incoming.forEach(function (file) {
+    if (!file || !file.type || !file.type.startsWith('image/')) {
+      warnings.push('Hanya gambar yang bisa diupload.');
+      return;
+    }
+    if ((existing.length + accepted.length) >= INDEX_REPORT_MAX_ATTACHMENTS) {
+      warnings.push('Maksimal ' + INDEX_REPORT_MAX_ATTACHMENTS + ' gambar per laporan.');
+      return;
+    }
+    if (file.size > INDEX_REPORT_MAX_IMAGE_SIZE) {
+      warnings.push(file.name + ' terlalu besar. Maksimal 3 MB per gambar.');
+      return;
+    }
+    var totalSize = existing.concat(accepted).reduce(function (sum, f) {
+      return sum + (f && f.size ? f.size : 0);
+    }, 0) + file.size;
+    if (totalSize > INDEX_REPORT_MAX_TOTAL_SIZE) {
+      warnings.push('Total ukuran gambar melebihi 15 MB.');
+      return;
+    }
+    accepted.push(file);
+  });
+
+  _indexReportFiles[type] = existing.concat(accepted);
+  _setIndexUploadWarning(type, warnings);
+  _renderIndexReportPreviews(type);
+  _refreshIndexReportSubmitState(type);
+}
+
+function _validateIndexReport(type, showAlert) {
+  var els = _getIndexReportEls(type);
+  var draft = _getIndexReportDraft(type);
+  var firstInvalid = null;
+
+  var invalidGame = !draft.game;
+  var invalidDesc = !draft.desc || draft.desc.length < 10;
+  var invalidEmail = !_isValidReportEmail(draft.email);
+
+  _setReportInvalid(els.game, invalidGame);
+  _setReportInvalid(els.desc, invalidDesc);
+  _setReportInvalid(els.email, invalidEmail);
+
+  if (invalidGame) firstInvalid = els.game;
+  else if (invalidDesc) firstInvalid = els.desc;
+  else if (invalidEmail) firstInvalid = els.email;
+
+  if (firstInvalid && showAlert) {
+    firstInvalid.focus();
+    if (invalidGame) alert('Nama game wajib dipilih dulu ya.');
+    else if (invalidDesc) alert('Penjelasan wajib diisi minimal 10 karakter ya.');
+    else alert('Email wajib diisi dengan format yang valid ya.');
+    return false;
+  }
+
+  return !invalidGame && !invalidDesc && !invalidEmail;
+}
+
+function _refreshIndexReportSubmitState(type) {
+  var els = _getIndexReportEls(type);
+  if (!els.submit) return;
+  els.submit.disabled = _isSubmittingReportIndex || !_isIndexReportComplete(type);
+}
+
+function _resetIndexReportForm(type) {
+  var els = _getIndexReportEls(type);
+  ['game', 'desc', 'email', 'contact'].forEach(function (key) {
+    if (els[key]) els[key].value = '';
+  });
+  if (els.fileInput) els.fileInput.value = '';
+  _indexReportFiles[type] = [];
+  _setReportInvalid(els.game, false);
+  _setReportInvalid(els.desc, false);
+  _setReportInvalid(els.email, false);
+  _setIndexUploadWarning(type);
+  _renderIndexReportPreviews(type);
+  _refreshIndexReportSubmitState(type);
 }
 
 function submitReport(type) {
@@ -180,24 +361,9 @@ function submitReport(type) {
   var desc = descEl ? String(descEl.value || '').trim() : '';
   var email = emailEl ? String(emailEl.value || '').trim() : '';
   var contact = contactEl ? String(contactEl.value || '').trim() : '';
+  var files = (_indexReportFiles[type] || []).slice();
 
-  // Validasi minimal (sesuai backend report.js)
-  if (!desc || desc.length < 10) {
-    if (descEl) {
-      descEl.focus();
-      descEl.style.borderColor = '#ff3c3c';
-      setTimeout(function () { try { descEl.style.borderColor = ''; } catch (e) {} }, 1800);
-    }
-    alert('Isi deskripsi minimal 10 karakter ya.');
-    return;
-  }
-  if (type === 'bug' && !game) {
-    if (gameEl) {
-      gameEl.focus();
-      gameEl.style.borderColor = '#ff3c3c';
-      setTimeout(function () { try { gameEl.style.borderColor = ''; } catch (e) {} }, 1800);
-    }
-    alert('Pilih game yang bermasalah dulu ya.');
+  if (!_validateIndexReport(type, true)) {
     return;
   }
 
@@ -207,6 +373,7 @@ function submitReport(type) {
     'Game: ' + (game || '—') + '\n' +
     'Email: ' + (email || '—') + '\n' +
     'Kontak: ' + (contact || '—') + '\n\n' +
+    'Jumlah gambar: ' + files.length + '\n\n' +
     'Detail:\n' + desc;
   if (!confirm(confirmText)) return;
 
@@ -226,11 +393,23 @@ function submitReport(type) {
     btn.innerHTML = 'Mengirim...';
   }
 
-  fetch(REPORT_ENDPOINT, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  })
+  Promise.all(files.map(function (file) {
+    return _reportFileToBase64(file).then(function (base64) {
+      return {
+        name: file.name,
+        type: file.type,
+        base64: base64
+      };
+    });
+  }))
+    .then(function (attachments) {
+      payload.attachments = attachments;
+      return fetch(REPORT_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    })
     .then(function (r) { return r.json(); })
     .then(function (data) {
       if (!data || !data.ok) throw new Error((data && data.error) || 'Gagal mengirim laporan');
@@ -266,7 +445,7 @@ function submitReport(type) {
       }
 
       // Reset input (biar tidak ke-submit ulang)
-      if (descEl) descEl.value = '';
+      _resetIndexReportForm(type);
     })
     .catch(function (e) {
       alert((e && e.message) ? e.message : 'Gagal mengirim. Coba lagi nanti ya.');
@@ -279,6 +458,7 @@ function submitReport(type) {
           ? '<i data-feather="alert-triangle"></i> Kirim Laporan Bug'
           : '<i data-feather="zap"></i> Kirim Saran';
       }
+      _refreshIndexReportSubmitState(type);
       if (typeof window.rerenderFeather === 'function') window.rerenderFeather();
       else if (typeof feather !== 'undefined') feather.replace();
     });
@@ -393,6 +573,27 @@ function initGamesFilter() {
 
 // ── INIT HOMEPAGE ────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {
+  ['bug', 'saran'].forEach(function (type) {
+    var els = _getIndexReportEls(type);
+    ['game', 'desc', 'email', 'contact'].forEach(function (key) {
+      if (!els[key]) return;
+      var eventName = key === 'game' ? 'change' : 'input';
+      els[key].addEventListener(eventName, function () {
+        _validateIndexReport(type, false);
+        _refreshIndexReportSubmitState(type);
+      });
+    });
+
+    if (els.fileInput) {
+      els.fileInput.addEventListener('change', function () {
+        _handleIndexReportFiles(type, els.fileInput.files);
+        els.fileInput.value = '';
+      });
+    }
+
+    _refreshIndexReportSubmitState(type);
+  });
+
   var ticketInput = document.getElementById('tiket-input');
   if (ticketInput) {
     ticketInput.addEventListener('keydown', function (e) {
