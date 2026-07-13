@@ -240,97 +240,76 @@ async function sendTicketStatusEmail(ticket, mode = 'done', siteOrigin = '') {
   return sendEmail({ to: email, subject, html });
 }
 
-function sanitizeWhatsAppNumber(phoneNumber) {
-  const digitsOnly = String(phoneNumber || '').replace(/\D/g, '');
-  if (!digitsOnly) return '';
-  if (digitsOnly.startsWith('0')) return `62${digitsOnly.slice(1)}`;
-  return digitsOnly;
-}
+// =========================================================================
+// INTEGRASI TELEGRAM BOT API
+// =========================================================================
 
-async function sendWhatsAppNotification(toPhoneNumber, messageText) {
+async function sendTelegramNotification(messageText) {
   try {
-    const cleanNumber = sanitizeWhatsAppNumber(toPhoneNumber);
-    const backendUrl = String(process.env.WA_BOT_BACKEND_URL || process.env.BOT_BACKEND_URL || '').trim().replace(/\/$/, '');
-    const apiKey = String(process.env.WA_BOT_API_KEY || process.env.BOT_API_KEY || '').trim();
+    const backendUrl = String(process.env.TG_BOT_BACKEND_URL || process.env.BOT_BACKEND_URL || '').trim().replace(/\/$/, '');
+    const apiKey = String(process.env.TG_BOT_API_KEY || process.env.BOT_API_KEY || '').trim();
     const bodyText = String(messageText || '').trim();
 
-    if (!cleanNumber || !bodyText || !backendUrl || !apiKey) return false;
+    if (!bodyText || !backendUrl || !apiKey) {
+      console.warn('Telegram Notif Skipped: Pastikan BOT_BACKEND_URL dan BOT_API_KEY sudah terisi di env Netlify.');
+      return false;
+    }
 
-    const response = await fetch(`${backendUrl}/bot-send-direct`, {
+    const response = await fetch(`${backendUrl}/bot-send-custom`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
       },
       body: JSON.stringify({
-        phoneNumbers: [cleanNumber],
         text: bodyText,
-        label: 'Nusabit Ticket',
+        targets: ["jabpri"] // Mengirimkan ke seluruh chat pribadi admin Telegram
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('WA bot backend error:', errorText);
+      console.error('Telegram bot backend error:', errorText);
       return false;
     }
 
     const data = await response.json().catch(() => null);
     return !!data?.ok;
   } catch (e) {
-    console.error('WA bot send error:', e.message);
+    console.error('Telegram bot send error:', e.message);
     return false;
   }
 }
 
-function buildAdminNewTicketWhatsAppMessage(ticket, siteOrigin = '') {
+function buildAdminNewTicketTelegramMessage(ticket, siteOrigin = '') {
   const adminUrl = `${String(siteOrigin || 'https://nusabit.netlify.app').replace(/\/+$/, '')}/admin`;
+  
   const lines = [
-    'Halo Admin Nusabit Studio,',
+    '🔔 *ADA TIKET MASUK BARU!*',
+    '----------------------------------------',
+    `🆔 *ID Tiket:* ${ticket.id}`,
+    `🔢 *Antrian:* #${ticket.num}`,
+    `🎫 *Jenis:* ${ticket.type === 'bug' ? '🐛 Bug / Error' : '💡 Saran'}`,
+    `🎮 *Game:* ${ticket.game || '—'}`,
+    `📞 *Kontak:* ${ticket.contact || '-'}`,
+    `📧 *Email:* ${ticket.email || '-'}`,
+    `⏰ *Waktu:* ${getNowWIBString()}`,
+    '----------------------------------------',
+    '📝 *Ringkasan Laporan:*',
+    `${String(ticket.summary || ticket.desc || '—')}`,
     '',
-    'Ada tiket baru yang baru saja dibuat.',
-    '',
-    `ID Tiket: ${ticket.id}`,
-    `Nomor Antrian: #${ticket.num}`,
-    `Jenis: ${ticket.type === 'bug' ? 'Bug / Error' : 'Saran'}`,
-    `Game: ${ticket.game || '—'}`,
-    `Kontak User: ${ticket.contact || '-'}`,
-    `Email User: ${ticket.email || '-'}`,
-    `Waktu Masuk: ${getNowWIBString()}`,
-    '',
-    'Ringkasan Laporan:',
-    String(ticket.summary || ticket.desc || '—'),
-    '',
-    'Deskripsi Lengkap:',
-    String(ticket.desc || '—'),
-    '',
-    `Panel Admin: ${adminUrl}`,
+    '📂 *Deskripsi Lengkap:*',
+    `${String(ticket.desc || '—')}`,
+    '----------------------------------------',
+    `💻 *Panel Admin:* ${adminUrl}`,
   ];
 
   return lines.join('\n');
 }
 
-function buildTicketStatusWhatsAppMessage(ticket) {
-  const statusLabel = STATUS[ticket.status]?.label || ticket.status || 'Tidak diketahui';
-  const lines = [
-    'Halo, tiket kamu sudah diperbarui oleh admin Nusabit Studio.',
-    '',
-    `ID Tiket: ${ticket.id}`,
-    `Status: ${statusLabel}`,
-    `Game: ${ticket.game || '—'}`,
-    `Waktu Update: ${getNowWIBString()}`,
-  ];
 
-  if (ticket.devNote) {
-    lines.push('', 'Catatan Admin:', String(ticket.devNote));
-  }
 
-  if (ticket.status === 'cancelled' && ticket.cancelReason) {
-    lines.push('', 'Alasan Pembatalan:', String(ticket.cancelReason));
-  }
 
-  return lines.join('\n');
-}
 
 // ────────────────────────────────────────────────
 // Chat helpers (user ↔ admin) disimpan di record tiket
@@ -684,7 +663,7 @@ exports.handler = async (event) => {
       idx.unshift({ id, num, token, status: 'received', createdAt: now, done: false });
       await saveIndex(store, idx);
 
-      await sendWhatsAppNotification(process.env.ADMIN_WA_NUMBER, buildAdminNewTicketWhatsAppMessage(ticket, getSiteOrigin(event)));
+      await sendTelegramNotification(buildAdminNewTicketTelegramMessage(ticket, getSiteOrigin(event)));
 
       return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, num, token, ticketUrl: '/tiket/?token=' + token }) };
     }
@@ -829,10 +808,6 @@ exports.handler = async (event) => {
         }
         idx[ei].updatedAt = ticket.updatedAt;
         await saveIndex(store, idx);
-      }
-
-      if (ticket.contact) {
-        await sendWhatsAppNotification(ticket.contact, buildTicketStatusWhatsAppMessage(ticket));
       }
 
       if (status === 'done') {
