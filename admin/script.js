@@ -12,6 +12,7 @@ const SITE_SETTINGS_API = '/.netlify/functions/site-settings';
 const ADMIN_LOGS_API = '/.netlify/functions/admin-logs';
 const DEV_BYPASS_API = '/.netlify/functions/dev-bypass';
 const DB_HEALTH_API = '/.netlify/functions/db-health';
+const BOT_STATUS_API = '/.netlify/functions/bot-status';
 
 /* ── AUTH CONFIG ── */
 const ADMIN_CREDENTIALS = {
@@ -182,6 +183,7 @@ async function initSiteSettingsPanel() {
    ════════════════════════════════════════ */
 let _dbHealthLast = null;
 let _dbHealthTimer = null;
+let _botStatusTimer = null;
 
 async function checkDatabaseHealth(forceLog = false) {
   const statusEl = document.getElementById('ss-db-health-status');
@@ -236,6 +238,94 @@ function initDatabaseHealthMonitor() {
   if (_dbHealthTimer) return;
   checkDatabaseHealth(false);
   _dbHealthTimer = setInterval(() => checkDatabaseHealth(false), 30000);
+}
+
+async function checkBotBackendStatus(forceLog = false) {
+  const statusEl = document.getElementById('ss-bot-status');
+  const infoEl = document.getElementById('ss-bot-info');
+  const adminToken = getAdminToken();
+
+  if (!adminToken) {
+    if (statusEl) { statusEl.textContent = 'BUTUH LOGIN'; statusEl.className = 'site-settings-value ss-on'; }
+    if (infoEl) infoEl.textContent = 'Login admin dulu untuk cek koneksi backend bot.';
+    return null;
+  }
+
+  try {
+    const startedAt = Date.now();
+    const res = await fetch(`${BOT_STATUS_API}?adminToken=${encodeURIComponent(adminToken)}`, { cache: 'no-store' });
+    const data = await res.json();
+    const latency = Date.now() - startedAt;
+
+    const configured = !!(data && data.ok && data.configured);
+    const reachable = !!(data && data.ok && data.reachable);
+    const connected = !!(data && data.ok && data.connected);
+    const platform = data && data.platform ? String(data.platform) : 'Bot';
+    const channel = data && data.channel ? String(data.channel) : '';
+    const channelLabel = channel ? ` (${channel})` : '';
+    const backendOrigin = data && data.backendOrigin ? String(data.backendOrigin) : '—';
+    const botNumber = data && data.botNumber ? String(data.botNumber) : '—';
+    const uptime = data && typeof data.uptime === 'number'
+      ? `${Math.floor(data.uptime / 60)}m ${data.uptime % 60}s`
+      : '—';
+    const telegramAdminCount = data && typeof data.telegramAdminCount === 'number'
+      ? data.telegramAdminCount
+      : 0;
+    const telegramGroupConfigured = !!(data && data.telegramGroupConfigured);
+
+    if (statusEl) {
+      if (!configured) {
+        statusEl.textContent = 'BELUM DISET';
+        statusEl.className = 'site-settings-value ss-on';
+      } else if (connected) {
+        statusEl.textContent = `ONLINE ${platform}${channelLabel}`;
+        statusEl.className = 'site-settings-value ss-off';
+      } else if (reachable) {
+        statusEl.textContent = `OFFLINE ${platform}${channelLabel}`;
+        statusEl.className = 'site-settings-value ss-on';
+      } else {
+        statusEl.textContent = 'GAGAL DIHUBUNGI';
+        statusEl.className = 'site-settings-value ss-on';
+      }
+    }
+
+    if (infoEl) {
+      const parts = [
+        `Backend: ${backendOrigin}`,
+        `Latency: ${latency}ms`,
+      ];
+      if (configured) {
+        parts.push(`Bot ID: ${botNumber}`);
+        parts.push(`Uptime: ${uptime}`);
+        if ((channel || '').toLowerCase() === 'telegram') {
+          parts.push(`Admin Telegram: ${telegramAdminCount}`);
+          parts.push(`Grup Telegram: ${telegramGroupConfigured ? 'siap' : 'belum diisi'}`);
+        }
+      }
+      if (data && data.message) parts.push(String(data.message));
+      infoEl.textContent = parts.join(' | ');
+    }
+
+    if (forceLog) {
+      const statusText = configured
+        ? (connected ? 'ONLINE' : reachable ? 'OFFLINE' : 'UNREACHABLE')
+        : 'UNCONFIGURED';
+      addLog(`BOT STATUS → ${statusText}${channelLabel} | ${backendOrigin}`, connected ? 'evt' : 'warn');
+    }
+
+    return data;
+  } catch (e) {
+    if (statusEl) { statusEl.textContent = 'ERROR'; statusEl.className = 'site-settings-value ss-on'; }
+    if (infoEl) infoEl.textContent = 'Gagal cek backend bot: ' + e.message;
+    if (forceLog) addLog('BOT STATUS ERROR: ' + e.message, 'err');
+    return null;
+  }
+}
+
+function initBotBackendMonitor() {
+  if (_botStatusTimer) return;
+  checkBotBackendStatus(false);
+  _botStatusTimer = setInterval(() => checkBotBackendStatus(false), 45000);
 }
 
 function getDeveloperBypassApi() {
@@ -1186,6 +1276,7 @@ async function showAdmin(sess) {
   initSiteSettingsPanel();
   await renderDeveloperModePanel();
   initDatabaseHealthMonitor();
+  initBotBackendMonitor();
   addLog(`Session aktif — expires in ${SESSION_MINUTES} minutes`);
 }
 

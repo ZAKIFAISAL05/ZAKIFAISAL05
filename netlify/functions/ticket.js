@@ -241,44 +241,115 @@ async function sendTicketStatusEmail(ticket, mode = 'done', siteOrigin = '') {
 }
 
 // =========================================================================
-// INTEGRASI TELEGRAM BOT API
+// INTEGRASI BOT BACKEND (WA / Telegram)
 // =========================================================================
 
-async function sendTelegramNotification(messageText) {
+function sanitizeDirectPhoneNumber(phoneNumber) {
+  const digitsOnly = String(phoneNumber || '').replace(/\D/g, '');
+  if (!digitsOnly) return '';
+  if (digitsOnly.startsWith('0')) return `62${digitsOnly.slice(1)}`;
+  return digitsOnly;
+}
+
+function getBotBackendConfig() {
+  const backendUrl = String(
+    process.env.BOT_BACKEND_URL ||
+    process.env.TG_BOT_BACKEND_URL ||
+    process.env.WA_BOT_BACKEND_URL ||
+    process.env.BOT_SERVER_URL ||
+    ''
+  ).trim().replace(/\/$/, '');
+  const apiKey = String(
+    process.env.BOT_API_KEY ||
+    process.env.TG_BOT_API_KEY ||
+    process.env.WA_BOT_API_KEY ||
+    ''
+  ).trim();
+
+  return { backendUrl, apiKey };
+}
+
+async function postBotApi(path, payload) {
+  const { backendUrl, apiKey } = getBotBackendConfig();
+  if (!backendUrl || !apiKey) {
+    return {
+      ok: false,
+      msg: 'BOT_BACKEND_URL/BOT_API_KEY belum diisi',
+      backendUrl,
+      hasApiKey: !!apiKey,
+    };
+  }
+
   try {
-    const backendUrl = String(process.env.TG_BOT_BACKEND_URL || process.env.BOT_BACKEND_URL || '').trim().replace(/\/$/, '');
-    const apiKey = String(process.env.TG_BOT_API_KEY || process.env.BOT_API_KEY || '').trim();
-    const bodyText = String(messageText || '').trim();
-
-    if (!bodyText || !backendUrl || !apiKey) {
-      console.warn('Telegram Notif Skipped: Pastikan BOT_BACKEND_URL dan BOT_API_KEY sudah terisi di env Netlify.');
-      return false;
-    }
-
-    const response = await fetch(`${backendUrl}/bot-send-custom`, {
+    const response = await fetch(`${backendUrl}${path}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
       },
-      body: JSON.stringify({
-        text: bodyText,
-        targets: ["jabpri"] // Mengirimkan ke seluruh chat pribadi admin Telegram
-      }),
+      body: JSON.stringify(payload || {}),
     });
 
+    const data = await response.json().catch(() => null);
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Telegram bot backend error:', errorText);
-      return false;
+      return {
+        ok: false,
+        msg: data?.msg || data?.error || `HTTP ${response.status}`,
+        data,
+      };
     }
 
-    const data = await response.json().catch(() => null);
-    return !!data?.ok;
+    return data && typeof data === 'object'
+      ? { ok: !!data.ok, msg: data.msg || '', data }
+      : { ok: false, msg: 'Respons backend bot tidak valid', data };
   } catch (e) {
-    console.error('Telegram bot send error:', e.message);
-    return false;
+    return { ok: false, msg: e.message || 'Gagal terhubung ke backend bot' };
   }
+}
+
+async function sendAdminBotNotification(messageText) {
+  const bodyText = String(messageText || '').trim();
+  const fallbackPhone = sanitizeDirectPhoneNumber(process.env.ADMIN_WA_NUMBER || '');
+
+  if (!bodyText) return false;
+
+  const attempts = [
+    {
+      label: 'admin-private',
+      path: '/bot-send-custom',
+      payload: { text: bodyText, targets: ['jabpri'] },
+    },
+    {
+      label: 'group-fallback',
+      path: '/bot-send-custom',
+      payload: { text: bodyText, targets: ['grup'] },
+    },
+  ];
+
+  if (fallbackPhone) {
+    attempts.push({
+      label: 'wa-direct-fallback',
+      path: '/bot-send-direct',
+      payload: {
+        phoneNumbers: [fallbackPhone],
+        text: bodyText,
+        label: 'Nusabit Ticket Admin',
+      },
+    });
+  }
+
+  let lastError = '';
+  for (const attempt of attempts) {
+    const result = await postBotApi(attempt.path, attempt.payload);
+    if (result.ok) return true;
+    lastError = result.msg || lastError;
+    console.warn(`Bot notif gagal (${attempt.label}):`, result.msg || 'unknown error');
+  }
+
+  if (lastError) {
+    console.error('Semua jalur notifikasi bot gagal:', lastError);
+  }
+  return false;
 }
 
 function buildAdminNewTicketTelegramMessage(ticket, siteOrigin = '') {
@@ -663,7 +734,7 @@ exports.handler = async (event) => {
       idx.unshift({ id, num, token, status: 'received', createdAt: now, done: false });
       await saveIndex(store, idx);
 
-      await sendTelegramNotification(buildAdminNewTicketTelegramMessage(ticket, getSiteOrigin(event)));
+      await sendAdminBotNotification(buildAdminNewTicketTelegramMessage(ticket, getSiteOrigin(event)));
 
       return { statusCode: 200, headers: CORS, body: JSON.stringify({ ok: true, num, token, ticketUrl: '/tiket/?token=' + token }) };
     }

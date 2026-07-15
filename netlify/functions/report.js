@@ -4,7 +4,7 @@
 //  1. Generate / terima ticketId
 //  2. AI summarize via Gemini
 //  3. Simpan tiket ke Netlify Blobs (via ticket function logic)
-//  4. Kirim notif WA admin via backend bot WhatsApp
+//  4. Kirim notif admin via backend bot (WA / Telegram)
 //  5. Kirim email konfirmasi ke user (jika ada email)
 //  6. Kirim email notif ke admin
 // ============================================================
@@ -146,57 +146,115 @@ async function callGemini(apiKey, prompt) {
   return data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
 }
 
-function sanitizeWhatsAppNumber(phoneNumber) {
+function sanitizeDirectPhoneNumber(phoneNumber) {
   const digitsOnly = String(phoneNumber || '').replace(/\D/g, '');
   if (!digitsOnly) return '';
   if (digitsOnly.startsWith('0')) return `62${digitsOnly.slice(1)}`;
   return digitsOnly;
 }
 
-async function sendWhatsAppNotification(toPhoneNumber, messageText) {
+function getBotBackendConfig() {
+  const backendUrl = String(
+    process.env.BOT_BACKEND_URL ||
+    process.env.TG_BOT_BACKEND_URL ||
+    process.env.WA_BOT_BACKEND_URL ||
+    process.env.BOT_SERVER_URL ||
+    ''
+  ).trim().replace(/\/$/, '');
+  const apiKey = String(
+    process.env.BOT_API_KEY ||
+    process.env.TG_BOT_API_KEY ||
+    process.env.WA_BOT_API_KEY ||
+    ''
+  ).trim();
+
+  return { backendUrl, apiKey };
+}
+
+async function postBotApi(path, payload) {
+  const { backendUrl, apiKey } = getBotBackendConfig();
+  if (!backendUrl || !apiKey) {
+    return {
+      ok: false,
+      msg: 'BOT_BACKEND_URL/BOT_API_KEY belum diisi',
+      backendUrl,
+      hasApiKey: !!apiKey,
+    };
+  }
+
   try {
-    const cleanNumber = sanitizeWhatsAppNumber(toPhoneNumber);
-    const backendUrl = String(process.env.WA_BOT_BACKEND_URL || process.env.BOT_BACKEND_URL || '').trim().replace(/\/$/, '');
-    const apiKey = String(process.env.WA_BOT_API_KEY || process.env.BOT_API_KEY || '').trim();
-    const bodyText = String(messageText || '').trim();
-
-    if (!cleanNumber || !bodyText || !backendUrl || !apiKey) {
-      console.warn('WA BOT NOT CONFIGURED:', {
-        hasBackendUrl: !!backendUrl,
-        hasApiKey: !!apiKey,
-        hasRecipient: !!cleanNumber,
-      });
-      return false;
-    }
-
-    const response = await fetch(`${backendUrl}/bot-send-direct`, {
+    const response = await fetch(`${backendUrl}${path}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
       },
-      body: JSON.stringify({
-        phoneNumbers: [cleanNumber],
-        text: bodyText,
-        label: 'Nusabit Ticket Admin',
-      }),
+      body: JSON.stringify(payload || {}),
     });
 
+    const data = await response.json().catch(() => null);
     if (!response.ok) {
-      const errorText = await response.text();
-      console.error('WA bot backend error:', errorText);
-      return false;
+      return {
+        ok: false,
+        msg: data?.msg || data?.error || `HTTP ${response.status}`,
+        data,
+      };
     }
 
-    const data = await response.json().catch(() => null);
-    return !!data?.ok;
+    return data && typeof data === 'object'
+      ? { ok: !!data.ok, msg: data.msg || '', data }
+      : { ok: false, msg: 'Respons backend bot tidak valid', data };
   } catch (e) {
-    console.error('WA bot send error:', e.message);
-    return false;
+    return { ok: false, msg: e.message || 'Gagal terhubung ke backend bot' };
   }
 }
 
-function buildAdminTicketWhatsAppMessage({ ticketNum, ticketId, type, gameLabel, desc, summary, email, contact, waktuWIB, ticketUrl, attachmentSummary, siteOrigin }) {
+async function sendAdminBotNotification(toPhoneNumber, messageText) {
+  const cleanNumber = sanitizeDirectPhoneNumber(toPhoneNumber);
+  const bodyText = String(messageText || '').trim();
+
+  if (!bodyText) return { ok: false, mode: '', reason: 'Teks pesan kosong' };
+
+  const attempts = [
+    {
+      label: 'admin-private',
+      path: '/bot-send-custom',
+      payload: { text: bodyText, targets: ['jabpri'] },
+      mode: 'jabpri',
+    },
+    {
+      label: 'group-fallback',
+      path: '/bot-send-custom',
+      payload: { text: bodyText, targets: ['grup'] },
+      mode: 'grup',
+    },
+  ];
+
+  if (cleanNumber) {
+    attempts.push({
+      label: 'wa-direct-fallback',
+      path: '/bot-send-direct',
+      payload: {
+        phoneNumbers: [cleanNumber],
+        text: bodyText,
+        label: 'Nusabit Ticket Admin',
+      },
+      mode: 'direct',
+    });
+  }
+
+  let lastError = '';
+  for (const attempt of attempts) {
+    const result = await postBotApi(attempt.path, attempt.payload);
+    if (result.ok) return { ok: true, mode: attempt.mode, reason: '' };
+    lastError = result.msg || lastError;
+    console.warn(`Bot notif gagal (${attempt.label}):`, result.msg || 'unknown error');
+  }
+
+  return { ok: false, mode: '', reason: lastError || 'Semua jalur notifikasi gagal' };
+}
+
+function buildAdminTicketBotMessage({ ticketNum, ticketId, type, gameLabel, desc, summary, email, contact, waktuWIB, ticketUrl, attachmentSummary, siteOrigin }) {
   const typeLabel = type === 'bug' ? 'Bug / Error' : 'Saran';
   const adminUrl = `${String(siteOrigin || 'https://nusabit.netlify.app').replace(/\/+$/, '')}/admin`;
   return [
@@ -473,27 +531,26 @@ exports.handler = async function (event) {
   const siteOrigin = getSiteOrigin(event);
   const ticketUrl  = ticketData ? `${siteOrigin}${ticketData.ticketUrl}` : '';
 
-  // 3. WA admin via backend bot WhatsApp
-  let waSent = false;
-  if (adminTarget) {
-    waSent = await sendWhatsAppNotification(
-      adminTarget,
-      buildAdminTicketWhatsAppMessage({
-        ticketNum,
-        ticketId,
-        type,
-        gameLabel,
-        desc: desc.trim(),
-        summary,
-        email,
-        contact,
-        waktuWIB,
-        ticketUrl: ticketUrl || '',
-        attachmentSummary: attachmentSummary || '-',
-        siteOrigin,
-      })
-    );
-  }
+  // 3. Notif admin via backend bot
+  let botNotif = { ok: false, mode: '', reason: '' };
+  botNotif = await sendAdminBotNotification(
+    adminTarget,
+    buildAdminTicketBotMessage({
+      ticketNum,
+      ticketId,
+      type,
+      gameLabel,
+      desc: desc.trim(),
+      summary,
+      email,
+      contact,
+      waktuWIB,
+      ticketUrl: ticketUrl || '',
+      attachmentSummary: attachmentSummary || '-',
+      siteOrigin,
+    })
+  );
+  const waSent = !!botNotif.ok;
 
   // 4. Email ke user (kalau ada email)
   let userEmailSent = false;
@@ -538,6 +595,11 @@ exports.handler = async function (event) {
       ticketUrl: ticketData?.ticketUrl || '',
       message: 'Laporan berhasil dikirim!',
       waSent,
+      bot: {
+        sent: !!botNotif.ok,
+        mode: botNotif.mode || '',
+        error: botNotif.reason || '',
+      },
       email: {
         configured: emailConfigured,
         userSent: userEmailSent,
