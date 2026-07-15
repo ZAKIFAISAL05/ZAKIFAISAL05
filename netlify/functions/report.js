@@ -23,6 +23,10 @@ const GEMINI_MODEL = 'gemini-2.5-flash';
 const MAX_REPORT_ATTACHMENTS = 5;
 const MAX_REPORT_ATTACHMENT_BYTES = 3 * 1024 * 1024;
 
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
+}
+
 function sanitizeReportAttachments(list) {
   const raw = Array.isArray(list) ? list.slice(0, MAX_REPORT_ATTACHMENTS) : [];
   const clean = [];
@@ -482,8 +486,18 @@ exports.handler = async function (event) {
   catch (_) { return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Body tidak valid' }) }; }
 
   const { type, game, desc, contact, email, attachments, ticketId: clientTicket } = body;
-  if (!type || !desc || desc.trim().length < 10) {
-    return { statusCode: 400, headers: CORS, body: JSON.stringify({ error: 'Data laporan tidak lengkap' }) };
+  const cleanType = String(type || '').trim().toLowerCase();
+  const cleanGame = String(game || '').trim();
+  const cleanDesc = String(desc || '').trim();
+  const cleanContact = String(contact || '').trim();
+  const cleanEmail = String(email || '').trim();
+
+  if (!cleanType || !cleanGame || cleanDesc.length < 10 || !isValidEmail(cleanEmail)) {
+    return {
+      statusCode: 400,
+      headers: CORS,
+      body: JSON.stringify({ error: 'Nama game, alasan/detail minimal 10 karakter, dan email wajib diisi dengan benar' })
+    };
   }
   const cleanAttachments = sanitizeReportAttachments(attachments);
   const attachmentSummary = cleanAttachments.length
@@ -503,13 +517,13 @@ exports.handler = async function (event) {
   const adminEmail   = process.env.ADMIN_EMAIL || 'dzakifaisal11@gmail.com';
   const emailConfigured = !!getGmailTransporter();
   const waktuWIB     = getNowWIBString();
-  const typeLabel    = type === 'bug' ? '🐛 BUG REPORT' : '💡 SARAN';
-  const gameLabel    = game || 'Tidak disebutkan';
+  const typeLabel    = cleanType === 'bug' ? '🐛 BUG REPORT' : '💡 SARAN';
+  const gameLabel    = cleanGame || 'Tidak disebutkan';
 
   // 1. AI Summarize
-  let summary = desc.trim();
+  let summary = cleanDesc;
   if (apiKeys.length) {
-    const prompt = `Buat ringkasan singkat laporan berikut dalam 1-2 kalimat Bahasa Indonesia yang jelas untuk tim developer. Jangan tambah kalimat pembuka.\n\nJenis: ${type === 'bug' ? 'Bug/Error' : 'Saran'}\nGame: ${gameLabel}\nIsi: ${desc.trim()}`;
+    const prompt = `Buat ringkasan singkat laporan berikut dalam 1-2 kalimat Bahasa Indonesia yang jelas untuk tim developer. Jangan tambah kalimat pembuka.\n\nJenis: ${cleanType === 'bug' ? 'Bug/Error' : 'Saran'}\nGame: ${gameLabel}\nIsi: ${cleanDesc}`;
     for (const key of apiKeys) {
       try { const s = await callGemini(key, prompt); if (s) { summary = s; break; } }
       catch (e) { console.error('Gemini summarize error:', e.message); }
@@ -519,11 +533,11 @@ exports.handler = async function (event) {
   // 2. Simpan tiket ke Netlify Blobs (nomor urut + token)
   const ticketData = await saveTicketToBlobs({
     id: ticketId,
-    type,
+    type: cleanType,
     game: gameLabel,
-    desc: desc.trim(),
-    email,
-    contact,
+    desc: cleanDesc,
+    email: cleanEmail,
+    contact: cleanContact,
     summary,
     attachments: cleanAttachments,
   });
@@ -538,12 +552,12 @@ exports.handler = async function (event) {
     buildAdminTicketBotMessage({
       ticketNum,
       ticketId,
-      type,
+      type: cleanType,
       gameLabel,
-      desc: desc.trim(),
+      desc: cleanDesc,
       summary,
-      email,
-      contact,
+      email: cleanEmail,
+      contact: cleanContact,
       waktuWIB,
       ticketUrl: ticketUrl || '',
       attachmentSummary: attachmentSummary || '-',
@@ -554,9 +568,9 @@ exports.handler = async function (event) {
 
   // 4. Email ke user (kalau ada email)
   let userEmailSent = false;
-  if (email && email.includes('@')) {
-    const subjUser = `[Tiket #${ticketNum}] ${type === 'bug' ? 'Bug Dilaporkan' : 'Saran Diterima'} — Nusabit Studio`;
-    const htmlUser = emailUserHtml(ticketId, type, gameLabel, desc.trim(), waktuWIB, attachmentSummary || 'Tidak ada upload gambar')
+  if (cleanEmail && cleanEmail.includes('@')) {
+    const subjUser = `[Tiket #${ticketNum}] ${cleanType === 'bug' ? 'Bug Dilaporkan' : 'Saran Diterima'} — Nusabit Studio`;
+    const htmlUser = emailUserHtml(ticketId, cleanType, gameLabel, cleanDesc, waktuWIB, attachmentSummary || 'Tidak ada upload gambar')
       .replace('</div>\n</body>', `
   <div class="body" style="padding-top:0;">
     <a href="${ticketUrl}" style="display:block;text-align:center;background:#7c4dff;color:#fff;text-decoration:none;padding:12px 24px;border-radius:10px;font-weight:700;font-size:0.95rem;">🔍 Pantau Status Tiket Kamu</a>
@@ -565,7 +579,7 @@ exports.handler = async function (event) {
     if (!emailConfigured) {
       console.warn('EMAIL NOT CONFIGURED: set env GMAIL_SMTP_USER + GMAIL_SMTP_APP_PASSWORD');
     } else {
-      userEmailSent = await sendEmail({ to: email, subject: subjUser, html: htmlUser });
+      userEmailSent = await sendEmail({ to: cleanEmail, subject: subjUser, html: htmlUser });
     }
   }
 
@@ -579,7 +593,7 @@ exports.handler = async function (event) {
       adminEmailSent = await sendEmail({
         to: adminEmail,
         subject: subjAdmin,
-        html: emailAdminHtml(ticketId, type, gameLabel, desc.trim(), contact, email, summary, waktuWIB, attachmentSummary || 'Tidak ada upload gambar'),
+        html: emailAdminHtml(ticketId, cleanType, gameLabel, cleanDesc, cleanContact, cleanEmail, summary, waktuWIB, attachmentSummary || 'Tidak ada upload gambar'),
       });
     }
   }

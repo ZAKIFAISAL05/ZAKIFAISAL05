@@ -29,6 +29,31 @@ var MAX_ATTACHMENTS = 5;
 var MAX_IMAGE_SIZE  = 3 * 1024 * 1024;
 var MAX_VIDEO_SIZE  = 15 * 1024 * 1024;
 var MAX_TOTAL_SIZE  = 20 * 1024 * 1024;
+var EMERGENCY_PIN   = '101213';
+var MAX_PIN_ATTEMPTS = 4;
+var EMERGENCY_STORAGE_KEY = 'ns_cs_emergency_guard_v1';
+var EMERGENCY_CONTACTS = {
+    ibu:  { label: 'Ibu',  phone: '6285175148046', note: 'Ibu akan segera dihubungi.' },
+    ayah: { label: 'Ayah', phone: '6289660171934', note: 'Ayah akan segera dihubungi.' },
+    adik: { label: 'Adik', phone: '6285161364810', note: 'Adik akan segera dihubungi.' }
+};
+var EMERGENCY_TRIGGER_KEYWORDS = [
+    '!bantuan_zaki',
+    'bantuan',
+    'darurat',
+    'emergency',
+    'hubungi keluarga',
+    'kontak keluarga',
+    'nomor keluarga',
+    'panggil keluarga',
+    'tolong zaki',
+    'zaki dalam bahaya',
+    'zaki pingsan'
+];
+var emergencyState = {
+    awaitingPin: false,
+    unlocked: false
+};
 
 // ────────────────────────────────────────────────
 //  AI Report Confirmation State
@@ -41,6 +66,79 @@ function escHtml(s) {
     return String(s || '').replace(/[&<>"']/g, function (c) {
         return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
+}
+
+function normalizeText(text) {
+    return String(text || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function getEmergencyStorage() {
+    try {
+        var raw = localStorage.getItem(EMERGENCY_STORAGE_KEY);
+        var parsed = raw ? JSON.parse(raw) : null;
+        return parsed && typeof parsed === 'object'
+            ? parsed
+            : { attempts: 0, locked: false, lastAttemptAt: '', lockedAt: '' };
+    } catch (e) {
+        return { attempts: 0, locked: false, lastAttemptAt: '', lockedAt: '' };
+    }
+}
+
+function saveEmergencyStorage(nextState) {
+    try {
+        localStorage.setItem(EMERGENCY_STORAGE_KEY, JSON.stringify(nextState || {}));
+    } catch (e) {}
+}
+
+function resetEmergencyStorage() {
+    saveEmergencyStorage({
+        attempts: 0,
+        locked: false,
+        lastAttemptAt: '',
+        lockedAt: ''
+    });
+}
+
+function isEmergencyLocked() {
+    return !!getEmergencyStorage().locked;
+}
+
+function registerWrongPinAttempt() {
+    var stored = getEmergencyStorage();
+    var attempts = (parseInt(stored.attempts || 0, 10) || 0) + 1;
+    var locked = attempts >= MAX_PIN_ATTEMPTS;
+    var nextState = {
+        attempts: attempts,
+        locked: locked,
+        lastAttemptAt: new Date().toISOString(),
+        lockedAt: locked ? new Date().toISOString() : (stored.lockedAt || '')
+    };
+    saveEmergencyStorage(nextState);
+    return {
+        attempts: attempts,
+        locked: locked,
+        remaining: Math.max(MAX_PIN_ATTEMPTS - attempts, 0)
+    };
+}
+
+function looksLikeEmergencyRequest(text) {
+    var clean = normalizeText(text);
+    if (!clean) return false;
+    if (clean === EMERGENCY_PIN) return true;
+    if (EMERGENCY_TRIGGER_KEYWORDS.some(function(keyword) {
+        return clean.includes(normalizeText(keyword));
+    })) return true;
+
+    return /(hubungi|kontak|nomor|wa|whatsapp|bantuan|darurat|tolong)/.test(clean) &&
+        /(ibu|ayah|adik|keluarga|orang tua|ortu)/.test(clean);
+}
+
+function getMaskedPinLabel() {
+    return 'PIN: ••••••';
 }
 
 function isConfirmYes(text) {
@@ -58,6 +156,7 @@ var QUICK = [
     { label: '📥 Cara Download',    text: 'Gimana cara download game kalian?' },
     { label: '🐛 Lapor Bug',        text: '__BUG__' },
     { label: '💡 Kirim Saran',      text: '__SARAN__' },
+    { label: '🆘 Bantuan Aman',     text: '__SAFE_HELP__' },
     { label: '📞 Kontak Tim',       text: 'Gimana cara menghubungi tim Nusabit Studio?' },
     { label: '📋 Cek Tiket',        text: '__TIKET__' },
 ];
@@ -167,6 +266,30 @@ function validatePreparedFiles(files, warningId) {
 
 function isValidEmail(email) {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(email || '').trim());
+}
+
+function getReportValidationState(payload) {
+    var data = payload || {};
+    var type = String(data.type || '').toLowerCase();
+    var missingGame = type !== 'review' && !String(data.game || '').trim();
+    var invalidDesc = !String(data.desc || '').trim() || String(data.desc || '').trim().length < 10;
+    var invalidEmail = !isValidEmail(data.email || '');
+    return {
+        missingGame: missingGame,
+        invalidDesc: invalidDesc,
+        invalidEmail: invalidEmail,
+        isValid: !(missingGame || invalidDesc || invalidEmail)
+    };
+}
+
+function getReportValidationMessage(payload) {
+    var validation = getReportValidationState(payload);
+    var missing = [];
+    if (validation.missingGame) missing.push('nama game');
+    if (validation.invalidDesc) missing.push('alasan/detail minimal 10 karakter');
+    if (validation.invalidEmail) missing.push('email yang valid');
+    if (!missing.length) return '';
+    return 'Sebelum saya buat tiket, lengkapi dulu: **' + missing.join('**, **') + '**. Kamu bisa tulis datanya di chat atau pakai tombol laporan ya.';
 }
 
 function setFieldInvalid(el, invalid) {
@@ -338,6 +461,136 @@ function addMsg(role, text, time, mediaList) {
     if (role === 'bot') { playPing(); speakText(text); }
 }
 
+function addBotHtmlBubble(html, options) {
+    var msgs = document.getElementById('messages');
+    if (!msgs) return;
+    var opts = options || {};
+    var row  = document.createElement('div');
+    row.className = 'msg-row bot';
+    row.innerHTML =
+        '<div class="msg-avatar"><img src="../assets/img/studio_logo.png" alt="CS"></div>' +
+        '<div class="msg-content">' +
+            '<div class="msg-name">Nusabit Bot</div>' +
+            '<div class="msg-bubble">' + String(html || '') + '</div>' +
+            '<div class="msg-meta"><span class="msg-time">' + (opts.time || now()) + '</span></div>' +
+        '</div>';
+    msgs.appendChild(row);
+    msgs.scrollTop = msgs.scrollHeight;
+    playPing();
+    if (opts.speakText) speakText(opts.speakText);
+}
+
+function showEmergencyContactChooser() {
+    var buttons = Object.keys(EMERGENCY_CONTACTS).map(function(key) {
+        var info = EMERGENCY_CONTACTS[key];
+        return '<button type="button" data-emergency-action="choose-contact" data-contact-key="' + key + '" ' +
+            'style="flex:1;min-width:130px;padding:10px 12px;border-radius:12px;border:1px solid rgba(124,77,255,.45);' +
+            'background:linear-gradient(135deg,rgba(124,77,255,.22),rgba(0,229,255,.12));color:#fff;font-weight:700;cursor:pointer;">' +
+            'Hubungi ' + escHtml(info.label) + '</button>';
+    }).join('');
+
+    addBotHtmlBubble(
+        '<div style="font-weight:800;margin-bottom:10px;">Pilihan kontak keluarga</div>' +
+        '<div style="font-size:0.87rem;line-height:1.6;opacity:.9;">PIN benar. Pilih siapa yang mau dihubungi dulu ya.</div>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">' + buttons + '</div>',
+        { speakText: 'PIN benar. Pilih kontak keluarga yang mau dihubungi.' }
+    );
+}
+
+function showEmergencyContactCard(contactKey) {
+    var info = EMERGENCY_CONTACTS[contactKey];
+    if (!info) return;
+
+    var otherButtons = Object.keys(EMERGENCY_CONTACTS)
+        .filter(function(key) { return key !== contactKey; })
+        .map(function(key) {
+            return '<button type="button" data-emergency-action="choose-contact" data-contact-key="' + key + '" ' +
+                'style="padding:9px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);color:#fff;font-weight:700;cursor:pointer;">' +
+                escHtml(EMERGENCY_CONTACTS[key].label) + '</button>';
+        }).join('');
+
+    addBotHtmlBubble(
+        '<div style="font-weight:800;margin-bottom:10px;">Kontak ' + escHtml(info.label) + ' siap</div>' +
+        '<div style="font-size:0.86rem;line-height:1.6;opacity:.92;background:rgba(0,0,0,.12);border:1px solid rgba(255,255,255,.06);padding:10px 12px;border-radius:10px;">' +
+            '<div><strong>Nomor WhatsApp:</strong> ' + escHtml(info.phone) + '</div>' +
+            '<div style="margin-top:6px;">' + escHtml(info.note) + '</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">' +
+            '<a href="https://wa.me/' + escHtml(info.phone) + '" target="_blank" rel="noopener" ' +
+               'style="flex:1;min-width:180px;text-align:center;padding:11px 14px;border-radius:10px;text-decoration:none;' +
+               'background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;font-weight:800;">Buka WhatsApp ' + escHtml(info.label) + '</a>' +
+        '</div>' +
+        (otherButtons
+            ? '<div style="margin-top:12px;font-size:0.78rem;opacity:.75;">Butuh kontak lain juga?</div>' +
+              '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">' + otherButtons + '</div>'
+            : ''),
+        { speakText: 'Kontak ' + info.label + ' sudah siap. Silakan lanjut ke WhatsApp.' }
+    );
+}
+
+function handleEmergencyContactSelection(contactKey) {
+    var info = EMERGENCY_CONTACTS[contactKey];
+    if (!info) return;
+    addMsg('bot', 'Bentar, saya siapkan secepatnya buat menghubungi ' + info.label + ' ya.', now());
+    showTyping();
+    setTimeout(function() {
+        hideTyping();
+        showEmergencyContactCard(contactKey);
+    }, 700);
+}
+
+function handleEmergencyProtection(text, files) {
+    var message = String(text || '').trim();
+    var isEmergencyMessage = looksLikeEmergencyRequest(message) || emergencyState.awaitingPin;
+    if (!isEmergencyMessage) return false;
+
+    if (emergencyState.awaitingPin) {
+        if (!message) return true;
+        addMsg('user', getMaskedPinLabel(), now());
+
+        if (String(message) === EMERGENCY_PIN) {
+            resetEmergencyStorage();
+            emergencyState.awaitingPin = false;
+            emergencyState.unlocked = true;
+            addMsg('bot', 'PIN benar. Bentar, saya siapkan secepatnya. Pilih kontak keluarga yang mau dihubungi ya.', now());
+            setTimeout(showEmergencyContactChooser, 320);
+            return true;
+        }
+
+        var wrongState = registerWrongPinAttempt();
+        emergencyState.awaitingPin = !wrongState.locked;
+        emergencyState.unlocked = false;
+
+        if (wrongState.locked) {
+            addMsg('bot', 'PIN salah terus. Demi keamanan, bantuan ini sekarang dikunci di perangkat ini dan catatan percobaannya disimpan lokal.', now());
+        } else {
+            addMsg('bot', 'PIN salah. Sisa percobaan: **' + wrongState.remaining + '**. Kalau salah terus, bantuan akan dikunci di perangkat ini.', now());
+        }
+        return true;
+    }
+
+    addMsg('user', message === EMERGENCY_PIN ? getMaskedPinLabel() : message, now());
+
+    if (isEmergencyLocked()) {
+        addMsg('bot', 'Fitur bantuan aman di perangkat ini sedang dikunci karena PIN salah berulang. Data percobaan sudah tersimpan lokal, jadi akses bantuan tidak bisa dibuka lagi dari sini.', now());
+        return true;
+    }
+
+    if (message === EMERGENCY_PIN) {
+        resetEmergencyStorage();
+        emergencyState.unlocked = true;
+        addMsg('bot', 'PIN benar. Bentar, saya siapkan secepatnya. Pilih kontak keluarga yang mau dihubungi ya.', now());
+        setTimeout(showEmergencyContactChooser, 320);
+        return true;
+    }
+
+    emergencyState.awaitingPin = true;
+    emergencyState.unlocked = false;
+    hideQuickArea();
+    addMsg('bot', 'Untuk keamanan, bantuan ini tidak saya buka langsung. Masukkan PIN 6 digit dulu ya. Kalau salah **4 kali**, akses bantuan akan dikunci di perangkat ini dan percobaannya disimpan lokal.', now());
+    return true;
+}
+
 /* ── LIGHTBOX ── */
 function openLightbox(src) {
     var lb = document.createElement('div');
@@ -380,6 +633,7 @@ function renderQuickChips(chips) {
             if (q.text === '__BUG__')    { hideQuickArea(); openModal('bug');   return; }
             if (q.text === '__SARAN__')  { hideQuickArea(); openModal('saran'); return; }
             if (q.text === '__TIKET__')  { hideQuickArea(); showTicketPrompt(); return; }
+            if (q.text === '__SAFE_HELP__') { hideQuickArea(); handleEmergencyProtection('bantuan', []); return; }
             sendMsg(q.text);
             hideQuickArea();
         };
@@ -546,6 +800,14 @@ function sendMsg(text, forcedFiles) {
         // lanjut proses kirim pesan ke AI (untuk revisi)
     }
 
+    if (handleEmergencyProtection(text, files)) {
+        pendingFiles = [];
+        renderPendingPreviews();
+        var protectedInp = document.getElementById('msg-input');
+        if (protectedInp) { protectedInp.value = ''; protectedInp.style.height = 'auto'; }
+        return;
+    }
+
     if ((!text || !text.trim()) && !files.length) return;
     if (isWaiting || isSubmittingReport) return;
     if (!validatePreparedFiles(files, 'upload-warning')) return;
@@ -611,11 +873,17 @@ function sendMsg(text, forcedFiles) {
         // Jika model mengeluarkan tag SUBMIT_REPORT, backend akan mengembalikan payload
         // dan frontend WAJIB minta konfirmasi user sebelum memanggil endpoint /report.
         if (data.reportNeedsConfirmation && data.reportPayload) {
-            pendingAIReport = {
-                payload: data.reportPayload,
-                ticketId: generateTicket()
-            };
-            setTimeout(function() { postAIReportConfirmBubble(pendingAIReport.payload); }, 450);
+            var aiValidation = getReportValidationState(data.reportPayload);
+            if (!aiValidation.isValid) {
+                pendingAIReport = null;
+                addMsg('bot', getReportValidationMessage(data.reportPayload), now());
+            } else {
+                pendingAIReport = {
+                    payload: data.reportPayload,
+                    ticketId: generateTicket()
+                };
+                setTimeout(function() { postAIReportConfirmBubble(pendingAIReport.payload); }, 450);
+            }
         }
     })
     .catch(function() {
@@ -659,10 +927,19 @@ function initAIReportConfirmDelegation() {
     msgs.dataset.aiConfirmBound = '1';
     msgs.addEventListener('click', function(e) {
         var btn = e.target && e.target.closest ? e.target.closest('button[data-report-action]') : null;
-        if (!btn) return;
-        var action = btn.getAttribute('data-report-action');
-        if (action === 'confirm') confirmPendingAIReport();
-        if (action === 'cancel')  cancelPendingAIReport();
+        if (btn) {
+            var action = btn.getAttribute('data-report-action');
+            if (action === 'confirm') confirmPendingAIReport();
+            if (action === 'cancel')  cancelPendingAIReport();
+            return;
+        }
+
+        var emergencyBtn = e.target && e.target.closest ? e.target.closest('[data-emergency-action]') : null;
+        if (!emergencyBtn) return;
+        var emergencyAction = emergencyBtn.getAttribute('data-emergency-action');
+        if (emergencyAction === 'choose-contact') {
+            handleEmergencyContactSelection(emergencyBtn.getAttribute('data-contact-key'));
+        }
     });
 }
 
@@ -692,7 +969,7 @@ function postAIReportConfirmBubble(payload) {
                 '<div style="font-size:0.82rem;line-height:1.6;opacity:.9;background:rgba(0,0,0,.12);border:1px solid rgba(255,255,255,.06);padding:10px 12px;border-radius:10px;">' +
                     '<div><strong>Jenis:</strong> ' + typeLabel + '</div>' +
                     '<div><strong>Game:</strong> ' + game + '</div>' +
-                    '<div style="margin-top:6px;"><strong>Detail:</strong><br>' + desc + '</div>' +
+                    '<div style="margin-top:6px;"><strong>Alasan / detail:</strong><br>' + desc + '</div>' +
                     '<div style="margin-top:6px;"><strong>Email:</strong> ' + email + '</div>' +
                     '<div><strong>Kontak:</strong> ' + contact + '</div>' +
                 '</div>' +
@@ -715,13 +992,11 @@ function postAIReportConfirmBubble(payload) {
 function confirmPendingAIReport() {
     if (!pendingAIReport || !pendingAIReport.payload || isSubmittingReport) return;
     var payload = pendingAIReport.payload;
-    var missingGame = !String(payload.game || '').trim();
-    var invalidDesc = !String(payload.desc || '').trim() || String(payload.desc || '').trim().length < 10;
-    var invalidEmail = !isValidEmail(payload.email || '');
+    var validation = getReportValidationState(payload);
 
-    if (missingGame || invalidDesc || invalidEmail) {
+    if (!validation.isValid) {
         pendingAIReport = null;
-        addMsg('bot', 'Laporan belum bisa saya kirim. Pastikan **nama game**, **penjelasan minimal 10 karakter**, dan **email yang valid** sudah ada ya. Silakan tulis ulang detailnya atau pakai tombol laporan supaya form wajibnya lengkap.', now());
+        addMsg('bot', 'Laporan belum bisa saya kirim. Pastikan **nama game**, **alasan/detail minimal 10 karakter**, dan **email yang valid** sudah ada ya. Silakan tulis ulang detailnya atau pakai tombol laporan supaya form wajibnya lengkap.', now());
         return;
     }
 
@@ -831,7 +1106,7 @@ function validateModalDraft(showAlert) {
     }
     if (invalidDesc) {
         if (descEl) descEl.focus();
-        alert('Penjelasan wajib diisi minimal 10 karakter ya.');
+        alert('Alasan / detail wajib diisi minimal 10 karakter ya.');
         return false;
     }
     if (invalidEmail) {
@@ -912,7 +1187,7 @@ function switchType(type) {
 
     if (descLabelEl) {
         descLabelEl.textContent =
-            isBug ? 'Jelaskan bug / error *' : (isReview ? 'Detail permintaan *' : 'Jelaskan saran / ide kamu *');
+            isBug ? 'Alasan / detail bug *' : (isReview ? 'Alasan / detail permintaan *' : 'Alasan / detail saran *');
     }
 
     if (uploadLabelEl) {
@@ -934,15 +1209,15 @@ function switchType(type) {
     }
 
     document.getElementById('r-desc').placeholder = isBug
-        ? 'Ceritakan bug yang kamu temukan secara jelas...'
+        ? 'Jelaskan alasan dan detail bug yang kamu temukan secara jelas...'
         : (isReview
             ? 'Tulis detail edit/hapus ulasan kamu:\n' +
               '- Mau edit atau hapus?\n' +
               '- Nama yang dipakai saat ulasan\n' +
               '- Rating/isi ulasan lama (atau perkiraan waktu kirim)\n' +
               '- Jika edit: tulis rating/isi ulasan yang baru\n' +
-              '- Alasan (opsional)'
-            : 'Jelaskan saran atau ide kamu secara detail...');
+              '- Alasan / detail perubahan'
+            : 'Jelaskan alasan dan detail saran atau ide kamu...');
 
     document.getElementById('r-submit').textContent =
         isBug ? 'Kirim Laporan Bug' : (isReview ? 'Kirim Permintaan' : 'Kirim Saran');
@@ -1045,7 +1320,7 @@ function showModalConfirm(r) {
             'Sebelum dikirim ke admin/tim developer, mohon konfirmasi dulu ya.<br><br>' +
             '<b>Jenis:</b> ' + escHtml(uiTypeLabel) + '<br>' +
             '<b>Game:</b> ' + escHtml(r.game || '—') + '<br>' +
-            '<b>Detail:</b><br>' + escHtml(r.desc || '').replace(/\n/g, '<br>') + '<br><br>' +
+            '<b>Alasan / detail:</b><br>' + escHtml(r.desc || '').replace(/\n/g, '<br>') + '<br><br>' +
             '<b>Email:</b> ' + escHtml(r.email || '—') + '<br>' +
             '<b>Kontak:</b> ' + escHtml(r.contact || '—') + '<br>' +
             '<b>Jumlah gambar:</b> ' + String((r.files || []).length || 0);
